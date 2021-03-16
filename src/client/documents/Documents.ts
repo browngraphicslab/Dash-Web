@@ -324,7 +324,7 @@ export namespace Docs {
             }],
             [DocumentType.WEB, {
                 layout: { view: WebBox, dataField: defaultDataKey },
-                options: { _height: 300, scrollHeight: 100000, _fitWidth: true }
+                options: { _height: 300, _fitWidth: true }
             }],
             [DocumentType.COL, {
                 layout: { view: CollectionView, dataField: defaultDataKey },

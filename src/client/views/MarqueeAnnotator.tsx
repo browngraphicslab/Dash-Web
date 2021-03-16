@@ -1,22 +1,22 @@
-import { action, observable, runInAction } from "mobx";
+import { action, observable, runInAction, ObservableMap } from "mobx";
 import { observer } from "mobx-react";
 import { Dictionary } from "typescript-collections";
 import { AclAddonly, AclAdmin, AclEdit, DataSym, Doc, Opt } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
+import { List } from "../../fields/List";
+import { NumCast } from "../../fields/Types";
 import { GetEffectiveAcl } from "../../fields/util";
-import { DocUtils, Docs } from "../documents/Documents";
+import { Utils } from "../../Utils";
+import { Docs } from "../documents/Documents";
+import { DocumentType } from "../documents/DocumentTypes";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { DragManager } from "../util/DragManager";
+import { undoBatch } from "../util/UndoManager";
+import "./MarqueeAnnotator.scss";
+import { DocumentView } from "./nodes/DocumentView";
 import { FormattedTextBox } from "./nodes/formattedText/FormattedTextBox";
 import { AnchorMenu } from "./pdf/AnchorMenu";
-import "./MarqueeAnnotator.scss";
 import React = require("react");
-import { undoBatch } from "../util/UndoManager";
-import { NumCast } from "../../fields/Types";
-import { DocumentType } from "../documents/DocumentTypes";
-import { List } from "../../fields/List";
-import { Utils } from "../../Utils";
-import { util } from "chai";
 const _global = (window /* browser */ || global /* node */) as any;
 
 export interface MarqueeAnnotatorProps {
@@ -26,7 +26,8 @@ export interface MarqueeAnnotatorProps {
     scaling?: () => number;
     containerOffset?: () => number[];
     mainCont: HTMLDivElement;
-    savedAnnotations: Dictionary<number, HTMLDivElement[]>;
+    docView: DocumentView;
+    savedAnnotations: ObservableMap<number, HTMLDivElement[]>;
     annotationLayer: HTMLDivElement;
     addDocument: (doc: Doc) => boolean;
     getPageFromScroll?: (top: number) => number;
@@ -48,7 +49,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
             AnchorMenu.Instance.Status = "marquee";
             AnchorMenu.Instance.fadeOut(true);
             // clear out old marquees and initialize menu for new selection
-            this.props.savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+            Array.from(this.props.savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
             this.props.savedAnnotations.clear();
         });
     }
@@ -81,7 +82,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
                 FormattedTextBox.SelectOnLoad = target[Id];
                 return target;
             };
-            DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.props.rootDoc, sourceAnchorCreator, targetCreator), e.pageX, e.pageY, {
+            DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.props.docView, sourceAnchorCreator, targetCreator), e.pageX, e.pageY, {
                 dragComplete: e => {
                     if (!e.aborted && e.annoDragData && e.annoDragData.linkSourceDoc && e.annoDragData.dropDocument && e.linkDocument) {
                         e.annoDragData.linkSourceDoc.isPushpin = e.annoDragData.dropDocument.annotationOn === this.props.rootDoc;
@@ -98,10 +99,10 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
     @undoBatch
     @action
     makeAnnotationDocument = (color: string): Opt<Doc> => {
-        if (this.props.savedAnnotations.size() === 0) return undefined;
-        if ((this.props.savedAnnotations.values()[0][0] as any).marqueeing) {
+        if (this.props.savedAnnotations.size === 0) return undefined;
+        if ((Array.from(this.props.savedAnnotations.values())[0][0] as any).marqueeing) {
             const scale = this.props.scaling?.() || 1;
-            const anno = this.props.savedAnnotations.values()[0][0];
+            const anno = Array.from(this.props.savedAnnotations.values())[0][0];
             const containerOffset = this.props.containerOffset?.() || [0, 0];
             const marqueeAnno = Docs.Create.FreeformDocument([], { backgroundColor: color, annotationOn: this.props.rootDoc, title: "Annotation on " + this.props.rootDoc.title });
             marqueeAnno.x = (parseInt(anno.style.left || "0") - containerOffset[0]) / scale;
@@ -117,7 +118,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         let maxX = -Number.MAX_VALUE;
         let minY = Number.MAX_VALUE;
         const annoDocs: Doc[] = [];
-        this.props.savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => value.map(anno => {
+        this.props.savedAnnotations.forEach((value: HTMLDivElement[], key: number) => value.map(anno => {
             const textRegion = new Doc();
             textRegion.x = parseInt(anno.style.left ?? "0");
             textRegion.y = parseInt(anno.style.top ?? "0");
@@ -149,20 +150,20 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         return annotationDoc as Doc ?? undefined;
     }
 
-    public static previewNewAnnotation = action((savedAnnotations: Dictionary<number, HTMLDivElement[]>, annotationLayer: HTMLDivElement, div: HTMLDivElement, page: number) => {
+    public static previewNewAnnotation = action((savedAnnotations: ObservableMap<number, HTMLDivElement[]>, annotationLayer: HTMLDivElement, div: HTMLDivElement, page: number) => {
         if (div.style.top) {
             div.style.top = (parseInt(div.style.top)/*+ this.getScrollFromPage(page)*/).toString();
         }
         annotationLayer.append(div);
         div.style.backgroundColor = "#ACCEF7";
         div.style.opacity = "0.5";
-        const savedPage = savedAnnotations.getValue(page);
+        const savedPage = savedAnnotations.get(page);
         if (savedPage) {
             savedPage.push(div);
-            savedAnnotations.setValue(page, savedPage);
+            savedAnnotations.set(page, savedPage);
         }
         else {
-            savedAnnotations.setValue(page, [div]);
+            savedAnnotations.set(page, [div]);
         }
     });
 

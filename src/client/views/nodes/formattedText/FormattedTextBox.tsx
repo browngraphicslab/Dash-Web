@@ -229,7 +229,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 return target;
             };
 
-            DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.rootDoc, this.getAnchor, targetCreator), e.pageX, e.pageY);
+            DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.props.docViewPath().lastElement(), this.getAnchor, targetCreator), e.pageX, e.pageY);
         });
         const coordsB = this._editorView!.coordsAtPos(this._editorView!.state.selection.to);
         this.props.isSelected(true) && AnchorMenu.Instance.jumpTo(coordsB.left, coordsB.bottom);

@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, ObservableMap } from "mobx";
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -65,7 +65,7 @@ interface IViewerProps extends FieldViewProps {
 export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocument>(PdfDocument) {
     static _annotationStyle: any = addStyleSheet();
     @observable private _pageSizes: { width: number, height: number }[] = [];
-    @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
+    @observable private _savedAnnotations = new ObservableMap<number, HTMLDivElement[]>();
     @observable private _script: CompiledScript = CompileScript("return true") as CompiledScript;
     @observable private _marqueeing: number[] | undefined;
     @observable private _textSelecting = true;
@@ -140,8 +140,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this._disposers.selected = reaction(() => this.props.isSelected(),
             selected => {
                 if (!selected) {
-                    this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
-                    this._savedAnnotations.keys().forEach(k => this._savedAnnotations.setValue(k, []));
+                    Array.from(this._savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
+                    Array.from(this._savedAnnotations.keys()).forEach(k => this._savedAnnotations.set(k, []));
                 }
                 (SelectionManager.Views().length === 1) && this.setupPdfJsViewer();
             },
@@ -390,7 +390,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 setTimeout(action(() => this._marqueeing = undefined), 100); // bcz: hack .. anchor menu is setup within MarqueeAnnotator so we need to at least create the marqueeAnnotator even though we aren't using it.
                 // clear out old marquees and initialize menu for new selection
                 AnchorMenu.Instance.Status = "marquee";
-                this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                Array.from(this._savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
                 this._savedAnnotations.clear();
                 this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
                 document.addEventListener("pointerup", this.onSelectEnd);
@@ -574,6 +574,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                         anchorMenuClick={this.props.anchorMenuClick}
                         addDocument={this.addDocument}
                         finishMarquee={this.finishMarquee}
+                        docView={this.props.docViewPath().lastElement()}
                         getPageFromScroll={this.getPageFromScroll}
                         savedAnnotations={this._savedAnnotations}
                         annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}

@@ -484,12 +484,12 @@ const easeInOutQuad = (currentTime: number, start: number, change: number, durat
 
 export function smoothScroll(duration: number, element: HTMLElement | HTMLElement[], to: number) {
     const elements = (element instanceof HTMLElement ? [element] : element);
-    let starts = elements.map(element => element.scrollTop);
-    let startDate = new Date().getTime();
+    const starts = elements.map(element => element.scrollTop);
+    const startDate = new Date().getTime();
 
     const animateScroll = () => {
         const currentDate = new Date().getTime();
-        let currentTime = currentDate - startDate;
+        const currentTime = currentDate - startDate;
         elements.map((element, i) => element.scrollTop = easeInOutQuad(currentTime, starts[i], to - starts[i], duration));
 
         if (currentTime < duration) {
@@ -599,12 +599,12 @@ export function lightOrDark(color: any) {
 }
 
 
-export function getWordAtPoint(elem: any, x: number, y: number): Opt<string> {
-    if (elem.nodeType == elem.TEXT_NODE) {
+export function getWordAtPoint(elem: any, x: number, y: number): string | undefined {
+    if (elem.nodeType === elem.TEXT_NODE) {
         var range = elem.ownerDocument.createRange();
         range.selectNodeContents(elem);
         var currentPos = 0;
-        var endPos = range.endOffset;
+        const endPos = range.endOffset;
         while (currentPos + 1 < endPos) {
             range.setStart(elem, currentPos);
             range.setEnd(elem, currentPos + 1);
@@ -612,21 +612,21 @@ export function getWordAtPoint(elem: any, x: number, y: number): Opt<string> {
             if (rangeRect.left <= x && rangeRect.right >= x &&
                 rangeRect.top <= y && rangeRect.bottom >= y) {
                 range.expand("word");
-                var ret = range.toString();
+                const ret = range.toString();
                 range.detach();
                 return (ret);
             }
             currentPos += 1;
         }
     } else {
-        for (var i = 0; i < elem.childNodes.length; i++) {
-            var range = elem.childNodes[i].ownerDocument.createRange();
-            range.selectNodeContents(elem.childNodes[i]);
+        for (let childNode of elem.childNodes) {
+            const range = childNode.ownerDocument.createRange();
+            range.selectNodeContents(childNode);
             const rangeRect = range.getBoundingClientRect();
             if (rangeRect.left <= x && rangeRect.right >= x &&
                 rangeRect.top <= y && rangeRect.bottom >= y) {
                 range.detach();
-                const word = getWordAtPoint(elem.childNodes[i], x, y);
+                const word = getWordAtPoint(childNode, x, y);
                 if (word) return word;
             } else {
                 range.detach();

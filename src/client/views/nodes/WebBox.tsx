@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, ObservableMap } from "mobx";
 import { observer } from "mobx-react";
 import { Dictionary } from "typescript-collections";
 import * as WebRequest from 'web-request';
@@ -58,7 +58,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @observable private _url: string = "hello";
     @observable private _isAnnotating = false;
     @observable private _iframe: HTMLIFrameElement | null = null;
-    @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
+    @observable private _savedAnnotations = new ObservableMap<number, HTMLDivElement[]>();
     @observable private _scrollHeight = 1500;
     @computed get scrollHeight() { return this._scrollHeight; }
     @computed get inlineTextAnnotations() { return this.allAnnotations.filter(a => a.textInlineAnnotations); }
@@ -111,7 +111,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             const scale = (this.props.scaling?.() || 1) * mainContBounds.scale;
             const sel = this._iframe.contentWindow.getSelection();
             if (sel) {
-                this.createTextAnnotation(sel, sel.getRangeAt(0))
+                this.createTextAnnotation(sel, sel.getRangeAt(0));
                 AnchorMenu.Instance.jumpTo(e.clientX * scale + mainContBounds.translateX,
                     e.clientY * scale + mainContBounds.translateY - NumCast(this.layoutDoc._scrollTop) * scale);
             }
@@ -173,9 +173,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             this._scrollTimer = undefined;
             if (!LinkDocPreview.LinkInfo && this._outerRef.current &&
                 (!LightboxView.LightboxDoc || LightboxView.IsLightboxDocView(this.props.docViewPath()))) {
-                if (scrollTop > iframeHeight)
-                    this.layoutDoc._scrollTop = this._outerRef.current.scrollTop = iframeHeight;
-                else this.layoutDoc._scrollTop = this._outerRef.current.scrollTop = scrollTop;
+                this.layoutDoc._scrollTop = this._outerRef.current.scrollTop = scrollTop > iframeHeight ? iframeHeight : scrollTop;
             }
         }), timeout);
     }
@@ -194,7 +192,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (doc !== this.rootDoc && this._outerRef.current) {
             const scrollTo = doc.type === DocumentType.TEXTANCHOR ? NumCast(doc.y) : Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
             if (scrollTo !== undefined) {
-                let focusSpeed = smooth ? 500 : 0;
+                const focusSpeed = smooth ? 500 : 0;
                 this._initialScroll !== undefined && (this._initialScroll = scrollTo);
                 this.goTo(scrollTo, focusSpeed);
                 return focusSpeed;
@@ -224,7 +222,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
         this._disposers.selection = reaction(() => this.props.isSelected(),
             selected => !selected && setTimeout(() => {
-                this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                Array.from(this._savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
                 this._savedAnnotations.clear();
             }));
 
@@ -515,7 +513,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @computed get allAnnotations() { return DocListCast(this.dataDoc[this.annotationKey]); }
     @computed get annotationLayer() {
         TraceMobx();
-        return <div className="webBox-annotationLayer" style={{ height: Doc.NativeHeight(this.Document) || undefined }} ref={this._annotationLayer}>
+        return <div className="webBox-annotationLayer" style={{ display: !this._savedAnnotations.size && !this.allAnnotations.length ? "none" : undefined, height: Doc.NativeHeight(this.Document) || undefined }} ref={this._annotationLayer}>
             {this.inlineTextAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
                 <Annotation {...this.props} fieldKey={this.annotationKey} showInfo={this.showInfo} dataDoc={this.dataDoc} anno={anno} key={`${anno[Id]}-annotation`} />)
             }
@@ -590,6 +588,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             scrollTop={0}
                             down={this._marqueeing} scaling={returnOne}
                             addDocument={this.addDocument}
+                            docView={this.props.docViewPath().lastElement()}
                             finishMarquee={this.finishMarquee}
                             savedAnnotations={this._savedAnnotations}
                             annotationLayer={this._annotationLayer.current}

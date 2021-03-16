@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, ObservableMap } from 'mobx';
 import { observer } from "mobx-react";
 import { Dictionary } from 'typescript-collections';
 import { DataSym, Doc, DocListCast, WidthSym } from '../../../fields/Doc';
@@ -63,7 +63,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     componentDidMount() {
         this._disposers.selection = reaction(() => this.props.isSelected(),
             selected => !selected && setTimeout(() => {
-                this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                Array.from(this._savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
                 this._savedAnnotations.clear();
             }));
         this._disposers.path = reaction(() => ({ nativeSize: this.nativeSize, width: this.layoutDoc[WidthSym]() }),
@@ -337,7 +337,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     @observable _marqueeing: number[] | undefined;
-    @observable _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
+    @observable _savedAnnotations = new ObservableMap<number, HTMLDivElement[]>();
     @computed get annotationLayer() {
         return <div className="imageBox-annotationLayer" style={{ height: this.props.PanelHeight() }} ref={this._annotationLayer} />;
     }
@@ -388,7 +388,17 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             </CollectionFreeFormView>
             {this.annotationLayer}
             {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
-                <MarqueeAnnotator rootDoc={this.rootDoc} scrollTop={0} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocument} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
+                <MarqueeAnnotator rootDoc={this.rootDoc}
+                    scrollTop={0} down={this._marqueeing}
+                    scaling={this.props.scaling}
+                    docView={this.props.docViewPath().lastElement()}
+                    addDocument={this.addDocument}
+                    finishMarquee={this.finishMarquee}
+                    savedAnnotations={this._savedAnnotations}
+                    annotationLayer={this._annotationLayer.current}
+                    mainCont={this._mainCont.current}
+                />}
         </div >);
     }
+
 }
