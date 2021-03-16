@@ -17,7 +17,6 @@ import { aggregateBounds, emptyFunction, intersectRect, returnFalse, setupMoveUp
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
-import { DocumentType } from "../../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../../util/DragManager";
