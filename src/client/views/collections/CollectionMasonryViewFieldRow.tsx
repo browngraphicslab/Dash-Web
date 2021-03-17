@@ -25,10 +25,13 @@ export const Flyout = higflyout.default;
 interface CMVFieldRowProps {
     rows: () => number;
     headings: () => object[];
+    Document: Doc;
+    chromeStatus: string;
     heading: string;
     headingObject: SchemaHeaderField | undefined;
     docList: Doc[];
     parent: CollectionStackingView;
+    pivotField: string;
     type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined;
     createDropTarget: (ele: HTMLDivElement) => void;
     screenToLocalTransform: () => Transform;
@@ -90,7 +93,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         if (de.complete.docDragData) {
             (this.props.parent.Document.dropConverter instanceof ScriptField) &&
                 this.props.parent.Document.dropConverter.script.run({ dragData: de.complete.docDragData });
-            const key = StrCast(this.props.parent.props.Document._pivotField);
+            const key = this.props.pivotField;
             const castedValue = this.getValue(this.heading);
             const onLayoutDoc = this.onLayoutDoc(key);
             de.complete.docDragData.droppedDocuments.forEach(d => Doc.SetInPlace(d, key, castedValue, !onLayoutDoc));
@@ -110,7 +113,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @action
     headingChanged = (value: string, shiftDown?: boolean) => {
         this._createAliasSelected = false;
-        const key = StrCast(this.props.parent.props.Document._pivotField);
+        const key = this.props.pivotField;
         const castedValue = this.getValue(value);
         if (castedValue) {
             if (this.props.parent.columnHeaders) {
@@ -143,7 +146,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     addDocument = (value: string, shiftDown?: boolean, forceEmptyNote?: boolean) => {
         if (!value && !forceEmptyNote) return false;
         this._createAliasSelected = false;
-        const key = StrCast(this.props.parent.props.Document._pivotField);
+        const key = this.props.pivotField;
         const newDoc = Docs.Create.TextDocument("", { _autoHeight: true, _width: 200, _fitWidth: true, title: value });
         const onLayoutDoc = this.onLayoutDoc(key);
         FormattedTextBox.SelectOnLoad = newDoc[Id];
@@ -155,7 +158,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     deleteRow = undoBatch(action(() => {
         this._createAliasSelected = false;
-        const key = StrCast(this.props.parent.props.Document._pivotField);
+        const key = this.props.pivotField;
         this.props.docList.forEach(d => Doc.SetInPlace(d, key, undefined, true));
         if (this.props.parent.columnHeaders && this.props.headingObject) {
             const index = this.props.parent.columnHeaders.indexOf(this.props.headingObject);
@@ -171,8 +174,8 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     }
 
     headerMove = (e: PointerEvent) => {
-        const alias = Doc.MakeAlias(this.props.parent.props.Document);
-        const key = StrCast(this.props.parent.props.Document._pivotField);
+        const alias = Doc.MakeAlias(this.props.Document);
+        const key = this.props.pivotField;
         let value = this.getValue(this.heading);
         value = typeof value === "string" ? `"${value}"` : value;
         const script = `return doc.${key} === ${value}`;
@@ -187,7 +190,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @action
     headerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         if (e.button === 0 && !e.ctrlKey) {
-            setupMoveUpEvents(this, e, this.headerMove, emptyFunction, e => !this.props.parent.props.Document._chromeStatus && this.collapseSection(e));
+            setupMoveUpEvents(this, e, this.headerMove, emptyFunction, e => !this.props.chromeStatus && this.collapseSection(e));
             this._createAliasSelected = false;
         }
     }
@@ -251,8 +254,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @computed get contentLayout() {
         const rows = Math.max(1, Math.min(this.props.docList.length, Math.floor((this.props.parent.props.PanelWidth() - 2 * this.props.parent.xMargin) / (this.props.parent.columnWidth + this.props.parent.gridGap))));
-        const style = this.props.parent;
-        const chromeStatus = this.props.parent.props.Document._chromeStatus;
+        const chromeStatus = this.props.chromeStatus;
         const showChrome = (chromeStatus !== 'view-mode' && chromeStatus);
         const stackPad = showChrome ? `0px ${this.props.parent.xMargin}px` : `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px 0px ${this.props.parent.xMargin}px `;
         return this.collapsed ? (null) :
@@ -286,8 +288,8 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     }
 
     @computed get headingView() {
-        const noChrome = !this.props.parent.props.Document._chromeStatus;
-        const key = StrCast(this.props.parent.props.Document._pivotField);
+        const noChrome = !this.props.chromeStatus;
+        const key = this.props.pivotField;
         const evContents = this.heading ? this.heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
         const editableHeaderView = <EditableView
             GetValue={() => evContents}
@@ -295,7 +297,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             contents={evContents}
             oneLine={true}
             toggle={this.toggleVisibility} />;
-        return this.props.parent.props.Document.miniHeaders ?
+        return this.props.Document.miniHeaders ?
             <div className="collectionStackingView-miniHeader">
                 {editableHeaderView}
             </div> :

@@ -54,7 +54,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @observable _cursor: CursorProperty = "grab";
     @observable _scroll = 0; // used to force the document decoration to update when scrolling
     @computed get chromeStatus() { return this.props.chromeStatus || StrCast(this.layoutDoc._chromeStatus); }
-    @computed get columnHeaders() { return Cast(this.layoutDoc._columnHeaders, listSpec(SchemaHeaderField)); }
+    @computed get columnHeaders() { return Cast(this.layoutDoc._columnHeaders, listSpec(SchemaHeaderField), null); }
     @computed get pivotField() { return StrCast(this.layoutDoc._pivotField); }
     @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout); }
     @computed get headerMargin() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin); }
@@ -78,7 +78,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         }
     }
 
-    children(docs: Doc[], columns?: number) {
+    children = (docs: Doc[]) => {
         TraceMobx();
         this._docXfs.length = 0;
         return docs.map((d, i) => {
@@ -410,13 +410,22 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     this.observer.observe(ref);
                 }
             }}
+            addDocument={this.addDocument}
+            chromeStatus={this.chromeStatus}
+            columnHeaders={this.columnHeaders}
+            Document={this.props.Document}
+            DataDoc={this.props.DataDoc}
+            renderChildren={this.children}
+            columnWidth={this.columnWidth}
+            numGroupColumns={this.numGroupColumns}
+            gridGap={this.gridGap}
+            pivotField={this.pivotField}
             key={heading?.heading ?? ""}
-            cols={cols}
             headings={this.headings}
             heading={heading?.heading ?? ""}
             headingObject={heading}
             docList={docList}
-            parent={this}
+            yMargin={this.yMargin}
             type={type}
             createDropTarget={this.createDashEventsTarget}
             screenToLocalTransform={this.props.ScreenToLocalTransform}
@@ -434,6 +443,9 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
         return <CollectionMasonryViewFieldRow
             showHandle={first}
+            Document={this.props.Document}
+            chromeStatus={this.chromeStatus}
+            pivotField={this.pivotField}
             unobserveHeight={(ref) => this.refList.splice(this.refList.indexOf(ref), 1)}
             observeHeight={(ref) => {
                 if (ref) {

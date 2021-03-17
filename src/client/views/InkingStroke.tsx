@@ -39,7 +39,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         inkDoc.mixBlendMode = inkDoc.isInkMask ? "hard-light" : undefined;
         inkDoc.color = "#9b9b9bff";
         inkDoc._stayInCollection = inkDoc.isInkMask ? true : undefined;
-    })
+    });
 
     public _prevX = 0;
     public _prevY = 0;

@@ -571,7 +571,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }));
 
         const uicontrols: ContextMenuProps[] = [];
-        uicontrols.push({ description: `${FormattedTextBox._canAnnotate ? "Hide" : "Show"} Annotation Bar`, event: () => FormattedTextBox._canAnnotate = !FormattedTextBox._canAnnotate, icon: "expand-arrows-alt" });
+        !Doc.UserDoc().noviceMode && uicontrols.push({ description: `${FormattedTextBox._canAnnotate ? "Don't" : ""} Show Menu on Selections`, event: () => FormattedTextBox._canAnnotate = !FormattedTextBox._canAnnotate, icon: "expand-arrows-alt" });
         uicontrols.push({ description: !this.Document._noSidebar ? "Hide Sidebar Handle" : "Show Sidebar Handle", event: () => this.layoutDoc._noSidebar = !this.layoutDoc._noSidebar, icon: "expand-arrows-alt" });
         uicontrols.push({ description: `${this.layoutDoc._showAudio ? "Hide" : "Show"} Dictation Icon`, event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Show Highlights...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
@@ -748,8 +748,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
         this.props.contentsActive?.(this.active);
         this._cachedLinks = DocListCast(this.Document.links);
-        this._disposers.autoHeight = reaction(() => ({ scrollHeight: this.scrollHeight, autoHeight: this.autoHeight, width: NumCast(this.layoutDoc._width) }),
-            ({ width, autoHeight, scrollHeight }) => width && autoHeight && this.resetNativeHeight(scrollHeight)
+        this._disposers.autoHeight = reaction(() => this.autoHeight, autoHeight => autoHeight && this.tryUpdateScrollHeight());
+        this._disposers.autoHeight = reaction(() => ({ scrollHeight: this.scrollHeight, width: NumCast(this.layoutDoc._width) }),
+            ({ width, scrollHeight }) => width && this.autoHeight && this.resetNativeHeight(scrollHeight)
         );
         this._disposers.componentHeights = reaction(  // set the document height when one of the component heights changes and autoHeight is on
             () => ({ sidebarHeight: this.sidebarHeight, textHeight: this.textHeight, autoHeight: this.autoHeight }),

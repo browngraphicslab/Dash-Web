@@ -146,8 +146,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 (SelectionManager.Views().length === 1) && this.setupPdfJsViewer();
             },
             { fireImmediately: true });
-        this._disposers.curPage = reaction(
-            () => this.Document._curPage,
+        this._disposers.curPage = reaction(() => this.Document._curPage,
             (page) => page !== undefined && page !== this._pdfViewer?.currentPageNumber && this.gotoPage(page),
             { fireImmediately: true }
         );

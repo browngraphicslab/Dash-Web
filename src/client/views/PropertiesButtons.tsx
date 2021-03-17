@@ -79,6 +79,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @computed get titleButton() {
         return this.propertyToggleBtn("Title", "_showTitle", on => "Switch between title styles", on => "text-width", (dv, doc) => (dv?.rootDoc || doc)._showTitle = !(dv?.rootDoc || doc)._showTitle ? "title" : (dv?.rootDoc || doc)._showTitle === "title" ? "title:hover" : undefined);
     }
+    @computed get autoHeightButton() {
+        return this.propertyToggleBtn("Auto\xA0Size", "_autoHeight", on => `Automatical vertical sizing to show all content`, on => "arrows-alt-v");
+    }
 
     @computed
     get onClickButton() {
@@ -142,6 +145,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isText = layoutField instanceof RichTextField;
         const isInk = layoutField instanceof InkField;
         const isCollection = this.selectedDoc?.type === DocumentType.COL;
+        const isStacking = this.selectedDoc?._viewType === CollectionViewType.Stacking;
         const isFreeForm = this.selectedDoc?._viewType === CollectionViewType.Freeform;
         const toggle = (ele: JSX.Element | null, style?: React.CSSProperties) => <div className="propertiesButtons-button" style={style}> {ele} </div>;
 
@@ -152,6 +156,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 {toggle(this.chromeButton, { display: isCollection ? "" : "none" })}
                 {toggle(this.lockButton)}
                 {toggle(this.dictationButton)}
+                {toggle(this.autoHeightButton, { display: !isText && !isStacking ? "none" : "" })}
                 {toggle(this.onClickButton)}
                 {toggle(this.clustersButton, { display: !isFreeForm ? "none" : "" })}
                 {toggle(this.panButton, { display: !isFreeForm ? "none" : "" })}

@@ -37,6 +37,7 @@ export const PastelSchemaPalette = new Map<string, string>([
     ["red3", "#ffbebc"],
     ["red4", "#ffcbc1"],
     ["orange1", "#ffd5b3"],
+    ["gray", "#f1efeb"]
 ]);
 
 export const RandomPastel = () => Array.from(PastelSchemaPalette.values())[Math.floor(Math.random() * PastelSchemaPalette.size)];
