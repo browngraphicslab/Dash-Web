@@ -1198,7 +1198,7 @@ export class CurrentUserUtils {
             _width: width || 200, _height: height || 100, x: x, y: y, _fitWidth: true, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
             _fontFamily: StrCast(Doc.UserDoc().fontFamily), title
         });
-        const template = FormattedTextBox.DefaultLayout;
+        const template = Doc.UserDoc().defaultTextLayout;
         if (template instanceof Doc) {
             tbox._width = NumCast(template._width);
             tbox.layoutKey = "layout_" + StrCast(template.title);

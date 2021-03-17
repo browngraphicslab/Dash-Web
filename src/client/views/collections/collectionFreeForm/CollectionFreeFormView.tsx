@@ -235,7 +235,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     internalDocDrop(e: Event, de: DragManager.DropEvent, docDragData: DragManager.DocumentDragData, xp: number, yp: number) {
-        if (!this.ChildDrag && this.props.layerProvider?.(this.props.Document) !== false && this.props.Document._isGroup) return false;
+        if (!de.embedKey && !this.ChildDrag && this.props.layerProvider?.(this.props.Document) !== false && this.props.Document._isGroup) return false;
         if (!super.onInternalDrop(e, de)) return false;
         const refDoc = docDragData.droppedDocuments[0];
         const [xpo, ypo] = this.getTransformOverlay().transformPoint(de.x, de.y);

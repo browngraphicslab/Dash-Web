@@ -84,9 +84,6 @@ type PullHandler = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, da
 export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(FormattedTextBox, fieldStr); }
     public static blankState = () => EditorState.create(FormattedTextBox.Instance.config);
-    public static get DefaultLayout() {
-        return Cast(Doc.UserDoc().defaultTextLayout, Doc, null) || StrCast(Doc.UserDoc().defaultTextLayout, null);
-    }
     public static Instance: FormattedTextBox;
     public static LiveTextUndo: UndoManager.Batch | undefined;
     static _highlights: string[] = ["Audio Tags", "Text from Others", "Todo Items", "Important Items", "Disagree Items", "Ignore Items"];
