@@ -780,8 +780,6 @@ export namespace Docs {
 
             LinkManager.Instance.addLink(doc);
 
-            source.doc.links === undefined && (Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)"));
-            target.doc.links === undefined && (Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)"));
             return doc;
         }
 

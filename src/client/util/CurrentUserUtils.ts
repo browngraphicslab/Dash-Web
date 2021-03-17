@@ -1156,8 +1156,8 @@ export class CurrentUserUtils {
         input.click();
     }
 
-    public static snapshotDashboard = (userDoc: Doc) => {
-        const copy = CollectionDockingView.Copy(CurrentUserUtils.ActiveDashboard);
+    public static async snapshotDashboard(userDoc: Doc) {
+        const copy = await CollectionDockingView.Copy(CurrentUserUtils.ActiveDashboard);
         Doc.AddDocToList(Cast(userDoc.myDashboards, Doc, null), "data", copy);
         CurrentUserUtils.openDashboard(userDoc, copy);
     }

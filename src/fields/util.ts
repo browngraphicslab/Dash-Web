@@ -302,20 +302,15 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
 }
 
 export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
-    const prop = in_prop;
+    let prop = in_prop;
 
     if (in_prop === AclSym) return target[AclSym];
     if (in_prop === "toString" || (in_prop !== HeightSym && in_prop !== WidthSym && in_prop !== LayoutSym && typeof prop === "symbol")) return target.__fields[prop] || target[prop];
     if (GetEffectiveAcl(target) === AclPrivate) return prop === HeightSym || prop === WidthSym ? returnZero : undefined;
     if (prop === LayoutSym) return target.__LAYOUT__;
-    let search = false;
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && prop.startsWith("_")) {
-        // if (!prop.startsWith("_")) {
-        //     console.log(prop + " is deprecated - switch to _" + prop);
-        //     prop = "_" + prop;
-        // }
-        if (!prop.startsWith("__")) search = true;
-        if (target.__LAYOUT__) return target.__LAYOUT__[prop] ?? (search ? target.__LAYOUT__[prop.substring(1)] : undefined);
+        if (!prop.startsWith("__")) prop = prop.substring(1);
+        if (target.__LAYOUT__) return target.__LAYOUT__[prop];
     }
     if (prop === "then") {//If we're being awaited
         return undefined;
@@ -326,7 +321,7 @@ export function getter(target: any, in_prop: string | symbol | number, receiver:
     if (SerializationHelper.IsSerializing()) {
         return target[prop];
     }
-    return (search ? getFieldImpl(target, (prop as any as string).substring(1), receiver) : undefined) ?? getFieldImpl(target, prop, receiver);
+    return getFieldImpl(target, prop, receiver);
 }
 
 function getFieldImpl(target: any, prop: string | number, receiver: any, ignoreProto: boolean = false): any {

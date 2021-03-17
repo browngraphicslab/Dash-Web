@@ -510,11 +510,11 @@ export namespace Doc {
         cloneMap.set(doc[Id], copy);
         if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
         const filter = [...exclusions, ...Cast(doc.cloneFieldFilter, listSpec("string"), [])];
-        await Promise.all(Object.keys(doc).map(async key => {
+        await Promise.all([...Object.keys(doc), "links"].map(async key => {
             if (filter.includes(key)) return;
             const assignKey = (val: any) => !dontCreate && (copy[key] = val);
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
-            const field = ProxyField.WithoutProxy(() => doc[key]);
+            const field = key === "links" && Doc.IsPrototype(doc) ? doc[key] : ProxyField.WithoutProxy(() => doc[key]);
             const copyObjectField = async (field: ObjectField) => {
                 const list = Cast(doc[key], listSpec(Doc));
                 const docs = list && (await DocListCastAsync(list))?.filter(d => d instanceof Doc);
