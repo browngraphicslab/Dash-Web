@@ -38,6 +38,8 @@ import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
+import { FilterBox } from '../nodes/FilterBox';
+import { listSpec } from '../../../fields/Schema';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 
@@ -116,6 +118,19 @@ export class CollectionView extends Touchable<CollectionViewProps> {
 
     whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
 
+    /**
+     * Applies the collection/dashboard's current filter attributes to the doc being added
+     */
+    addFilterAttributes = (doc: Doc) => {
+        Cast(FilterBox.targetDoc._docFilters, listSpec("string"))?.forEach(attribute => {
+            if (attribute.charAt(0).toUpperCase() === attribute.charAt(0)) {
+                const fields = attribute.split(':');
+                if (fields[2] === "check") doc[DataSym][fields[0]] = fields[1];
+                else if (fields[2] === "x" && doc[DataSym][fields[0]] === fields[1]) doc[DataSym][fields[0]] = undefined;
+            }
+        });
+    }
+
     @action.bound
     addDocument = (doc: Doc | Doc[]): boolean => {
         if (this.props.filterAddDocument?.(doc) === false) {
@@ -157,6 +172,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                         DocUtils.LeavePushpin(doc);
                         doc._stayInCollection = undefined;
                         doc.context = this.props.Document;
+                        this.addFilterAttributes(doc); // 
                     });
                     added.map(doc => this.props.layerProvider?.(doc, true));// assigns layer values to the newly added document... testing the utility of this
                     (targetDataDoc[this.props.fieldKey] as List<Doc>).push(...added);

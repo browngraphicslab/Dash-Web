@@ -39,7 +39,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
     constructor(props: Readonly<FieldViewProps>) {
         super(props);
-        const targetDoc = this.targetDoc;
+        const targetDoc = FilterBox.targetDoc;
         if (!targetDoc) CurrentUserUtils.setupFilterDocs(targetDoc);
     }
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(FilterBox, fieldKey); }
@@ -52,7 +52,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     /**
      * @returns the relevant doc according to the value of FilterBox._filterScope i.e. either the Current Dashboard or the Current Collection
      */
-    @computed get targetDoc() {
+    @computed static get targetDoc() {
         return FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
     }
 
@@ -68,7 +68,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     @computed get allDocs() {
         trace();
         const allDocs = new Set<Doc>();
-        const targetDoc = this.targetDoc;
+        const targetDoc = FilterBox.targetDoc;
         if (this._loaded && targetDoc) {
             // if (targetDoc) {
             const activeTabs = DocListCast(targetDoc.data);
@@ -140,7 +140,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
     public removeFilter = (filterName: string) => {
         console.log("remove filter");
-        const targetDoc = this.targetDoc;
+        const targetDoc = FilterBox.targetDoc;
         const filterDoc = targetDoc.currentFilter as Doc;
         const attributes = DocListCast(filterDoc["data"]);
         const found = attributes.findIndex(doc => doc.title === filterName);
@@ -170,7 +170,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
         console.log("facetClick: " + facetHeader);
         console.log(this.props.fieldKey);
-        const targetDoc = this.targetDoc;
+        const targetDoc = FilterBox.targetDoc;
         const found = this.activeAttributes.findIndex(doc => doc.title === facetHeader);
         if (found !== -1) {
             // comment this bit out later once the x works in treeview

@@ -636,9 +636,7 @@ export namespace Docs {
 
             protoProps.system = delegateProps.system;
 
-            if (!("author" in protoProps)) {
-                protoProps.author = Doc.CurrentUserEmail;
-            }
+            if (!("author" in protoProps)) protoProps.author = Doc.CurrentUserEmail;
 
             if (!("creationDate" in protoProps)) {
                 protoProps.creationDate = new DateField;
@@ -1019,18 +1017,22 @@ export namespace DocUtils {
                 return false;
             }
 
-            console.log(FilterBox._filterBoolean);
             for (const facetKey of Object.keys(filterFacets).filter(fkey => fkey !== "cookies")) {
                 const facet = filterFacets[facetKey];
-                console.log(facet)
+
+                // facets that match some value in the field of the document (e.g. some text field)
                 const matches = Object.keys(facet).filter(value => value !== "cookies" && facet[value] === "match");
+
+                // facets that have a check next to them
                 const checks = Object.keys(facet).filter(value => facet[value] === "check");
+
+                // facets that have an x next to them
                 const xs = Object.keys(facet).filter(value => facet[value] === "x");
 
                 if (!xs.length && !checks.length && !matches.length) return true;
                 const failsNotEqualFacets = !xs.length ? false : xs.some(value => Doc.matchFieldValue(d, facetKey, value));
                 const satisfiesCheckFacets = !checks.length ? true : checks.some(value => Doc.matchFieldValue(d, facetKey, value));
-                const satisfiesMatchFacets = matches.some(value => {
+                const satisfiesMatchFacets = !matches.length ? true : matches.some(value => {
                     if (facetKey.startsWith("*")) { //  fields starting with a '*' are used to match families of related fields.  ie, *lastModified will match text-lastModified, data-lastModified, etc
                         const allKeys = Array.from(Object.keys(d));
                         allKeys.push(...Object.keys(Doc.GetProto(d)));
@@ -1039,16 +1041,13 @@ export namespace DocUtils {
                     }
                     return Field.toString(d[facetKey] as Field).includes(value);
                 });
-                console.log(satisfiesCheckFacets, failsNotEqualFacets);
+                // if we're ORing them together, the default return is false, and we return true for a doc if it satisfies any one set of criteria
                 if (FilterBox._filterBoolean === "OR") {
-                    if (satisfiesCheckFacets && !failsNotEqualFacets) {
-                        return true;
-                    }
+                    if (satisfiesCheckFacets && !failsNotEqualFacets && satisfiesMatchFacets) return true;
                 }
+                // if we're ANDing them together, the default return is true, and we return false for a doc if it doesn't satisfy any set of criteria
                 else {
-                    if (!satisfiesCheckFacets || failsNotEqualFacets) {
-                        return false;
-                    }
+                    if (!satisfiesCheckFacets || failsNotEqualFacets || (matches.length && satisfiesMatchFacets)) return false;
                 }
 
             }
