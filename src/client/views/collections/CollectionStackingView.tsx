@@ -145,7 +145,10 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             () => this.layoutDoc._columnHeaders = new List()
         );
         this._autoHeightDisposer = reaction(() => this.layoutDoc._autoHeight,
-            () => this.props.setHeight(this.headerMargin + this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0)));
+            () => this.props.setHeight(Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER),
+                this.headerMargin + (this.isStackingView ?
+                    Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", "")))) :
+                    this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0)))));
     }
 
     componentWillUnmount() {
@@ -389,8 +392,6 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 type = types[0];
             }
         }
-        const cols = () => this.isStackingView ? 1 : Math.max(1, Math.min(this.filteredChildren.length,
-            Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
         return <CollectionStackingViewFieldColumn
             unobserveHeight={ref => this.refList.splice(this.refList.indexOf(ref), 1)}
             observeHeight={ref => {
@@ -450,7 +451,6 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             observeHeight={(ref) => {
                 if (ref) {
                     this.refList.push(ref);
-                    const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             const height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
