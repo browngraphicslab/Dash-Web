@@ -65,7 +65,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
     @computed get showAddAGroup() { return (this.pivotField && (this.chromeStatus !== 'view-mode' && this.chromeStatus)); }
     @computed get columnWidth() {
-        return Math.min(this.props.PanelWidth() /* / NumCast(this.layoutDoc._viewScale, 1)*/ - 2 * this.xMargin,
+        return Math.min(this.props.PanelWidth() - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : this.layoutDoc._columnWidth === -1 ? this.props.PanelWidth() - 2 * this.xMargin : NumCast(this.layoutDoc._columnWidth, 250));
     }
     @computed get NodeWidth() { return this.props.PanelWidth() - this.gridGap; }
@@ -402,9 +402,9 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             const height = this.headerMargin +
                                 Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER),
-                                    Math.max(...this.refList.map(r => NumCast(Doc.Layout(doc)._viewScale, 1) * Number(getComputedStyle(r).height.replace("px", "")))));
+                                    Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", "")))));
                             if (!LightboxView.IsLightboxDocView(this.props.docViewPath())) {
-                                this.props.setHeight(height * NumCast(Doc.Layout(doc)._viewScale, 1));
+                                this.props.setHeight(height);
                             }
                         }
                     }));
