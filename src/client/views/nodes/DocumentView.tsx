@@ -83,6 +83,8 @@ export interface DocComponentView {
     reverseNativeScaling?: () => boolean; // DocumentView's setup screenToLocal based on the doc having a nativeWidth/Height.  However, some content views (e.g., FreeFormView w/ fitToBox set) may ignore the native dimensions so this flags the DocumentView to not do Nativre scaling.
     shrinkWrap?: () => void;  // requests a document to display all of its contents with no white space.  currently only implemented (needed?) for freeform views
     menuControls?: () => JSX.Element; // controls to display in the top menu bar when the document is selected.
+    getKeyFrameEditing?: () => boolean; // whether the document is in keyframe editing mode (if it is, then all hidden documents that are not active at the keyframe time will still be shown)
+    setKeyFrameEditing?: (set: boolean) => void; // whether the document is in keyframe editing mode (if it is, then all hidden documents that are not active at the keyframe time will still be shown)
 }
 export interface DocumentViewSharedProps {
     renderDepth: number;

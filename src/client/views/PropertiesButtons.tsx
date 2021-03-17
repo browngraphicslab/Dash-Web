@@ -82,6 +82,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @computed get autoHeightButton() {
         return this.propertyToggleBtn("Auto\xA0Size", "_autoHeight", on => `Automatical vertical sizing to show all content`, on => "arrows-alt-v");
     }
+    @computed get gridButton() {
+        return this.propertyToggleBtn("Grid", "_backgroundGrid-show", on => `Display background grid in collection`, on => "border-all");
+    }
 
     @computed
     get onClickButton() {
@@ -97,6 +100,27 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 <div className="propertiesButtons-title"> onclick </div>
             </div>
         </Tooltip>;
+    }
+    @computed
+    get perspectiveButton() {
+        return !this.selectedDoc ? (null) : <Tooltip title={<div className="dash-tooltip">Choose view perspective</div>} placement="top">
+            <div>
+                <div className="propertiesButtons-linkFlyout">
+                    <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.onPerspectiveFlyout}>
+                        <div className={"propertiesButtons-linkButton-empty"} onPointerDown={e => e.stopPropagation()} >
+                            <FontAwesomeIcon className="documentdecorations-icon" icon="mouse-pointer" size="lg" />
+                        </div>
+                    </Flyout>
+                </div>
+                <div className="propertiesButtons-title"> Perspective </div>
+            </div>
+        </Tooltip>;
+    }
+
+    @undoBatch
+    handlePerspectiveChange = (e: any) => {
+        this.selectedDoc && (this.selectedDoc._viewType = e.target.value);
+        SelectionManager.Views().filter(dv => dv.docView).map(dv => dv.docView!).forEach(docView => docView.layoutDoc._viewType = e.target.value);
     }
 
     @undoBatch
@@ -139,6 +163,21 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             {Doc.UserDoc().noviceMode ? (null) : <div onPointerDown={this.editOnClickScript} className="onClickFlyout-editScript"> Edit onClick Script</div>}
         </div>;
     }
+    @computed
+    get onPerspectiveFlyout() {
+        const excludedViewTypes = Doc.UserDoc().noviceMode ? [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.StackedTimeline, CollectionViewType.Stacking, CollectionViewType.Map, CollectionViewType.Linear] :
+            [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.StackedTimeline, CollectionViewType.Linear];
+
+        const makeLabel = (value: string, label: string) => <div className="radio">
+            <label>
+                <input type="radio" value={value} checked={(this.selectedDoc?._viewType ?? "invalid") === value} onChange={this.handlePerspectiveChange} />
+                {label}
+            </label>
+        </div>;
+        return <form>
+            {Object.values(CollectionViewType).filter(type => !excludedViewTypes.includes(type)).map(type => makeLabel(type, type))}
+        </form>;
+    }
 
     render() {
         const layoutField = this.selectedDoc?.[Doc.LayoutFieldKey(this.selectedDoc)];
@@ -153,16 +192,18 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons">
                 {toggle(this.titleButton)}
                 {toggle(this.captionButton)}
-                {toggle(this.chromeButton, { display: isCollection ? "" : "none" })}
                 {toggle(this.lockButton)}
                 {toggle(this.dictationButton)}
-                {toggle(this.autoHeightButton, { display: !isText && !isStacking ? "none" : "" })}
                 {toggle(this.onClickButton)}
+                {toggle(this.fitWidthButton)}
+                {toggle(this.fitContentButton, { display: !isFreeForm ? "none" : "" })}
+                {toggle(this.autoHeightButton, { display: !isText && !isStacking ? "none" : "" })}
+                {toggle(this.maskButton, { display: !isInk ? "none" : "" })}
+                {toggle(this.chromeButton, { display: isCollection ? "" : "none" })}
+                {toggle(this.gridButton, { display: isCollection ? "" : "none" })}
                 {toggle(this.clustersButton, { display: !isFreeForm ? "none" : "" })}
                 {toggle(this.panButton, { display: !isFreeForm ? "none" : "" })}
-                {toggle(this.fitContentButton, { display: !isFreeForm && !isText ? "none" : "" })}
-                {toggle(this.fitWidthButton)}
-                {toggle(this.maskButton, { display: !isInk ? "none" : "" })}
+                {toggle(this.perspectiveButton, { display: !isCollection ? "none" : "" })}
             </div>;
     }
 }

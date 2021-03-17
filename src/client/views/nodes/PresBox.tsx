@@ -224,7 +224,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         setTimeout(() => targetDoc._viewTransition = undefined, 1010);
         this.nextKeyframe(targetDoc, activeItem);
         if (activeItem.presProgressivize) CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0, targetDoc);
-        else targetDoc.editing = true;
+        else targetDoc.keyFrameEditing = true;
     }
 
     _mediaTimer!: [NodeJS.Timeout, Doc];
@@ -1902,8 +1902,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                     <div key="back" title="back frame" className="backKeyframe" onClick={e => { e.stopPropagation(); this.prevKeyframe(targetDoc, activeItem); }}>
                                         <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
                                     </div>
-                                    <div key="num" title="toggle view all" className="numKeyframe" style={{ color: targetDoc.editing ? "white" : "black", backgroundColor: targetDoc.editing ? PresColor.DarkBlue : PresColor.LightBlue }}
-                                        onClick={action(() => targetDoc.editing = !targetDoc.editing)} >
+                                    <div key="num" title="toggle view all" className="numKeyframe" style={{ color: targetDoc.keyFrameEditing ? "white" : "black", backgroundColor: targetDoc.keyFrameEditing ? PresColor.DarkBlue : PresColor.LightBlue }}
+                                        onClick={action(() => targetDoc.keyFrameEditing = !targetDoc.keyFrameEditing)} >
                                         {NumCast(targetDoc._currentFrame)}
                                     </div>
                                     <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={e => { e.stopPropagation(); this.nextKeyframe(targetDoc, activeItem); }}>
@@ -2063,7 +2063,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const targetDoc: Doc = this.targetDoc;
         const docs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
         if (!activeItem.presProgressivize) {
-            targetDoc.editing = false;
+            targetDoc.keyFrameEditing = false;
             activeItem.presProgressivize = true;
             targetDoc.presProgressivize = true;
             targetDoc._currentFrame = 0;
@@ -2074,7 +2074,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             activeItem.presProgressivize = false;
             targetDoc.presProgressivize = false;
             targetDoc._currentFrame = 0;
-            targetDoc.editing = true;
+            targetDoc.keyFrameEditing = true;
         }
     }
 
