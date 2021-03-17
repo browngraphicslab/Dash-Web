@@ -37,7 +37,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <Tooltip title={<div className={`dash-tooltip`}>{tooltip(targetDoc?.[property])} </div>} placement="top">
                 <div>
                     <div className={`propertiesButtons-linkButton-empty toggle-${StrCast(targetDoc[property]).includes(":hover") ? "hover" : targetDoc[property] ? "on" : "off"}`}
-                        onPointerDown={undoBatch(() => {
+                        onPointerDown={e => e.stopPropagation()}
+                        onClick={undoBatch(() => {
                             if (SelectionManager.Views().length) {
                                 SelectionManager.Views().forEach(dv => (onClick ?? onPropToggle)(dv, dv.rootDoc, property));
                             } else if (targetDoc) (onClick ?? onPropToggle)(undefined, targetDoc, property);
