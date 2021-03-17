@@ -154,19 +154,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                 }
                 else {
                     added.filter(doc => [AclAdmin, AclEdit].includes(GetEffectiveAcl(doc))).map(doc => {  // only make a pushpin if we have acl's to edit the document
-                        const context = Cast(doc.context, Doc, null);
-                        const hasContextAnchor = DocListCast(doc.links).some(l => (l.anchor2 === doc && Cast(l.anchor1, Doc, null)?.annotationOn === context) || (l.anchor1 === doc && Cast(l.anchor2, Doc, null)?.annotationOn === context));
-                        if (context && !hasContextAnchor && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
-                            const pushpin = Docs.Create.FontIconDocument({
-                                title: "pushpin", label: "", annotationOn: Cast(doc.annotationOn, Doc, null), isPushpin: true,
-                                icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), backgroundColor: "#0000003d", color: "#ACCEF7",
-                                _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, _timecodeToShow: Cast(doc._timecodeToShow, "number", null)
-                            });
-                            Doc.SetInPlace(doc, "annotationOn", undefined, true);
-                            Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
-                            const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
-                            doc._timecodeToShow = undefined;
-                        }
+                        DocUtils.LeavePushpin(doc);
                         doc._stayInCollection = undefined;
                         doc.context = this.props.Document;
                     });

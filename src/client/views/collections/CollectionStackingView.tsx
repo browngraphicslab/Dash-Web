@@ -63,7 +63,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @computed get gridGap() { return NumCast(this.layoutDoc._gridGap, 10); }
     @computed get isStackingView() { return (this.props.viewType ?? this.layoutDoc._viewType) === CollectionViewType.Stacking; }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
-    @computed get showAddAGroup() { return (this.pivotField && (this.chromeStatus !== 'view-mode' && this.chromeStatus !== 'disabled')); }
+    @computed get showAddAGroup() { return (this.pivotField && (this.chromeStatus !== 'view-mode' && this.chromeStatus)); }
     @computed get columnWidth() {
         return Math.min(this.props.PanelWidth() /* / NumCast(this.layoutDoc._viewScale, 1)*/ - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : this.layoutDoc._columnWidth === -1 ? this.props.PanelWidth() - 2 * this.xMargin : NumCast(this.layoutDoc._columnWidth, 250));
@@ -539,7 +539,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                             style={{ width: !this.isStackingView ? "100%" : this.columnWidth / this.numGroupColumns - 10, marginTop: 10 }}>
                             <EditableView {...editableViewProps} />
                         </div>}
-                    {/* {this.chromeStatus === 'disabled' || !this.props.isSelected() ? (null) :
+                    {/* {!this.chromeStatus || !this.props.isSelected() ? (null) :
                         <Switch
                             onChange={this.onToggle}
                             onClick={this.onToggle}

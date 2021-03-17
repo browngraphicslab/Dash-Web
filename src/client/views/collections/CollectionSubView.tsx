@@ -373,16 +373,17 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
             if (uriList) {
                 console.log("Web URI = ", uriList);
-                const existingWebDoc = await Hypothesis.findWebDoc(uriList);
-                if (existingWebDoc) {
-                    const alias = Doc.MakeAlias(existingWebDoc);
-                    alias.x = options.x;
-                    alias.y = options.y;
-                    alias._nativeWidth = 850;
-                    alias._height = 512;
-                    alias._width = 400;
-                    addDocument(alias);
-                } else {
+                // const existingWebDoc = await Hypothesis.findWebDoc(uriList);
+                // if (existingWebDoc) {
+                //     const alias = Doc.MakeAlias(existingWebDoc);
+                //     alias.x = options.x;
+                //     alias.y = options.y;
+                //     alias._nativeWidth = 850;
+                //     alias._height = 512;
+                //     alias._width = 400;
+                //     addDocument(alias);
+                // } else 
+                {
                     console.log("Adding ...");
                     const newDoc = Docs.Create.WebDocument(uriList.split("#annotations:")[0], {// clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
                         ...options,

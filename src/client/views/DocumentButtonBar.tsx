@@ -155,7 +155,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                         e.preventDefault();
                         let googleDoc = await Cast(dataDoc.googleDoc, Doc);
                         if (!googleDoc) {
-                            const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, useCors: false };
+                            const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, useCors: false };
                             googleDoc = Docs.Create.WebDocument(googleDocUrl, options);
                             dataDoc.googleDoc = googleDoc;
                         }
@@ -246,17 +246,6 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             <div className="documentButtonBar-linker" style={{ color: "white" }} onClick={e => SharingManager.Instance.open(this.view0, targetDoc)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="users"
                 />
-            </div></Tooltip >;
-    }
-
-    @computed
-    get annotateButton() {
-        const targetDoc = this.view0?.props.Document;
-        const isAnnotating = targetDoc?.isAnnotating;
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${isAnnotating ? "Exit" : "Enter"} annotation mode`}</div></>}>
-            <div className="documentButtonBar-linker" style={{ backgroundColor: isAnnotating ? "white" : "", color: isAnnotating ? "black" : "white", }}
-                onClick={e => targetDoc.isAnnotating = !targetDoc.isAnnotating}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="edit" />
             </div></Tooltip >;
     }
 
@@ -376,9 +365,6 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             </div> */}
             {!Doc.UserDoc()["documentLinksButton-fullMenu"] ? (null) : <div className="documentButtonBar-button">
                 {this.shareButton}
-            </div>}
-            {![DocumentType.VID, DocumentType.WEB].includes(StrCast(this.view0.props.Document.type) as DocumentType) ? (null) : <div className="documentButtonBar-button">
-                {this.annotateButton}
             </div>}
             {!Doc.UserDoc()["documentLinksButton-fullMenu"] ? (null) : <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}

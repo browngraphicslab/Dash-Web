@@ -89,7 +89,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const [x, y] = this.Transform.transformPoint(this._downX, this._downY);
         if (e.key === "?") {
             cm.setDefaultItem("?", (str: string) => this.props.addDocTab(
-                Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, { _width: 400, x, y, _height: 512, _nativeWidth: 850, isAnnotating: false, title: "bing", useCors: true }), "add:right"));
+                Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, { _width: 400, x, y, _height: 512, _nativeWidth: 850, title: "bing", useCors: true }), "add:right"));
 
             cm.displayMenu(this._downX, this._downY);
             e.stopPropagation();
@@ -165,7 +165,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 this.props.addDocument?.(slide);
                 e.stopPropagation();
             } else if (!e.ctrlKey && !e.metaKey && SelectionManager.Views().length < 2) {
-                FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout && !this.props.childLayoutString ? e.key : "";
+                FormattedTextBox.SelectOnLoadChar = Doc.UserDoc().defaultTextLayout && !this.props.childLayoutString ? e.key : "";
                 FormattedTextBox.LiveTextUndo = UndoManager.StartBatch("live text batch");
                 this.props.addLiveTextDocument(CurrentUserUtils.GetNewTextDoc("-typed text-", x, y, 200, 100, this.props.xMargin === 0, this.props.isAnnotationOverlay ? this.props.Document : undefined));
                 e.stopPropagation();

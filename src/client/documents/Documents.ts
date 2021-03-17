@@ -175,12 +175,11 @@ export class DocumentOptions {
     hideAllLinks?: boolean; // whether all individual blue anchor dots should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
-    watchedDocuments?: Doc; // list of documents to "watch" in an icon doc to display a badge
+    watchedDocuments?: Doc; // list of documents an icon doc monitors in order to display a badge count
     targetScriptKey?: string; // where to write a template script (used by collections with click templates which need to target onClick, onDoubleClick, etc)
     templates?: List<string>;
     hero?: ImageField; // primary image that best represents a compound document (e.g., for a buxton device document that has multiple images)
     caption?: RichTextField;
-    isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
     isLinkButton?: boolean;
@@ -325,7 +324,7 @@ export namespace Docs {
             }],
             [DocumentType.WEB, {
                 layout: { view: WebBox, dataField: defaultDataKey },
-                options: { _height: 300, scrollHeight: 100000, _fitWidth: true }
+                options: { _height: 300, _fitWidth: true }
             }],
             [DocumentType.COL, {
                 layout: { view: CollectionView, dataField: defaultDataKey },
@@ -823,7 +822,7 @@ export namespace Docs {
             const webProto = Prototypes.get(DocumentType.WEB);
             webProto.scrollHeight = 100000;  // backward compatibility -- can be removed after db is reset
             webProto._fitWidth = true;  // backward compatibility -- can be removed after db is reset
-            return InstanceFromProto(webProto, url ? new WebField(new URL(url)) : undefined, { _chromeStatus: url ? "disabled" : "enabled", isAnnotating: false, _lockedTransform: true, ...options });
+            return InstanceFromProto(webProto, url ? new WebField(new URL(url)) : undefined, { _chromeStatus: url ? undefined : "enabled", _lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
@@ -1371,6 +1370,24 @@ export namespace DocUtils {
             newCollection._backgroundColor = "gray";
             return newCollection;
         }
+    }
+
+    export function LeavePushpin(doc: Doc) {
+        if (doc.isPushpin) return undefined;
+        const context = Cast(doc.context, Doc, null) ?? Cast(doc.annotationOn, Doc, null);
+        const hasContextAnchor = DocListCast(doc.links).some(l => (l.anchor2 === doc && Cast(l.anchor1, Doc, null)?.annotationOn === context) || (l.anchor1 === doc && Cast(l.anchor2, Doc, null)?.annotationOn === context));
+        if (context && !hasContextAnchor && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
+            const pushpin = Docs.Create.FontIconDocument({
+                title: "pushpin", label: "", annotationOn: Cast(doc.annotationOn, Doc, null), isPushpin: true,
+                icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), backgroundColor: "#ACCEF7",
+                _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, _timecodeToShow: Cast(doc._timecodeToShow, "number", null)
+            });
+            Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
+            const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
+            doc._timecodeToShow = undefined;
+            return pushpin;
+        }
+        return undefined;
     }
 
     export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {

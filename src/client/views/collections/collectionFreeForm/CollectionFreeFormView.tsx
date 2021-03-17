@@ -17,7 +17,6 @@ import { aggregateBounds, emptyFunction, intersectRect, returnFalse, setupMoveUp
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
-import { DocumentType } from "../../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../../util/DragManager";
@@ -236,7 +235,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     internalDocDrop(e: Event, de: DragManager.DropEvent, docDragData: DragManager.DocumentDragData, xp: number, yp: number) {
-        if (!this.ChildDrag && this.props.layerProvider?.(this.props.Document) !== false && this.props.Document._isGroup) return false;
+        if (!de.embedKey && !this.ChildDrag && this.props.layerProvider?.(this.props.Document) !== false && this.props.Document._isGroup) return false;
         if (!super.onInternalDrop(e, de)) return false;
         const refDoc = docDragData.droppedDocuments[0];
         const [xpo, ypo] = this.getTransformOverlay().transformPoint(de.x, de.y);
@@ -1286,10 +1285,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @undoBatch
     toggleNativeDimensions = () => Doc.toggleNativeDimensions(this.layoutDoc, 1, this.nativeWidth, this.nativeHeight)
 
-    @undoBatch
-    @action
-    toggleLockTransform = () => this.layoutDoc._lockedTransform = this.layoutDoc._lockedTransform ? undefined : true
-
     onContextMenu = (e: React.MouseEvent) => {
         if (this.props.isAnnotationOverlay || this.props.Document.annotationOn || !ContextMenu.Instance) return;
 
@@ -1314,7 +1309,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const optionItems = options && "subitems" in options ? options.subitems : [];
         !this.props.isAnnotationOverlay && !Doc.UserDoc().noviceMode &&
             optionItems.push({ description: (this._showAnimTimeline ? "Close" : "Open") + " Animation Timeline", event: action(() => this._showAnimTimeline = !this._showAnimTimeline), icon: "eye" });
-        optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
         this.props.renderDepth && optionItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
         if (!Doc.UserDoc().noviceMode) {
             optionItems.push({ description: (!Doc.NativeWidth(this.layoutDoc) || !Doc.NativeHeight(this.layoutDoc) ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
@@ -1493,7 +1487,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             onDragOver={e => e.preventDefault()}
             onContextMenu={this.onContextMenu}
             style={{
-                pointerEvents: this.backgroundEvents ? "all" : undefined,
+                pointerEvents: this.backgroundEvents ? "all" : this.props.pointerEvents as any,
                 transform: `scale(${this.contentScaling || 1})`,
                 width: `${100 / (this.contentScaling || 1)}%`,
                 height: this.isAnnotationOverlay && this.Document.scrollHeight ? this.Document.scrollHeight : `${100 / (this.contentScaling || 1)}%`// : this.isAnnotationOverlay ? (this.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight()

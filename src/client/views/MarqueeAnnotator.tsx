@@ -1,20 +1,22 @@
-import { action, observable, runInAction } from "mobx";
+import { action, observable, runInAction, ObservableMap } from "mobx";
 import { observer } from "mobx-react";
 import { Dictionary } from "typescript-collections";
 import { AclAddonly, AclAdmin, AclEdit, DataSym, Doc, Opt } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
+import { List } from "../../fields/List";
+import { NumCast } from "../../fields/Types";
 import { GetEffectiveAcl } from "../../fields/util";
-import { DocUtils, Docs } from "../documents/Documents";
+import { Utils } from "../../Utils";
+import { Docs } from "../documents/Documents";
+import { DocumentType } from "../documents/DocumentTypes";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { DragManager } from "../util/DragManager";
+import { undoBatch } from "../util/UndoManager";
+import "./MarqueeAnnotator.scss";
+import { DocumentView } from "./nodes/DocumentView";
 import { FormattedTextBox } from "./nodes/formattedText/FormattedTextBox";
 import { AnchorMenu } from "./pdf/AnchorMenu";
-import "./MarqueeAnnotator.scss";
 import React = require("react");
-import { undoBatch } from "../util/UndoManager";
-import { NumCast } from "../../fields/Types";
-import { DocumentType } from "../documents/DocumentTypes";
-import { List } from "../../fields/List";
 const _global = (window /* browser */ || global /* node */) as any;
 
 export interface MarqueeAnnotatorProps {
@@ -24,11 +26,12 @@ export interface MarqueeAnnotatorProps {
     scaling?: () => number;
     containerOffset?: () => number[];
     mainCont: HTMLDivElement;
-    savedAnnotations: Dictionary<number, HTMLDivElement[]>;
+    docView: DocumentView;
+    savedAnnotations: ObservableMap<number, HTMLDivElement[]>;
     annotationLayer: HTMLDivElement;
     addDocument: (doc: Doc) => boolean;
     getPageFromScroll?: (top: number) => number;
-    finishMarquee: () => void;
+    finishMarquee: (x?: number, y?: number) => void;
     anchorMenuClick?: (anchor: Doc) => void;
 }
 @observer
@@ -46,7 +49,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
             AnchorMenu.Instance.Status = "marquee";
             AnchorMenu.Instance.fadeOut(true);
             // clear out old marquees and initialize menu for new selection
-            this.props.savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+            Array.from(this.props.savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
             this.props.savedAnnotations.clear();
         });
     }
@@ -57,8 +60,8 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         this._startX = this._left = (this.props.down[0] - boundingRect.left) * (this.props.mainCont.offsetWidth / boundingRect.width);
         this._startY = this._top = (this.props.down[1] - boundingRect.top) * (this.props.mainCont.offsetHeight / boundingRect.height) + this.props.mainCont.scrollTop;
         this._height = this._width = 0;
-        document.addEventListener("pointermove", this.onSelectMove);
-        document.addEventListener("pointerup", this.onSelectEnd);
+        document.addEventListener("pointermove", this.onSelectMove, true);
+        document.addEventListener("pointerup", this.onSelectEnd, true);
 
         AnchorMenu.Instance.OnClick = (e: PointerEvent) => this.props.anchorMenuClick?.(this.highlight("rgba(173, 216, 230, 0.75)", true));
         AnchorMenu.Instance.Highlight = this.highlight;
@@ -79,7 +82,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
                 FormattedTextBox.SelectOnLoad = target[Id];
                 return target;
             };
-            DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.props.rootDoc, sourceAnchorCreator, targetCreator), e.pageX, e.pageY, {
+            DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.props.docView, sourceAnchorCreator, targetCreator), e.pageX, e.pageY, {
                 dragComplete: e => {
                     if (!e.aborted && e.annoDragData && e.annoDragData.linkSourceDoc && e.annoDragData.dropDocument && e.linkDocument) {
                         e.annoDragData.linkSourceDoc.isPushpin = e.annoDragData.dropDocument.annotationOn === this.props.rootDoc;
@@ -89,17 +92,17 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         });
     }
     componentWillUnmount() {
-        document.removeEventListener("pointermove", this.onSelectMove);
-        document.removeEventListener("pointerup", this.onSelectEnd);
+        document.removeEventListener("pointermove", this.onSelectMove, true);
+        document.removeEventListener("pointerup", this.onSelectEnd, true);
     }
 
     @undoBatch
     @action
     makeAnnotationDocument = (color: string): Opt<Doc> => {
-        if (this.props.savedAnnotations.size() === 0) return undefined;
-        if ((this.props.savedAnnotations.values()[0][0] as any).marqueeing) {
+        if (this.props.savedAnnotations.size === 0) return undefined;
+        if ((Array.from(this.props.savedAnnotations.values())[0][0] as any).marqueeing) {
             const scale = this.props.scaling?.() || 1;
-            const anno = this.props.savedAnnotations.values()[0][0];
+            const anno = Array.from(this.props.savedAnnotations.values())[0][0];
             const containerOffset = this.props.containerOffset?.() || [0, 0];
             const marqueeAnno = Docs.Create.FreeformDocument([], { backgroundColor: color, annotationOn: this.props.rootDoc, title: "Annotation on " + this.props.rootDoc.title });
             marqueeAnno.x = (parseInt(anno.style.left || "0") - containerOffset[0]) / scale;
@@ -115,7 +118,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         let maxX = -Number.MAX_VALUE;
         let minY = Number.MAX_VALUE;
         const annoDocs: Doc[] = [];
-        this.props.savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => value.map(anno => {
+        this.props.savedAnnotations.forEach((value: HTMLDivElement[], key: number) => value.map(anno => {
             const textRegion = new Doc();
             textRegion.x = parseInt(anno.style.left ?? "0");
             textRegion.y = parseInt(anno.style.top ?? "0");
@@ -147,20 +150,20 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         return annotationDoc as Doc ?? undefined;
     }
 
-    public static previewNewAnnotation = action((savedAnnotations: Dictionary<number, HTMLDivElement[]>, annotationLayer: HTMLDivElement, div: HTMLDivElement, page: number) => {
+    public static previewNewAnnotation = action((savedAnnotations: ObservableMap<number, HTMLDivElement[]>, annotationLayer: HTMLDivElement, div: HTMLDivElement, page: number) => {
         if (div.style.top) {
             div.style.top = (parseInt(div.style.top)/*+ this.getScrollFromPage(page)*/).toString();
         }
         annotationLayer.append(div);
         div.style.backgroundColor = "#ACCEF7";
         div.style.opacity = "0.5";
-        const savedPage = savedAnnotations.getValue(page);
+        const savedPage = savedAnnotations.get(page);
         if (savedPage) {
             savedPage.push(div);
-            savedAnnotations.setValue(page, savedPage);
+            savedAnnotations.set(page, savedPage);
         }
         else {
-            savedAnnotations.setValue(page, [div]);
+            savedAnnotations.set(page, [div]);
         }
     });
 
@@ -178,15 +181,20 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
     }
 
     onSelectEnd = (e: PointerEvent) => {
-        if (!e.ctrlKey) {
-            AnchorMenu.Instance.Marquee = { left: this._left, top: this._top, width: this._width, height: this._height };
-        }
-
         if (this._width > 10 || this._height > 10) {  // configure and show the annotation/link menu if a the drag region is big enough
             const marquees = this.props.mainCont.getElementsByClassName("marqueeAnnotator-dragBox");
             if (marquees?.length) { // copy the temporary marquee to allow for multiple selections (not currently available though).
                 const copy = document.createElement("div");
-                ["left", "top", "width", "height", "border", "opacity"].forEach(prop => copy.style[prop as any] = (marquees[0] as HTMLDivElement).style[prop as any]);
+                ["border", "opacity"].forEach(prop => copy.style[prop as any] = (marquees[0] as HTMLDivElement).style[prop as any]);
+                const bounds = (marquees[0] as HTMLDivElement).getBoundingClientRect();
+                const uitls = Utils.GetScreenTransform(marquees[0] as HTMLDivElement);
+                const rbounds = { top: uitls.translateY, left: uitls.translateX, width: (bounds.right - bounds.left), height: (bounds.bottom - bounds.top) };
+                const otls = Utils.GetScreenTransform(this.props.annotationLayer);
+                const fbounds = { top: (rbounds.top - otls.translateY) / otls.scale, left: (rbounds.left - otls.translateX) / otls.scale, width: rbounds.width / otls.scale, height: rbounds.height / otls.scale };
+                copy.style.top = fbounds.top.toString() + "px";
+                copy.style.left = fbounds.left.toString() + "px";
+                copy.style.width = fbounds.width.toString() + "px";
+                copy.style.height = fbounds.height.toString() + "px";
                 copy.className = "marqueeAnnotator-annotationBox";
                 (copy as any).marqueeing = true;
                 MarqueeAnnotator.previewNewAnnotation(this.props.savedAnnotations, this.props.annotationLayer, copy, this.props.getPageFromScroll?.(this._top) || 0);
@@ -197,10 +205,11 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
             if (AnchorMenu.Instance.Highlighting) {// when highlighter has been toggled when menu is pinned, we auto-highlight immediately on mouse up
                 this.highlight("rgba(245, 230, 95, 0.75)", false);  // yellowish highlight color for highlighted text (should match AnchorMenu's highlight color)
             }
+            this.props.finishMarquee();
         } else {
             runInAction(() => this._width = this._height = 0);
+            this.props.finishMarquee(e.clientX, e.clientY);
         }
-        this.props.finishMarquee();
     }
 
     render() {

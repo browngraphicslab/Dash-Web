@@ -146,7 +146,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         newDoc.heading = heading;
         FormattedTextBox.SelectOnLoad = newDoc[Id];
         FormattedTextBox.SelectOnLoadChar = forceEmptyNote ? "" : " ";
-        return this.props.parent.props.addDocument?.(newDoc) || false;
+        return this.props.parent.addDocument?.(newDoc) || false;
     }
 
     @action
@@ -300,7 +300,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     marginTop: NumCast(this.props.parent.yMargin, 5),
                     width: (style.columnWidth) /
                         ((uniqueHeadings.length +
-                            ((this.props.parent.chromeStatus !== 'view-mode' && this.props.parent.chromeStatus !== 'disabled') ? 1 : 0)) || 1)
+                            ((this.props.parent.chromeStatus !== 'view-mode' && this.props.parent.chromeStatus) ? 1 : 0)) || 1)
                 }}>
                 <div className={"collectionStackingView-collapseBar" + (this.props.headingObject.collapsed === true ? " active" : "")} onClick={this.collapseSection}></div>
                 {/* the default bucket (no key value) has a tooltip that describes what it is.
@@ -359,7 +359,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                             {this.props.parent.children(this.props.docList, uniqueHeadings.length)}
                             {singleColumn ? (null) : this.props.parent.columnDragger}
                         </div>
-                        {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled' && type !== DocumentType.PRES) ?
+                        {(chromeStatus !== 'view-mode' && chromeStatus && type !== DocumentType.PRES) ?
                             <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
                                 style={{ width: style.columnWidth / style.numGroupColumns, marginBottom: 10 }}>
                                 <EditableView
@@ -385,7 +385,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         return (
             <div className={"collectionStackingViewFieldColumn" + (SnappingManager.GetIsDragging() ? "Dragging" : "")} key={heading}
                 style={{
-                    width: `${100 / ((uniqueHeadings.length + ((chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`,
+                    width: `${100 / ((uniqueHeadings.length + ((chromeStatus !== 'view-mode' && chromeStatus) ? 1 : 0)) || 1)}%`,
                     height: undefined, // DraggingManager.GetIsDragging() ? "100%" : undefined,
                     background: this._background
                 }}

@@ -8,22 +8,22 @@ import { Cast, FieldValue, NumCast } from "../../fields/Types";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { MobileInkOverlayContent } from "../../server/Message";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, setupMoveUpEvents, emptyPath } from "../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, setupMoveUpEvents } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { DocUtils } from "../documents/Documents";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { InteractionUtils } from "../util/InteractionUtils";
-import { LinkManager } from "../util/LinkManager";
 import { Scripting } from "../util/Scripting";
 import { Transform } from "../util/Transform";
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 import "./GestureOverlay.scss";
-import { ActiveArrowEnd, ActiveArrowStart, ActiveDash, ActiveFillColor, ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth, SetActiveArrowEnd, SetActiveArrowStart, SetActiveDash, SetActiveFillColor, SetActiveInkColor, SetActiveInkWidth } from "./InkingStroke";
+import { ActiveArrowEnd, ActiveArrowStart, ActiveDash, ActiveFillColor, ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth, SetActiveArrowStart, SetActiveDash, SetActiveFillColor, SetActiveInkColor, SetActiveInkWidth } from "./InkingStroke";
 import { DocumentView } from "./nodes/DocumentView";
 import { RadialMenu } from "./nodes/RadialMenu";
 import HorizontalPalette from "./Palette";
 import { Touchable } from "./Touchable";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
+import { SelectionManager } from "../util/SelectionManager";
 
 @observer
 export class GestureOverlay extends Touchable {
@@ -827,7 +827,8 @@ export class GestureOverlay extends Touchable {
     }
 
     @computed get elements() {
-        const width = Number(ActiveInkWidth());
+        const selView = SelectionManager.Views().lastElement();
+        const width = Number(ActiveInkWidth()) * NumCast(selView?.rootDoc.viewScale, 1) / (selView?.props.ScreenToLocalTransform().Scale || 1);
         const rect = this._overlayRef.current?.getBoundingClientRect();
         const B = { left: -20000, right: 20000, top: -20000, bottom: 20000, width: 40000, height: 40000 }; //this.getBounds(this._points, true);
         B.left = B.left - width / 2;

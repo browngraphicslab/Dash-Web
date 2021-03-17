@@ -157,8 +157,8 @@ export namespace DragManager {
     // used by PDFs,Text,Image,Video,Web to conditionally (if the drop completes) create a text annotation when dragging the annotate button from the AnchorMenu when a text/region selection has been made.
     // this is pretty clunky and should be rethought out using linkDrag or DocumentDrag
     export class AnchorAnnoDragData extends LinkDragData {
-        constructor(dragDoc: Doc, linkSourceGetAnchor: () => Doc, dropDocCreator: (annotationOn: Doc | undefined) => Doc) {
-            super(dragDoc, linkSourceGetAnchor);
+        constructor(dragView: DocumentView, linkSourceGetAnchor: () => Doc, dropDocCreator: (annotationOn: Doc | undefined) => Doc) {
+            super(dragView, linkSourceGetAnchor);
             this.dropDocCreator = dropDocCreator;
             this.offset = [0, 0];
         }

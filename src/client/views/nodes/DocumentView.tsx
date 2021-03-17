@@ -481,7 +481,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
-                    this.props.select(e.ctrlKey || e.shiftKey);
+                    const ctrlPressed = e.ctrlKey || e.shiftKey;
+                    if (this.props.Document.type === DocumentType.WEB) {
+                        this._timeout = setTimeout(() => { this._timeout = undefined; this.props.select(ctrlPressed); }, 350);
+                    } else this.props.select(ctrlPressed);
                 }
                 preventDefault = false;
             }
@@ -593,7 +596,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     @undoBatch deleteClicked = () => this.props.removeDocument?.(this.props.Document);
     @undoBatch toggleDetail = () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`);
-    @undoBatch toggleLockPosition = () => this.Document._lockedPosition = this.Document._lockedPosition ? undefined : true;
 
     @undoBatch @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
@@ -688,7 +690,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             if (!this.Document.annotationOn) {
                 const options = cm.findByDescription("Options...");
                 const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-                this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document._lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document._lockedPosition) ? "unlock" : "lock" });
                 !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
                 onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
@@ -720,7 +721,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             (this.rootDoc._viewType !== CollectionViewType.Docking || !Doc.UserDoc().noviceMode) && moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this.props.DocumentView()), icon: "users" });
             if (!Doc.UserDoc().noviceMode) {
                 moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
-                moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
+                moreItems.push({ description: `${this.Document._chromeStatus ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus ? undefined : "enabled"), icon: "project-diagram" });
 
                 if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
                     moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
@@ -1114,8 +1115,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                         position: this.props.Document.isInkMask ? "absolute" : undefined,
                         transform: `translate(${this.centeringX}px, ${this.centeringY}px)`,
                         width: xshift ?? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%`,
-                        height: yshift ?? this.props.Document._fitWidth ? `${this.panelHeight}px` :
-                            `${100 * this.effectiveNativeHeight / this.effectiveNativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%`,
+                        height: yshift ?? (this.props.Document._fitWidth ? `${this.panelHeight}px` :
+                            `${100 * this.effectiveNativeHeight / this.effectiveNativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%`),
                     }}>
                     <DocumentViewInternal {...this.props}
                         DocumentView={this.selfView}

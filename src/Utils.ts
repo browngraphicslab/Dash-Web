@@ -482,31 +482,20 @@ const easeInOutQuad = (currentTime: number, start: number, change: number, durat
     return (-change / 2) * (newCurrentTime * (newCurrentTime - 2) - 1) + start;
 };
 
-export function smoothScroll(duration: number, element: HTMLElement | HTMLElement[], to: number, finish?: () => void, reset?: { resetGoTo: { to: number, duration: number } | undefined }) {
+export function smoothScroll(duration: number, element: HTMLElement | HTMLElement[], to: number) {
     const elements = (element instanceof HTMLElement ? [element] : element);
-    let starts = elements.map(element => element.scrollTop);
-    let startDate = new Date().getTime();
+    const starts = elements.map(element => element.scrollTop);
+    const startDate = new Date().getTime();
 
     const animateScroll = () => {
         const currentDate = new Date().getTime();
-        let currentTime = currentDate - startDate;
-        const resetParams = reset?.resetGoTo;
-        if (resetParams) {
-            reset!.resetGoTo = undefined;
-            const { to: newTo, duration: newDuration } = resetParams;
-            to = newTo;
-            starts = starts.map(start => easeInOutQuad(currentTime, start, to - start, duration));
-            startDate = currentDate;
-            duration = newDuration;
-            currentTime = currentDate - startDate;
-        }
+        const currentTime = currentDate - startDate;
         elements.map((element, i) => element.scrollTop = easeInOutQuad(currentTime, starts[i], to - starts[i], duration));
 
         if (currentTime < duration) {
             requestAnimationFrame(animateScroll);
         } else {
             elements.forEach(element => element.scrollTop = to);
-            finish?.();
         }
     };
     animateScroll();
@@ -607,6 +596,44 @@ export function lightOrDark(color: any) {
 
         return 'dark';
     }
+}
+
+
+export function getWordAtPoint(elem: any, x: number, y: number): string | undefined {
+    if (elem.nodeType === elem.TEXT_NODE) {
+        const range = elem.ownerDocument.createRange();
+        range.selectNodeContents(elem);
+        var currentPos = 0;
+        const endPos = range.endOffset;
+        while (currentPos + 1 < endPos) {
+            range.setStart(elem, currentPos);
+            range.setEnd(elem, currentPos + 1);
+            const rangeRect = range.getBoundingClientRect();
+            if (rangeRect.left <= x && rangeRect.right >= x &&
+                rangeRect.top <= y && rangeRect.bottom >= y) {
+                range.expand?.("word"); // doesn't exist in firefox
+                const ret = range.toString();
+                range.detach();
+                return (ret);
+            }
+            currentPos += 1;
+        }
+    } else {
+        for (const childNode of elem.childNodes) {
+            const range = childNode.ownerDocument.createRange();
+            range.selectNodeContents(childNode);
+            const rangeRect = range.getBoundingClientRect();
+            if (rangeRect.left <= x && rangeRect.right >= x &&
+                rangeRect.top <= y && rangeRect.bottom >= y) {
+                range.detach();
+                const word = getWordAtPoint(childNode, x, y);
+                if (word) return word;
+            } else {
+                range.detach();
+            }
+        }
+    }
+    return undefined;
 }
 
 export function hasDescendantTarget(x: number, y: number, target: HTMLDivElement | null) {

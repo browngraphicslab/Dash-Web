@@ -2262,7 +2262,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
         const isMini: boolean = this.toolbarWidth <= 100;
         return (
-            <div className="presBox-buttons" style={{ display: this.rootDoc._chromeStatus === "disabled" ? "none" : undefined }}>
+            <div className="presBox-buttons" style={{ display: !this.rootDoc._chromeStatus ? "none" : undefined }}>
                 {isMini ? (null) : <select className="presBox-viewPicker"
                     style={{ display: this.layoutDoc.presStatus === "edit" ? "block" : "none" }}
                     onPointerDown={e => e.stopPropagation()}
