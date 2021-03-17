@@ -33,12 +33,13 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.dataDoc, ["inkAnalysis", "handwriting"], [data]);
     }
 
-    private makeMask = () => {
-        this.props.Document.mixBlendMode = "hard-light";
-        this.props.Document.color = "#9b9b9bff";
-        //this.props.Document._stayInCollection = true;
-        this.props.Document.isInkMask = true;
-    }
+    public static toggleMask = action((inkDoc: Doc) => {
+        inkDoc.isInkMask = !inkDoc.isInkMask;
+        inkDoc._backgroundColor = inkDoc.isInkMask ? "rgba(0,0,0,0.7)" : undefined;
+        inkDoc.mixBlendMode = inkDoc.isInkMask ? "hard-light" : undefined;
+        inkDoc.color = "#9b9b9bff";
+        inkDoc._stayInCollection = inkDoc.isInkMask ? true : undefined;
+    })
 
     public _prevX = 0;
     public _prevY = 0;
@@ -205,7 +206,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                     const cm = ContextMenu.Instance;
                     if (cm) {
                         !Doc.UserDoc().noviceMode && cm.addItem({ description: "Recognize Writing", event: this.analyzeStrokes, icon: "paint-brush" });
-                        cm.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
+                        cm.addItem({ description: "Toggle Mask", event: () => InkingStroke.toggleMask(this.rootDoc), icon: "paint-brush" });
                         cm.addItem({ description: "Edit Points", event: action(() => formatInstance._controlBtn = !formatInstance._controlBtn), icon: "paint-brush" });
                         //cm.addItem({ description: "Format Shape...", event: this.formatShape, icon: "paint-brush" });
                     }

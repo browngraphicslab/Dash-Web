@@ -1203,19 +1203,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         prosediv && (prosediv.keeplocation = undefined);
         const pos = this._editorView?.state.selection.$from.pos || 1;
         keeplocation && setTimeout(() => this._editorView?.dispatch(this._editorView?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
-        const coords = !Number.isNaN(this._downX) ? { left: this._downX, top: this._downY, bottom: this._downY, right: this._downX } : this._editorView?.coordsAtPos(pos);
 
-        // jump rich text menu to this textbox
-        const bounds = this._ref.current?.getBoundingClientRect();
-        if (bounds && this.layoutDoc._chromeStatus && RichTextMenu.Instance) {
-            const x = Math.min(Math.max(bounds.left, 0), window.innerWidth - RichTextMenu.Instance.width);
-            let y = Math.min(Math.max(0, bounds.top - RichTextMenu.Instance.height - 50), window.innerHeight - RichTextMenu.Instance.height);
-            if (coords && coords.left > x && coords.left < x + RichTextMenu.Instance.width && coords.top > y && coords.top < y + RichTextMenu.Instance.height + 50) {
-                y = Math.min(bounds.bottom, window.innerHeight - RichTextMenu.Instance.height);
-            }
-            this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props);
-            setTimeout(() => window.document.activeElement === this.ProseRef?.children[0] && RichTextMenu.Instance.jumpTo(x, y), 250);
-        }
+        this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props);
     }
     onPointerWheel = (e: React.WheelEvent): void => {
         // if a text note is selected and scrollable, stop event to prevent, say, outer collection from zooming.

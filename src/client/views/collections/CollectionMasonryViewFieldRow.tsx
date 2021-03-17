@@ -253,7 +253,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         const rows = Math.max(1, Math.min(this.props.docList.length, Math.floor((this.props.parent.props.PanelWidth() - 2 * this.props.parent.xMargin) / (this.props.parent.columnWidth + this.props.parent.gridGap))));
         const style = this.props.parent;
         const chromeStatus = this.props.parent.props.Document._chromeStatus;
-        const showChrome = (chromeStatus !== 'view-mode' && chromeStatus !== 'disabled');
+        const showChrome = (chromeStatus !== 'view-mode' && chromeStatus);
         const stackPad = showChrome ? `0px ${this.props.parent.xMargin}px` : `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px 0px ${this.props.parent.xMargin}px `;
         return this.collapsed ? (null) :
             <div style={{ position: "relative" }}>
