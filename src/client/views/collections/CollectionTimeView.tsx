@@ -39,8 +39,6 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     getAnchor = () => {
         const anchor = Docs.Create.TextanchorDocument({
             title: ComputedField.MakeFunction(`"${this.pivotField}"])`) as any,
-            useLinkSmallAnchor: true,
-            hideLinkButton: true,
             annotationOn: this.rootDoc
         });
 

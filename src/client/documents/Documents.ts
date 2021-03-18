@@ -411,7 +411,7 @@ export namespace Docs {
             }],
             [DocumentType.FONTICON, {
                 layout: { view: FontIconBox, dataField: defaultDataKey },
-                options: { _width: 40, _height: 40, borderRounding: "100%", links: ComputedField.MakeFunction("links(self)") as any },
+                options: { hideLinkButton: true, _width: 40, _height: 40, borderRounding: "100%", links: ComputedField.MakeFunction("links(self)") as any },
             }],
             [DocumentType.WEBCAM, {
                 layout: { view: DashWebRTCVideo, dataField: defaultDataKey },
@@ -447,7 +447,7 @@ export namespace Docs {
             }],
             [DocumentType.TEXTANCHOR, {
                 layout: { view: EmptyBox, dataField: defaultDataKey },
-                options: { links: ComputedField.MakeFunction("links(self)") as any }
+                options: { links: ComputedField.MakeFunction("links(self)") as any, useSmallLinkButton: true, hideLinkButton: true }
             }]
         ]);
 
@@ -873,7 +873,7 @@ export namespace Docs {
         }
 
         export function FontIconDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { hideLinkButton: true, ...(options || {}) });
+            return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { ...(options || {}) });
         }
         export function FilterDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.FILTER), undefined, { ...(options || {}) });

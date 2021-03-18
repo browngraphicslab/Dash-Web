@@ -13,7 +13,6 @@ import { CollectionDockingView } from "../client/views/collections/CollectionDoc
 import { intersectRect, Utils } from "../Utils";
 import { DateField } from "./DateField";
 import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
-import { InkTool } from "./InkField";
 import { List } from "./List";
 import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
@@ -25,7 +24,6 @@ import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { AudioField, ImageField, PdfField, VideoField, WebField } from "./URLField";
 import { deleteProperty, GetEffectiveAcl, getField, getter, makeEditable, makeReadOnly, normalizeEmail, setter, SharingPermissions, updateFunction } from "./util";
 import JSZip = require("jszip");
-import { prefix } from "@fortawesome/free-regular-svg-icons";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -1069,9 +1067,9 @@ export namespace Doc {
     // filters document in a container collection:
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
-    export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers: "remove" | "match" | "check" | "x", toggle?: boolean, fieldSuffix?: string) {
+    export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers: "remove" | "match" | "check" | "x", toggle?: boolean, fieldPrefix?: string, append: boolean = true) {
         const container = target ?? CollectionDockingView.Instance.props.Document;
-        const filterField = "_" + (fieldSuffix ? fieldSuffix + "-" : "") + "docFilters";
+        const filterField = "_" + (fieldPrefix ? fieldPrefix + "-" : "") + "docFilters";
         const docFilters = Cast(container[filterField], listSpec("string"), []);
         runInAction(() => {
             for (let i = 0; i < docFilters.length; i++) {
@@ -1089,6 +1087,7 @@ export namespace Doc {
             if (!docFilters.length && modifiers === "match" && value === undefined) {
                 container[filterField] = undefined;
             } else if (modifiers !== "remove") {
+                !append && (docFilters.length = 0);
                 docFilters.push(key + ":" + value + ":" + modifiers);
                 container[filterField] = new List<string>(docFilters);
             }

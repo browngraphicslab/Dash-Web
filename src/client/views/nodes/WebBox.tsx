@@ -205,8 +205,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     getAnchor = () => {
         const anchor = Docs.Create.TextanchorDocument({
             title: StrCast(this.rootDoc.title + " " + this.layoutDoc._scrollTop),
-            useLinkSmallAnchor: true,
-            hideLinkButton: true,
             annotationOn: this.rootDoc,
             y: NumCast(this.layoutDoc._scrollTop),
         });
@@ -455,7 +453,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     renderTag = (tag: string) => {
         const active = StrListCast(this.rootDoc[this.sidebarKey() + "-docFilters"]).includes(`${tag}:${tag}:check`);
         return <div className={`webBox-filterTag${active ? "-active" : ""}`}
-            onClick={e => Doc.setDocFilter(this.rootDoc, tag, tag, "check", true, this.sidebarKey())}>
+            onClick={e => Doc.setDocFilter(this.rootDoc, tag, tag, "check", true, this.sidebarKey(), e.shiftKey)}>
             {tag}
         </div>;
     }
@@ -541,7 +539,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         const inactiveLayer = this.props.layerProvider?.(this.layoutDoc) === false;
         const scale = this.props.scaling?.() || 1;
         return (
-            <div className="webBox" ref={this._mainCont} style={{ pointerEvents: this.active() || SnappingManager.GetIsDragging() ? undefined : "none" }} >
+            <div className="webBox" ref={this._mainCont} style={{ pointerEvents: this.annotationsActive() ? "all" : this.active() || SnappingManager.GetIsDragging() ? undefined : "none" }} >
                 <div className={`webBox-container`}
                     style={{ pointerEvents: inactiveLayer ? "none" : undefined }}
                     onContextMenu={this.specificContextMenu}>
@@ -563,22 +561,26 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                         }}>
                             {this.content}
                             <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
-                                renderDepth={this.props.renderDepth + 1}
-                                CollectionView={undefined}
-                                fieldKey={this.annotationKey}
                                 isAnnotationOverlay={true}
-                                scaling={returnOne}
-                                pointerEvents={this._isAnnotating || SnappingManager.GetIsDragging() ? "all" : "none"}
+                                fieldKey={this.annotationKey}
+                                setPreviewCursor={this.setPreviewCursor}
                                 PanelWidth={this.panelWidth}
                                 PanelHeight={this.panelHeight}
-                                ScreenToLocalTransform={this.scrollXf}
-                                setPreviewCursor={this.setPreviewCursor}
+                                dropAction={"alias"}
+                                select={emptyFunction}
+                                active={this.active}
+                                ContentScaling={returnOne}
+                                bringToFront={emptyFunction}
+                                whenActiveChanged={this.whenActiveChanged}
                                 removeDocument={this.removeDocument}
                                 moveDocument={this.moveDocument}
                                 addDocument={this.addDocument}
-                                select={emptyFunction}
-                                active={this.active}
-                                whenActiveChanged={this.whenActiveChanged} />
+                                CollectionView={undefined}
+                                ScreenToLocalTransform={this.scrollXf}
+                                renderDepth={this.props.renderDepth + 1}
+                                scaling={returnOne}
+                                //pointerEvents={this._isAnnotating || SnappingManager.GetIsDragging() ? "all" : "none"}
+                                childPointerEvents={true} />
                             {this.annotationLayer}
                         </div>
                     </div>

@@ -214,7 +214,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         if (targetDoc) {
             TabDocView.PinDoc(targetDoc);
             const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
-            const scrollable: boolean = (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.WEB || targetDoc._viewType === CollectionViewType.Stacking);
+            const scrollable = [DocumentType.PDF, DocumentType.RTF, DocumentType.WEB].includes(targetDoc.type as any) || targetDoc._viewType === CollectionViewType.Stacking;
             const pannable: boolean = ((targetDoc.type === DocumentType.COL && targetDoc._viewType === CollectionViewType.Freeform) || targetDoc.type === DocumentType.IMG);
             if (scrollable) {
                 const scroll = targetDoc._scrollTop;

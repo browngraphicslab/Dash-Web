@@ -101,8 +101,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     getAnchor = () => {
         const anchor = Docs.Create.TextanchorDocument({
             title: StrCast(this.rootDoc.title + " " + this.layoutDoc._scrollTop),
-            useLinkSmallAnchor: true,
-            hideLinkButton: true,
             annotationOn: this.rootDoc,
             y: NumCast(this.layoutDoc._scrollTop),
         });
@@ -144,7 +142,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     renderTag = (tag: string) => {
         const active = StrListCast(this.rootDoc[this.sidebarKey() + "-docFilters"]).includes(`${tag}:${tag}:check`);
         return <div key={tag} className={`pdfbox-filterTag${active ? "-active" : ""}`}
-            onClick={e => Doc.setDocFilter(this.rootDoc, tag, tag, "check", true, this.sidebarKey())}>
+            onClick={e => Doc.setDocFilter(this.rootDoc, tag, tag, "check", true, this.sidebarKey(), e.shiftKey)}>
             {tag}
         </div>;
     }

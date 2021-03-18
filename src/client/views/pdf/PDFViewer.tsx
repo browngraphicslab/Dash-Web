@@ -532,13 +532,13 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 ContentScaling={this.contentZoom}
                 bringToFront={emptyFunction}
                 whenActiveChanged={this.whenActiveChanged}
-                childPointerEvents={true}
                 removeDocument={this.removeDocument}
                 moveDocument={this.moveDocument}
                 addDocument={this.addDocument}
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.overlayTransform}
-                renderDepth={this.props.renderDepth + 1} />
+                renderDepth={this.props.renderDepth + 1}
+                childPointerEvents={true} />
         </div>;
     }
     @computed get pdfViewerDiv() {
