@@ -44,7 +44,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(FilterBox, fieldKey); }
 
-    @observable static _filterBoolean = "AND";
     @observable static _filterScope = "Current Dashboard";
     public _filterSelected = false;
     public _filterMatch = "matched";
@@ -279,11 +278,11 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
 
     /**
-     * Changes the value of the variable that determines whether filters are ANDed or ORed together
+     * Sets whether filters are ANDed or ORed together
      */
     @action
     changeBool = (e: any) => {
-        FilterBox._filterBoolean = e.currentTarget.value;
+        (FilterBox.targetDoc.currentFilter as Doc).filterBoolean = e.currentTarget.value;
     }
 
     /**
@@ -388,8 +387,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
             <div className="filterBox-select-bool">
                 <select className="filterBox-selection" onChange={this.changeBool}>
-                    <option value="AND" key="AND">AND</option>
-                    <option value="OR" key="OR">OR</option>
+                    <option value="AND" key="AND" selected={(FilterBox.targetDoc.currentFilter as Doc).filterBoolean === "AND"}>AND</option>
+                    <option value="OR" key="OR" selected={(FilterBox.targetDoc.currentFilter as Doc).filterBoolean === "OR"}>OR</option>
                 </select>
                 <div className="filterBox-select-text">filters in </div>
                 <select className="filterBox-selection" onChange={this.changeScope}>

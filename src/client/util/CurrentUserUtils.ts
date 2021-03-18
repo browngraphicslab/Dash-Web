@@ -810,8 +810,9 @@ export class CurrentUserUtils {
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             });
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
-            (doc.currentFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-            (doc.currentFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+            (doc.currentFilter as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+            (doc.currentFilter as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+            (doc.currentFilter as Doc).filterBoolean = "AND";
         }
     }
 

@@ -74,6 +74,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openTransform: boolean = true;
     @observable openFilters: boolean = true; // should be false
 
+    /**
+     * autorun to set up the filter doc of a collection if that collection has been selected and the filters panel is open
+     */
     private selectedDocListenerDisposer: Opt<Lambda>;
 
     // @observable selectedUser: string = "";
