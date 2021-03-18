@@ -93,7 +93,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
     }
     openLinkTargetOnRight = (e: React.MouseEvent) => {
         const alias = Doc.MakeAlias(Cast(this.layoutDoc[this.fieldKey], Doc, null));
-        alias.isLinkButton = undefined;
+        alias._isLinkButton = undefined;
         alias._layerTags = undefined;
         alias.layoutKey = "layout";
         this.props.addDocTab(alias, "add:right");

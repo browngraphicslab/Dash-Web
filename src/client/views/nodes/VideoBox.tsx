@@ -152,8 +152,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             const b = Docs.Create.LabelDocument({
                 x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 1),
                 _width: 150, _height: 50, title: (this.layoutDoc._currentTimecode || 0).toString(),
+                _isLinkButton: true
             });
-            b.isLinkButton = true;
             this.props.addDocument?.(b);
             DocUtils.MakeLink({ doc: b }, { doc: this.rootDoc }, "video snapshot");
             Networking.PostToServer("/youtubeScreenshot", {
@@ -183,7 +183,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const height = this.layoutDoc._height || 0;
         const imageSummary = Docs.Create.ImageDocument(url, {
             _nativeWidth: Doc.NativeWidth(this.layoutDoc), _nativeHeight: Doc.NativeHeight(this.layoutDoc),
-            x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0), isLinkButton: true,
+            x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0), _isLinkButton: true,
             _width: 150, _height: height / width * 150, title: "--snapshot" + (this.layoutDoc._currentTimecode || 0) + " image-"
         });
         Doc.SetNativeWidth(Doc.GetProto(imageSummary), Doc.NativeWidth(this.layoutDoc));

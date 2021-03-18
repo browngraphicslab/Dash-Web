@@ -1,4 +1,3 @@
-import { runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { BoolCast, Cast, StrCast } from "../../fields/Types";

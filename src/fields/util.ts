@@ -1,5 +1,5 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, DataSym, DocListCast, AclAdmin, HeightSym, WidthSym, updateCachedAcls, AclUnset, DocListCastAsync, ForceServerWrite } from "./Doc";
+import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, DataSym, DocListCast, AclAdmin, HeightSym, WidthSym, updateCachedAcls, AclUnset, DocListCastAsync, ForceServerWrite, Initializing } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
@@ -96,7 +96,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         } else {
             DocServer.registerDocWithCachedUpdate(receiver, prop as string, curValue);
         }
-        (!receiver[UpdatingFromServer] || receiver[ForceServerWrite]) && UndoManager.AddEvent({
+        !receiver[Initializing] && (!receiver[UpdatingFromServer] || receiver[ForceServerWrite]) && UndoManager.AddEvent({
             redo: () => receiver[prop] = value,
             undo: () => receiver[prop] = curValue
         });
@@ -162,7 +162,7 @@ export function GetEffectiveAcl(target: any, user?: string): symbol {
 }
 
 function getPropAcl(target: any, prop: string | symbol | number) {
-    if (prop === UpdatingFromServer || target[UpdatingFromServer] || prop === AclSym) return AclAdmin;  // requesting the UpdatingFromServer prop or AclSym must always go through to keep the local DB consistent
+    if (prop === UpdatingFromServer || prop === Initializing || target[UpdatingFromServer] || prop === AclSym) return AclAdmin;  // requesting the UpdatingFromServer prop or AclSym must always go through to keep the local DB consistent
     if (prop && DocServer.PlaygroundFields?.includes(prop.toString())) return AclEdit; // playground props are always editable
     return GetEffectiveAcl(target);
 }

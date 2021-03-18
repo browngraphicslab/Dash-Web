@@ -90,7 +90,7 @@ export class RichTextRules {
                     textDoc.inlineTextCount = numInlines + 1;
                     const inlineFieldKey = "inline" + numInlines; // which field on the text document this annotation will write to
                     const inlineLayoutKey = "layout_" + inlineFieldKey; // the field holding the layout string that will render the inline annotation
-                    const textDocInline = Docs.Create.TextDocument("", { layoutKey: inlineLayoutKey, _width: 75, _height: 35, annotationOn: textDoc, _autoHeight: true, _fontSize: "9px", title: "inline comment" });
+                    const textDocInline = Docs.Create.TextDocument("", { _layoutKey: inlineLayoutKey, _width: 75, _height: 35, annotationOn: textDoc, _autoHeight: true, _fontSize: "9px", title: "inline comment" });
                     textDocInline.title = inlineFieldKey; // give the annotation its own title
                     textDocInline["title-custom"] = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
                     textDocInline.isTemplateForField = inlineFieldKey; // this is needed in case the containing text doc is converted to a template at some point

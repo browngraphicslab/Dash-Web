@@ -483,12 +483,12 @@ export class CurrentUserUtils {
             title,
             toolTip,
             ignoreClick,
-            dropAction: "alias",
+            _dropAction: "alias",
             onDragStart: drag ? ScriptField.MakeFunction(drag) : undefined,
             onClick: click ? ScriptField.MakeScript(click) : undefined,
             backgroundColor,
             _hideContextMenu: true,
-            removeDropProperties: new List<string>(["_stayInCollection"]),
+            _removeDropProperties: new List<string>(["_stayInCollection"]),
             _stayInCollection: true,
             dragFactory,
             clickFactory,
@@ -546,8 +546,8 @@ export class CurrentUserUtils {
                     title,
                     target,
                     backgroundColor: "black",
-                    dropAction: "alias",
-                    removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
+                    _dropAction: "alias",
+                    _removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
                     _width: 60,
                     _height: 60,
                     watchedDocuments,
@@ -626,27 +626,27 @@ export class CurrentUserUtils {
     // sets up the main document for the mobile button
     static mobileButton = (opts: DocumentOptions, docs: Doc[]) => Docs.Create.MulticolumnDocument(docs, {
         ...opts,
-        dropAction: undefined, removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 900, _nativeHeight: 250, _width: 900, _height: 250, _yMargin: 15,
+        _removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 900, _nativeHeight: 250, _width: 900, _height: 250, _yMargin: 15,
         borderRounding: "5px", boxShadow: "0 0", system: true
     }) as any as Doc
 
     // sets up the text container for the information contained within the mobile button
     static mobileTextContainer = (opts: DocumentOptions, docs: Doc[]) => Docs.Create.MultirowDocument(docs, {
         ...opts,
-        dropAction: undefined, removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 450, _nativeHeight: 250, _width: 450, _height: 250, _yMargin: 25,
+        _removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 450, _nativeHeight: 250, _width: 450, _height: 250, _yMargin: 25,
         backgroundColor: "rgba(0,0,0,0)", borderRounding: "0", boxShadow: "0 0", ignoreClick: true, system: true
     }) as any as Doc
 
     // Sets up the title of the button
     static mobileButtonText = (opts: DocumentOptions, buttonTitle: string) => Docs.Create.TextDocument(buttonTitle, {
         ...opts,
-        dropAction: undefined, title: buttonTitle, _fontSize: "37px", _xMargin: 0, _yMargin: 0, ignoreClick: true, backgroundColor: "rgba(0,0,0,0)", system: true
+        title: buttonTitle, _fontSize: "37px", _xMargin: 0, _yMargin: 0, ignoreClick: true, backgroundColor: "rgba(0,0,0,0)", system: true
     }) as any as Doc
 
     // Sets up the description of the button
     static mobileButtonInfo = (opts: DocumentOptions, buttonInfo: string) => Docs.Create.TextDocument(buttonInfo, {
         ...opts,
-        dropAction: undefined, title: "info", _fontSize: "25px", _xMargin: 0, _yMargin: 0, ignoreClick: true, backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2, system: true
+        title: "info", _fontSize: "25px", _xMargin: 0, _yMargin: 0, ignoreClick: true, backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2, system: true
     }) as any as Doc
 
 
@@ -660,11 +660,12 @@ export class CurrentUserUtils {
         ];
         return docProtoData.map(data => Docs.Create.FontIconDocument({
             _nativeWidth: 10, _nativeHeight: 10, _width: 10, _height: 10, title: data.title, icon: data.icon,
-            dropAction: data.pointerDown ? "copy" : undefined, ignoreClick: data.ignoreClick,
+            _dropAction: data.pointerDown ? "copy" : undefined, ignoreClick: data.ignoreClick,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined,
             clipboard: data.clipboard,
             onPointerUp: data.pointerUp ? ScriptField.MakeScript(data.pointerUp) : undefined, onPointerDown: data.pointerDown ? ScriptField.MakeScript(data.pointerDown) : undefined,
-            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory, system: true
+            backgroundColor: data.backgroundColor,
+            _removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory, system: true
         }));
     }
 
@@ -721,7 +722,7 @@ export class CurrentUserUtils {
         // setup a color picker
         if (doc.myColorPicker === undefined) {
             const color = Docs.Create.ColorDocument({
-                title: "color picker", _width: 300, dropAction: "alias", _hideContextMenu: true, _stayInCollection: true, _forceActive: true, removeDropProperties: new List<string>(["dropAction", "_stayInCollection", "_hideContextMenu", "forceActive"]), system: true
+                title: "color picker", _width: 300, _dropAction: "alias", _hideContextMenu: true, _stayInCollection: true, _forceActive: true, _removeDropProperties: new List<string>(["dropAction", "_stayInCollection", "_hideContextMenu", "forceActive"]), system: true
             });
             doc.myColorPicker = new PrefetchProxy(color);
         }
@@ -856,16 +857,16 @@ export class CurrentUserUtils {
     })) as any as Doc
 
     static ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
-        ...opts, dropAction: "alias", removeDropProperties: new List<string>(["dropAction", "stayInCollection"]), _nativeWidth: 40, _nativeHeight: 40, _width: 40, _height: 40, system: true
+        ...opts, _dropAction: "alias", _removeDropProperties: new List<string>(["_dropAction", "stayInCollection"]), _nativeWidth: 40, _nativeHeight: 40, _width: 40, _height: 40, system: true
     })) as any as Doc
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupDockedButtons(doc: Doc) {
         if (doc["dockedBtn-undo"] === undefined) {
-            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), dontUndo: true, _stayInCollection: true, dropAction: "alias", _hideContextMenu: true, removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
+            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
         }
         if (doc["dockedBtn-redo"] === undefined) {
-            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), dontUndo: true, _stayInCollection: true, dropAction: "alias", _hideContextMenu: true, removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
+            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
         }
         if (doc.dockedBtns === undefined) {
             doc.dockedBtns = CurrentUserUtils.blist({ title: "docked buttons", ignoreClick: true }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc]);
@@ -906,9 +907,8 @@ export class CurrentUserUtils {
             if (!sharedDocs) {
                 sharedDocs = Docs.Create.StackingDocument([], {
                     title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15,
-                    _showTitle: "title", ignoreClick: true, _lockedPosition: true,
+                    _showTitle: "title", ignoreClick: true, _lockedPosition: true, "acl-Public": SharingPermissions.Add, "_acl-Public": SharingPermissions.Add
                 }, sharingDocumentId + "outer", sharingDocumentId);
-                (sharedDocs as Doc)["acl-Public"] = Doc.GetProto(sharedDocs as Doc)["acl-Public"] = SharingPermissions.Add;
             }
             if (sharedDocs instanceof Doc) {
                 sharedDocs.userColor = sharedDocs.userColor || "rgb(202, 202, 202)";

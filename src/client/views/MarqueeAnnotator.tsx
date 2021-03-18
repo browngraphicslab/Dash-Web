@@ -98,13 +98,13 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
 
     @undoBatch
     @action
-    makeAnnotationDocument = (color: string): Opt<Doc> => {
+    makeAnnotationDocument = (color: string, isLinkButton?: boolean): Opt<Doc> => {
         if (this.props.savedAnnotations.size === 0) return undefined;
         if ((Array.from(this.props.savedAnnotations.values())[0][0] as any).marqueeing) {
             const scale = this.props.scaling?.() || 1;
             const anno = Array.from(this.props.savedAnnotations.values())[0][0];
             const containerOffset = this.props.containerOffset?.() || [0, 0];
-            const marqueeAnno = Docs.Create.FreeformDocument([], { backgroundColor: color, annotationOn: this.props.rootDoc, title: "Annotation on " + this.props.rootDoc.title });
+            const marqueeAnno = Docs.Create.FreeformDocument([], { _isLinkButton: isLinkButton, backgroundColor: color, annotationOn: this.props.rootDoc, title: "Annotation on " + this.props.rootDoc.title });
             marqueeAnno.x = (parseInt(anno.style.left || "0") - containerOffset[0]) / scale;
             marqueeAnno.y = (parseInt(anno.style.top || "0") - containerOffset[1]) / scale + NumCast(this.props.scrollTop);
             marqueeAnno._height = parseInt(anno.style.height || "0") / scale;
@@ -144,9 +144,8 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
     highlight = (color: string, isLinkButton: boolean) => {
         // creates annotation documents for current highlights
         const effectiveAcl = GetEffectiveAcl(this.props.rootDoc[DataSym]);
-        const annotationDoc = [AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl) && this.makeAnnotationDocument(color);
+        const annotationDoc = [AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl) && this.makeAnnotationDocument(color, isLinkButton);
         annotationDoc && this.props.addDocument(annotationDoc);
-        annotationDoc && (annotationDoc.isLinkButton = isLinkButton);
         return annotationDoc as Doc ?? undefined;
     }
 

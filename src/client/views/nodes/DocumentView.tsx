@@ -558,9 +558,9 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     @undoBatch @action
     toggleFollowLink = (location: Opt<string>, zoom: boolean, setPushpin: boolean): void => {
         this.Document.ignoreClick = false;
-        this.Document.isLinkButton = !this.Document.isLinkButton;
-        setPushpin && (this.Document.isPushpin = this.Document.isLinkButton);
-        if (this.Document.isLinkButton && !this.onClickHandler) {
+        this.Document._isLinkButton = !this.Document._isLinkButton;
+        setPushpin && (this.Document.isPushpin = this.Document._isLinkButton);
+        if (this.Document._isLinkButton && !this.onClickHandler) {
             this.Document.followLinkZoom = zoom;
             this.Document.followLinkLocation = location;
         } else {
@@ -570,13 +570,13 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     @undoBatch @action
     toggleTargetOnClick = (): void => {
         this.Document.ignoreClick = false;
-        this.Document.isLinkButton = true;
+        this.Document._isLinkButton = true;
         this.Document.isPushpin = true;
     }
     @undoBatch @action
     followLinkOnClick = (location: Opt<string>, zoom: boolean,): void => {
         this.Document.ignoreClick = false;
-        this.Document.isLinkButton = true;
+        this.Document._isLinkButton = true;
         this.Document.isPushpin = false;
         this.Document.followLinkZoom = zoom;
         this.Document.followLinkLocation = location;
@@ -584,14 +584,14 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     @undoBatch @action
     selectOnClick = (): void => {
         this.Document.ignoreClick = false;
-        this.Document.isLinkButton = false;
+        this.Document._isLinkButton = false;
         this.Document.isPushpin = false;
         this.Document.onClick = this.layoutDoc.onClick = undefined;
     }
     @undoBatch
     noOnClick = (): void => {
         this.Document.ignoreClick = false;
-        this.Document.isLinkButton = false;
+        this.Document._isLinkButton = false;
     }
 
     @undoBatch deleteClicked = () => this.props.removeDocument?.(this.props.Document);
@@ -630,7 +630,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         }
         this.Document.followLinkLocation = "inPlace";
         this.Document.followLinkZoom = true;
-        this.Document.isLinkButton = true;
+        this.Document._isLinkButton = true;
     }
 
     @action
