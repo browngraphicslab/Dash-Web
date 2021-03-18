@@ -98,7 +98,10 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         }
         !receiver[Initializing] && (!receiver[UpdatingFromServer] || receiver[ForceServerWrite]) && UndoManager.AddEvent({
             redo: () => receiver[prop] = value,
-            undo: () => receiver[prop] = curValue
+            undo: () => {
+                // console.log("Undo: " + prop + " = " + curValue); // bcz: uncomment to log undo
+                receiver[prop] = curValue
+            }
         });
         return true;
     }
@@ -380,6 +383,7 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
                             lastValue = ObjectField.MakeCopy(receiver[prop]);
                         },
                         undo: action(() => {
+                            // console.log("undo $add: " + prop, diff.items) // bcz: uncomment to log undo 
                             diff.items.forEach((item: any) => {
                                 const ind = receiver[prop].indexOf(item.value ? item.value() : item);
                                 ind !== -1 && receiver[prop].splice(ind, 1);
@@ -397,6 +401,7 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
                                 lastValue = ObjectField.MakeCopy(receiver[prop]);
                             }),
                             undo: () => {
+                                // console.log("undo $rem: " + prop, diff.items) // bcz: uncomment to log undo 
                                 diff.items.forEach((item: any) => {
                                     const ind = (prevValue as List<any>).indexOf(item.value ? item.value() : item);
                                     ind !== -1 && receiver[prop].indexOf(item.value ? item.value() : item) === -1 && receiver[prop].splice(ind, 0, item);
@@ -410,6 +415,7 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
                                 lastValue = ObjectField.MakeCopy(receiver[prop]);
                             },
                             undo: () => {
+                                // console.log("undo list: " + prop, receiver[prop]) // bcz: uncomment to log undo 
                                 receiver[prop] = ObjectField.MakeCopy(prevValue as List<any>);
                                 lastValue = ObjectField.MakeCopy(receiver[prop]);
                             }

@@ -667,7 +667,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const splitter = state.schema.marks.splitter.create({ id: Utils.GenerateGuid() });
             let tr = state.tr.addMark(sel.from, sel.to, splitter);
             if (sel.from !== sel.to) {
-                const anchor = anchorDoc ?? Docs.Create.TextanchorDocument();
+                const anchor = anchorDoc ?? Docs.Create.TextanchorDocument({ title: this._editorView?.state.doc.textBetween(sel.from, sel.to) });
                 const href = targetHref ?? Utils.prepend("/doc/" + anchor[Id]);
                 if (anchor !== anchorDoc) this.addDocument(anchor);
                 tr.doc.nodesBetween(sel.from, sel.to, (node: any, pos: number, parent: any) => {
@@ -681,7 +681,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 this.dataDoc[ForceServerWrite] = this.dataDoc[UpdatingFromServer] = true;  // need to allow permissions for adding links to readonly/augment only documents
                 this._editorView!.dispatch(tr.removeMark(sel.from, sel.to, splitter));
                 this.dataDoc[UpdatingFromServer] = this.dataDoc[ForceServerWrite] = false;
-                Doc.GetProto(anchor).title = this._editorView?.state.doc.textBetween(sel.from, sel.to);
                 return anchor;
             }
             return anchorDoc ?? this.rootDoc;

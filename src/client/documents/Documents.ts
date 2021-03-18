@@ -1,7 +1,7 @@
 import { action, runInAction } from "mobx";
 import { basename, extname } from "path";
 import { DateField } from "../../fields/DateField";
-import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
+import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, Initializing } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { HtmlField } from "../../fields/HtmlField";
 import { InkField } from "../../fields/InkField";
@@ -193,6 +193,8 @@ export class DocumentOptions {
     presProgressivize?: boolean;
     borderRounding?: string;
     boxShadow?: string;
+    data?: any;
+    baseProto?: boolean; // is this a base prototoype
     dontRegisterView?: boolean;
     lookupField?: ScriptField; // script that returns the value of a field. This script is passed the rootDoc, layoutDoc, field, and container of the document.  see PresBox.
     "onDoubleClick-rawScript"?: string; // onDoubleClick script in raw text form
@@ -210,6 +212,7 @@ export class DocumentOptions {
     _removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     iconShape?: string; // shapes of the fonticon border
     layout_linkView?: Doc; // view template for a link document
+    layout_keyValue?: string; // view tempalte for key value docs
     linkRelationship?: string; // type of relatinoship a link represents
     linkDisplay?: boolean; // whether a link line should be dipslayed between the two link anchors
     anchor1?: Doc;
@@ -444,8 +447,6 @@ export namespace Docs {
             }]
         ]);
 
-        // All document prototypes are initialized with at least these values
-        const defaultOptions: DocumentOptions = { x: 0, y: 0, _width: 300 }; // bcz: do we really want to set anything here?  could also try to set in render() methods for types that need a default
         const suffix = "Proto";
 
         /**
@@ -486,30 +487,22 @@ export namespace Docs {
          * @param type 
          */
         const PrototypeMap: PrototypeMap = new Map();
-        export function get(type: DocumentType): Doc {
-            return PrototypeMap.get(type)!;
-        }
+        export function get(type: DocumentType): Doc { return PrototypeMap.get(type)!; }
 
         /**
          * A collection of all links in the database.  Ideally, this would be a search, but for now all links are cached here.
          */
-        export function MainLinkDocument() {
-            return Prototypes.get(DocumentType.LINKDB);
-        }
+        export function MainLinkDocument() { return Prototypes.get(DocumentType.LINKDB); }
 
         /**
          * A collection of all scripts in the database
          */
-        export function MainScriptDocument() {
-            return Prototypes.get(DocumentType.SCRIPTDB);
-        }
+        export function MainScriptDocument() { return Prototypes.get(DocumentType.SCRIPTDB); }
 
         /**
-         * A collection of all groups in the database
+         * A collection of all user acl groups in the database
          */
-        export function MainGroupDocument() {
-            return Prototypes.get(DocumentType.GROUPDB);
-        }
+        export function MainGroupDocument() { return Prototypes.get(DocumentType.GROUPDB); }
 
         /**
          * This is a convenience method that is used to initialize
@@ -535,14 +528,12 @@ export namespace Docs {
             const title = prototypeId.toUpperCase().replace(upper, `_${upper}`);
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
-            const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
-            options.layout = layout.view?.LayoutString(layout.dataField);
-            const doc = Doc.assign(new Doc(prototypeId, true), { system: true, layoutKey: "layout", ...options } as any);
-            doc.data = template.data;
-            doc.layout_keyValue = KeyValueBox.LayoutString("");
-            return doc;
+            const options: DocumentOptions = {
+                system: true, _layoutKey: "layout", title, type, baseProto: true, x: 0, y: 0, _width: 300, ...(template.options || {}),
+                layout: layout.view?.LayoutString(layout.dataField), data: template.data, layout_keyValue: KeyValueBox.LayoutString("")
+            };
+            return Doc.assign(new Doc(prototypeId, true), options as any, undefined, true);
         }
-
     }
 
     /**
@@ -648,7 +639,7 @@ export namespace Docs {
          * main document.
          */
         export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data", protoId?: string) {
-            const viewKeys = ["x", "y", "system"];
+            const viewKeys = ["x", "y", "system"]; // keys that should be addded to the view document even though they don't begin with an "_"
             const { omit: dataProps, extract: viewProps } = OmitKeys(options, viewKeys, "^_");
 
             dataProps.system = viewProps.system;
@@ -664,12 +655,11 @@ export namespace Docs {
             dataProps[fieldKey + "-annotations"] = new List<Doc>();
             const dataDoc = Doc.assign(Doc.MakeDelegate(proto, protoId), dataProps as any, undefined, true);
 
-            const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
             viewProps.author = Doc.CurrentUserEmail;
-            viewProps.type !== DocumentType.LINK && viewDoc.type !== DocumentType.LABEL && DocUtils.MakeLinkToActiveAudio(viewDoc);
             viewProps["acl-Override"] = "None";
             viewProps["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
-            Doc.assign(viewDoc, viewProps, true, true);
+            const viewDoc = Doc.assign(Doc.MakeDelegate(dataDoc, delegId), viewProps, true, true);
+            viewProps.type !== DocumentType.LINK && viewDoc.type !== DocumentType.LABEL && DocUtils.MakeLinkToActiveAudio(viewDoc);
 
             !Doc.IsSystem(dataDoc) && ![DocumentType.PDFANNO, DocumentType.KVP, DocumentType.LINK, DocumentType.LINKANCHOR, DocumentType.TEXTANCHOR].includes(proto.type as any) &&
                 !dataDoc.isFolder && !dataProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
@@ -679,22 +669,16 @@ export namespace Docs {
 
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
             const imgField = new ImageField(new URL(url));
-            const inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
-            let target = imgField.url.href;
-            if (new RegExp(window.location.origin).test(target)) {
-                const extension = path.extname(target);
-                target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
-            }
-            return inst;
+            return InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
         }
+
         export function PresDocument(initial: List<Doc> = new List(), options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.PRES), initial, options);
         }
 
         export function ScriptingDocument(script: Opt<ScriptField>, options: DocumentOptions = {}, fieldKey?: string) {
-            const res = InstanceFromProto(Prototypes.get(DocumentType.SCRIPTING), script, options);
-            fieldKey && res.proto instanceof Doc && (res.proto.layout = ScriptingBox.LayoutString(fieldKey));
-            return res;
+            return InstanceFromProto(Prototypes.get(DocumentType.SCRIPTING), script,
+                { ...options, layout: fieldKey ? ScriptingBox.LayoutString(fieldKey) : undefined });
         }
 
         export function VideoDocument(url: string, options: DocumentOptions = {}) {
@@ -718,9 +702,8 @@ export namespace Docs {
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
-            const instance = InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), { useLinkSmallAnchor: true, ...options }); // hideLinkButton: false, useLinkSmallAnchor: false,
-            Doc.GetProto(instance).backgroundColor = ComputedField.MakeFunction("this._audioState === 'playing' ? 'green':'gray'");
-            return instance;
+            return InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)),
+                { useLinkSmallAnchor: true, ...options, backgroundColor: ComputedField.MakeFunction("this._audioState === 'playing' ? 'green':'gray'") as any }); // hideLinkButton: false, useLinkSmallAnchor: false,
         }
 
         export function SearchDocument(options: DocumentOptions = {}) {
@@ -766,6 +749,7 @@ export namespace Docs {
 
         export function InkDocument(color: string, tool: string, strokeWidth: string, strokeBezier: string, fillColor: string, arrowStart: string, arrowEnd: string, dash: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
             const I = new Doc();
+            I[Initializing] = true;
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
             I.color = color;
@@ -788,20 +772,16 @@ export namespace Docs {
             I.data = new InkField(points);
             I["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
             I["acl-Override"] = "None";
+            I[Initializing] = false;
             return I;
         }
 
         export function PdfDocument(url: string, options: DocumentOptions = {}) {
-            const pdfProto = Prototypes.get(DocumentType.PDF);
-            pdfProto._fitWidth = true;  // backward compatibility -- can be removed after db is reset
-            return InstanceFromProto(pdfProto, new PdfField(new URL(url)), { ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.PDF), new PdfField(new URL(url)), { ...options });
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            const webProto = Prototypes.get(DocumentType.WEB);
-            webProto.scrollHeight = 100000;  // backward compatibility -- can be removed after db is reset
-            webProto._fitWidth = true;  // backward compatibility -- can be removed after db is reset
-            return InstanceFromProto(webProto, url ? new WebField(new URL(url)) : undefined, { _chromeStatus: url ? undefined : "enabled", _lockedTransform: true, ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _chromeStatus: url ? undefined : "enabled", _lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
@@ -861,7 +841,6 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Multirow });
         }
 
-
         export function MasonryDocument(documents: Array<Doc>, options: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Masonry });
         }
@@ -879,18 +858,12 @@ export namespace Docs {
         }
 
         export function ButtonDocument(options?: DocumentOptions) {
-            // const btn = InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
-            // btn.layoutKey = "layout_onClick";
-            // btn.height = 250;
-            // btn.width = 200;
-            // btn.layout_onClick = ScriptingBox.LayoutString("onClick");
             return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
         }
 
         export function SliderDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.SLIDER), undefined, { ...(options || {}) });
         }
-
 
         export function FontIconDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { hideLinkButton: true, ...(options || {}) });
@@ -904,11 +877,9 @@ export namespace Docs {
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { freezeChildren: "remove|add", treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
             const tabs = TreeDocument(documents, { title: "On-Screen Tabs", freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", _fitWidth: true, system: true });
             const all = TreeDocument([], { title: "Off-Screen Tabs", freezeChildren: "add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
-            Doc.GetProto(inst).data = new List<Doc>([tabs, all]);
-            return inst;
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List([tabs, all]), { freezeChildren: "remove|add", treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
         }
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {
