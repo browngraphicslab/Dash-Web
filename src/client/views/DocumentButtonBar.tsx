@@ -184,6 +184,18 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             </div></Tooltip>;
     }
     @computed
+    get followLinkButton() {
+        const targetDoc = this.view0?.props.Document;
+        return !targetDoc ? (null) : <Tooltip title={
+            <div className="dash-tooltip">{"follow primary link on click"}</div>}>
+            <div className="documentButtonBar-linker"
+                style={{ color: targetDoc.isLinkButton ? "black" : "white", backgroundColor: targetDoc.isLinkButton ? "white" : "black" }}
+                onClick={undoBatch(e => this.props.views().map(view => view?.docView?.toggleFollowLink(undefined, false, false)))}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="hand-point-right" />
+            </div>
+        </Tooltip>;
+    }
+    @computed
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={
@@ -231,9 +243,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const presPinWithViewIcon = <img src="/assets/pinWithView.png" style={{ margin: "auto", width: 17, transform: 'translate(0, 1px)' }} />;
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with current view"}</div></>}>
-            <div
-                className="documentButtonBar-linker"
-                onClick={() => this.pinWithView(targetDoc)}>
+            <div className="documentButtonBar-linker" onClick={() => this.pinWithView(targetDoc)}>
                 {presPinWithViewIcon}
             </div>
         </Tooltip>;
@@ -244,8 +254,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Open Sharing Manager"}</div></>}>
             <div className="documentButtonBar-linker" style={{ color: "white" }} onClick={e => SharingManager.Instance.open(this.view0, targetDoc)}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="users"
-                />
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="users" />
             </div></Tooltip >;
     }
 
@@ -357,6 +366,9 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             <div className="documentButtonBar-button">
                 {this.contextButton}
             </div> */}
+            {!SelectionManager.Views()?.some(v => v.allLinks.length) ? (null) : <div className="documentButtonBar-button">
+                {this.followLinkButton}
+            </div>}
             <div className="documentButtonBar-button">
                 {this.pinButton}
             </div>

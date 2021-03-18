@@ -791,7 +791,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 onClick={this.onClickFunc}
                 focus={this.focus}
                 layoutKey={this.finalLayoutKey} />
-            {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
+            {this.layoutDoc.hideAllLinks ? (null) : this.allLinkEndpoints}
             {this.hideLinkButton ? (null) :
                 <DocumentLinksButton View={this.props.DocumentView()} links={this.allLinks} Offset={[this.topMost ? 0 : -15, undefined, undefined, this.topMost ? 10 : -20]} />}
 
@@ -808,7 +808,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     }
     @computed get directLinks() { TraceMobx(); return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }
     @computed get allLinks() { TraceMobx(); return LinkManager.Instance.getAllRelatedLinks(this.rootDoc); }
-    @computed get allAnchors() {
+    @computed get allLinkEndpoints() {  // the small blue dots that mark the endpoints of links
         TraceMobx();
         if (this.props.LayoutTemplateString?.includes(LinkAnchorBox.name)) return null;
         if (this.layoutDoc.presBox || this.rootDoc.type === DocumentType.LINK || this.props.dontRegisterView) return (null);

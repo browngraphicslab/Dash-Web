@@ -420,6 +420,10 @@ export namespace Docs {
             [DocumentType.PRESELEMENT, {
                 layout: { view: PresElementBox, dataField: defaultDataKey }
             }],
+            [DocumentType.PDFANNO, {
+                layout: { view: CollectionView, dataField: defaultDataKey },
+                options: { hideLinkButton: true }
+            }],
             [DocumentType.INK, {
                 layout: { view: InkingStroke, dataField: defaultDataKey },
                 options: { _fontFamily: "cursive", backgroundColor: "transparent", links: ComputedField.MakeFunction("links(self)") as any }
@@ -800,6 +804,9 @@ export namespace Docs {
             const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Freeform }, id);
             documents.map(d => d.context = inst);
             return inst;
+        }
+        export function PdfAnnoDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.PDFANNO), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Freeform }, id);
         }
 
         export function PileDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {

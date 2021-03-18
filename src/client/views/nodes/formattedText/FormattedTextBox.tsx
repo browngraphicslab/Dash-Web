@@ -250,6 +250,18 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 json?.replace(/"selection":.*/, "") : json?.replace(/"selection":"\"storedMarks\""/, "\"storedMarks\"");
 
             if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) {
+                const accumTags = [] as string[]
+                state.tr.doc.nodesBetween(0, state.doc.content.size, (node: any, pos: number, parent: any) => {
+                    if (node.type === schema.nodes.dashField && node.attrs.fieldKey.startsWith("#")) {
+                        accumTags.push(node.attrs.fieldKey)
+                    }
+                });
+                const curTags = Object.keys(this.dataDoc).filter(key => key.startsWith("#"));
+                const added = accumTags.filter(tag => !curTags.includes(tag));
+                const removed = curTags.filter(tag => !accumTags.includes(tag));
+                removed.forEach(r => this.dataDoc[r] = undefined);
+                added.forEach(a => this.dataDoc[a] = a);
+
                 let unchanged = true;
                 if (this._applyingChange !== this.fieldKey && removeSelection(json) !== removeSelection(curProto?.Data)) {
                     this._applyingChange = this.fieldKey;

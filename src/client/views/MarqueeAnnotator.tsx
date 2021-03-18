@@ -114,7 +114,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
             return marqueeAnno;
         }
 
-        const textRegionAnno = Docs.Create.FreeformDocument([], { type: DocumentType.PDFANNO, annotationOn: this.props.rootDoc, title: "Selection on " + this.props.rootDoc.title, _width: 1, _height: 1 });
+        const textRegionAnno = Docs.Create.PdfAnnoDocument([], { annotationOn: this.props.rootDoc, title: "Selection on " + this.props.rootDoc.title, _width: 1, _height: 1 });
         let maxX = -Number.MAX_VALUE;
         let minY = Number.MAX_VALUE;
         const annoDocs: Doc[] = [];
