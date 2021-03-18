@@ -422,7 +422,7 @@ export namespace Docs {
             }],
             [DocumentType.PDFANNO, {
                 layout: { view: CollectionView, dataField: defaultDataKey },
-                options: { hideLinkButton: true }
+                options: { links: ComputedField.MakeFunction("links(self)") as any, hideLinkButton: true }
             }],
             [DocumentType.INK, {
                 layout: { view: InkingStroke, dataField: defaultDataKey },
