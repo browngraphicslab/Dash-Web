@@ -36,6 +36,7 @@ import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 import { LinkDocPreview } from "./LinkDocPreview";
 import "./WebBox.scss";
 import React = require("react");
+import { SidebarAnnos } from "../SidebarAnnos";
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -51,6 +52,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _keyInput = React.createRef<HTMLInputElement>();
     private _initialScroll: Opt<number>;
+    private _sidebarRef = React.createRef<SidebarAnnos>();
     @observable private _scrollTimer: any;
     @observable private _overlayAnnoInfo: Opt<Doc>;
     @observable private _marqueeing: number[] | undefined;
@@ -159,6 +161,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     menuControls = () => this.urlEditor; // controls to be added to the top bar when a document of this type is selected
 
     scrollFocus = (doc: Doc, smooth: boolean) => {
+        if (this._sidebarRef?.current?.makeDocUnfiltered(doc)) return 1;
         if (doc !== this.rootDoc && this._outerRef.current) {
             const scrollTo = doc.type === DocumentType.TEXTANCHOR ? NumCast(doc.y) : Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
             if (scrollTo !== undefined) {
@@ -431,9 +434,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         });
         FormattedTextBox.SelectOnLoad = target[Id];
         FormattedTextBox.DontSelectInitialText = true;
-        this.sidebarAllTags.map(tag => target[tag] = tag);
+        //this.sidebarAllTags.map(tag => target[tag] = tag);
         DocUtils.MakeLink({ doc: anchor }, { doc: target }, "inline markup", "annotation");
-        this.sidebarAddDocument(target);
+        this._sidebarRef.current?.addDocument(target);
     }
     toggleSidebar = () => {
         if (this.layoutDoc.nativeWidth === this.layoutDoc[this.fieldKey + "-nativeWidth"]) {
@@ -443,68 +446,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         }
         this.layoutDoc._width = NumCast(this.layoutDoc._nativeWidth) * (NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]) / NumCast(this.layoutDoc[this.fieldKey + "-nativeHeight"]));
     }
-    sidebarKey = () => this.fieldKey + "-sidebar";
-    sidebarFiltersHeight = () => 50;
-    sidebarTransform = () => this.props.ScreenToLocalTransform().translate(Doc.NativeWidth(this.dataDoc), 0).scale(this.props.scaling?.() || 1);
     sidebarWidth = () => !this.layoutDoc._showSidebar ? 0 : (NumCast(this.layoutDoc.nativeWidth) - Doc.NativeWidth(this.dataDoc)) * this.props.PanelWidth() / NumCast(this.layoutDoc.nativeWidth);
-    sidebarHeight = () => this.props.PanelHeight() - this.sidebarFiltersHeight() - 20;
-    sidebarAddDocument = (doc: Doc | Doc[]) => this.addDocument(doc, this.sidebarKey());
-    sidebarMoveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean) => this.moveDocument(doc, targetCollection, addDocument, this.sidebarKey());
-    sidebarRemDocument = (doc: Doc | Doc[]) => this.removeDocument(doc, this.sidebarKey());
-    sidebarDocFilters = () => [...StrListCast(this.layoutDoc._docFilters), ...StrListCast(this.layoutDoc[this.sidebarKey() + "-docFilters"])];
-    @computed get sidebarAllTags() {
-        const keys = new Set<string>();
-        DocListCast(this.rootDoc[this.sidebarKey()]).forEach(doc => SearchBox.documentKeys(doc).forEach(key => keys.add(key)));
-        return Array.from(keys.keys()).filter(key => key[0]).filter(key => !key.startsWith("_") && (key[0] === "#" || key[0] === key[0].toUpperCase())).sort();
-    }
-    @computed get sidebarOverlay() {
-        const renderTag = (tag: string) => {
-            const active = StrListCast(this.rootDoc[this.sidebarKey() + "-docFilters"]).includes(`${tag}:${tag}:check`);
-            return <div className={`webBox-filterTag${active ? "-active" : ""}`}
-                onClick={e => Doc.setDocFilter(this.rootDoc, tag, tag, "check", true, this.sidebarKey(), e.shiftKey)}>
-                {tag}
-            </div>;
-        }
-        return !this.layoutDoc._showSidebar ? (null) :
-            <div style={{
-                position: "absolute", pointerEvents: this.active() ? "all" : undefined, top: 0, right: 0,
-                background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.WidgetColor),
-                width: `${this.sidebarWidth()}px`,
-                height: "100%"
-            }}>
-                <div style={{ width: "100%", height: this.sidebarHeight(), position: "relative" }}>
-                    <CollectionStackingView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
-                        NativeWidth={returnZero}
-                        NativeHeight={returnZero}
-                        PanelHeight={this.sidebarHeight}
-                        PanelWidth={this.sidebarWidth}
-                        xMargin={0}
-                        yMargin={0}
-                        docFilters={this.sidebarDocFilters}
-                        chromeStatus={"enabled"}
-                        scaleField={this.sidebarKey() + "-scale"}
-                        isAnnotationOverlay={false}
-                        select={emptyFunction}
-                        active={this.annotationsActive}
-                        scaling={returnOne}
-                        whenActiveChanged={this.whenActiveChanged}
-                        childHideDecorationTitle={returnTrue}
-                        removeDocument={this.sidebarRemDocument}
-                        moveDocument={this.sidebarMoveDocument}
-                        addDocument={this.sidebarAddDocument}
-                        CollectionView={undefined}
-                        ScreenToLocalTransform={this.sidebarTransform}
-                        renderDepth={this.props.renderDepth + 1}
-                        viewType={CollectionViewType.Stacking}
-                        fieldKey={this.sidebarKey()}
-                        pointerEvents={"all"}
-                    />
-                </div>
-                <div className="webBox-tagList" style={{ height: this.sidebarFiltersHeight(), width: this.sidebarWidth() }}>
-                    {this.sidebarAllTags.map(renderTag)}
-                </div>
-            </div>;
-    }
 
     @computed get content() {
         return <div className={"webBox-cont" + (this.active() && CurrentUserUtils.SelectedTool === InkTool.None && !DocumentDecorations.Instance?.Interacting ? "-interactive" : "")}
@@ -592,7 +534,17 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} >
                     <FontAwesomeIcon style={{ color: "white" }} icon={"chevron-left"} size="sm" />
                 </button>
-                {this.sidebarOverlay}
+                <SidebarAnnos ref={this._sidebarRef}
+                    {...this.props}
+                    annotationsActive={this.annotationsActive}
+                    rootDoc={this.rootDoc}
+                    layoutDoc={this.layoutDoc}
+                    dataDoc={this.dataDoc}
+                    addDocument={this.addDocument}
+                    moveDocument={this.moveDocument}
+                    removeDocument={this.removeDocument}
+                    active={this.active}
+                />
             </div>);
     }
 }

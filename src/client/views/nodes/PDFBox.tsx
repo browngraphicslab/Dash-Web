@@ -6,30 +6,27 @@ import "pdfjs-dist/web/pdf_viewer.css";
 import { Doc, DocListCast, Opt, StrListCast, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
+import { List } from '../../../fields/List';
 import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
 import { PdfField } from "../../../fields/URLField";
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, OmitKeys, returnOne, returnTrue, returnZero, Utils } from '../../../Utils';
+import { Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { KeyCodes } from '../../util/KeyCodes';
 import { undoBatch } from '../../util/UndoManager';
 import { panZoomSchema } from '../collections/collectionFreeForm/CollectionFreeFormView';
-import { CollectionStackingView } from '../collections/CollectionStackingView';
 import { CollectionViewType } from '../collections/CollectionView';
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { PDFViewer } from "../pdf/PDFViewer";
-import { SearchBox } from '../search/SearchBox';
-import { StyleProp } from '../StyleProvider';
+import { SidebarAnnos } from '../SidebarAnnos';
 import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBox } from './formattedText/FormattedTextBox';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
-import { DocFocusOptions } from './DocumentView';
-import { List } from '../../../fields/List';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -43,6 +40,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     private _pdfViewer: PDFViewer | undefined;
     private _searchRef = React.createRef<HTMLInputElement>();
     private _selectReactionDisposer: IReactionDisposer | undefined;
+    private _sidebarRef = React.createRef<SidebarAnnos>();
 
     @observable private _searching: boolean = false;
     @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
@@ -97,12 +95,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     }
 
     scrollFocus = (doc: Doc, smooth: boolean) => {
-        if (DocListCast(this.rootDoc[this.sidebarKey()]).includes(doc)) {
-            if (this.layoutDoc["_" + this.sidebarKey() + "-docFilters"]) {
-                this.layoutDoc["_" + this.sidebarKey() + "-docFilters"] = new List<string>();
-                return 1;
-            }
-        }
+        if (this._sidebarRef?.current?.makeDocUnfiltered(doc)) return 1;
         this._initialScrollTarget = doc;
         return this._pdfViewer?.scrollFocus(doc, smooth);
     }
@@ -123,69 +116,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         Doc.SetNativeHeight(this.dataDoc, nh * 96 / 72);
         this.layoutDoc._height = this.layoutDoc[WidthSym]() / (Doc.NativeAspect(this.dataDoc) || 1);
         !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
-    }
-
-    sidebarKey = () => this.fieldKey + "-sidebar";
-    sidebarFiltersHeight = () => 50;
-    sidebarTransform = () => this.props.ScreenToLocalTransform().translate(Doc.NativeWidth(this.dataDoc), 0).scale(this.props.scaling?.() || 1);
-    sidebarWidth = () => !this.layoutDoc._showSidebar ? 0 : (NumCast(this.layoutDoc.nativeWidth) - Doc.NativeWidth(this.dataDoc)) * this.props.PanelWidth() / NumCast(this.layoutDoc.nativeWidth);
-    sidebarHeight = () => this.props.PanelHeight() - this.sidebarFiltersHeight() - 20;
-    sidebarAddDocument = (doc: Doc | Doc[]) => this.addDocument(doc, this.sidebarKey());
-    sidebarMoveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean) => this.moveDocument(doc, targetCollection, addDocument, this.sidebarKey());
-    sidebarRemDocument = (doc: Doc | Doc[]) => this.removeDocument(doc, this.sidebarKey());
-    sidebarDocFilters = () => [...StrListCast(this.layoutDoc._docFilters), ...StrListCast(this.layoutDoc[this.sidebarKey() + "-docFilters"])];
-    @computed get sidebarAllTags() {
-        const keys = new Set<string>();
-        DocListCast(this.rootDoc[this.sidebarKey()]).forEach(doc => SearchBox.documentKeys(doc).forEach(key => keys.add(key)));
-        return Array.from(keys.keys()).filter(key => key[0]).filter(key => !key.startsWith("_") && (key[0] === "#" || key[0] === key[0].toUpperCase())).sort();
-    }
-    @computed get sidebarOverlay() {
-        const renderTag = (tag: string) => {
-            const active = StrListCast(this.rootDoc[this.sidebarKey() + "-docFilters"]).includes(`${tag}:${tag}:check`);
-            return <div key={tag} className={`pdfbox-filterTag${active ? "-active" : ""}`}
-                onClick={e => Doc.setDocFilter(this.rootDoc, tag, tag, "check", true, this.sidebarKey(), e.shiftKey)}>
-                {tag}
-            </div>;
-        }
-        return !this.layoutDoc._showSidebar ? (null) :
-            <div style={{
-                position: "absolute", pointerEvents: this.active() ? "all" : undefined, top: 0, right: 0,
-                background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.WidgetColor),
-                width: `${this.sidebarWidth()}px`,
-                height: "100%"
-            }}>
-                <div style={{ width: "100%", height: this.sidebarHeight(), position: "relative" }}>
-                    <CollectionStackingView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
-                        NativeWidth={returnZero}
-                        NativeHeight={returnZero}
-                        PanelHeight={this.sidebarHeight}
-                        PanelWidth={this.sidebarWidth}
-                        xMargin={0}
-                        yMargin={0}
-                        docFilters={this.sidebarDocFilters}
-                        chromeStatus={"enabled"}
-                        scaleField={this.sidebarKey() + "-scale"}
-                        isAnnotationOverlay={false}
-                        select={emptyFunction}
-                        active={this.annotationsActive}
-                        scaling={returnOne}
-                        whenActiveChanged={this.whenActiveChanged}
-                        childHideDecorationTitle={returnTrue}
-                        removeDocument={this.sidebarRemDocument}
-                        moveDocument={this.sidebarMoveDocument}
-                        addDocument={this.sidebarAddDocument}
-                        CollectionView={undefined}
-                        ScreenToLocalTransform={this.sidebarTransform}
-                        renderDepth={this.props.renderDepth + 1}
-                        viewType={CollectionViewType.Stacking}
-                        fieldKey={this.sidebarKey()}
-                        pointerEvents={"all"}
-                    />
-                </div>
-                <div className="pdfBox-tagList" style={{ height: this.sidebarFiltersHeight(), width: this.sidebarWidth() }}>
-                    {this.sidebarAllTags.map(renderTag)}
-                </div>
-            </div>;
     }
 
     public search = (string: string, fwd: boolean) => { this._pdfViewer?.search(string, fwd); };
@@ -281,6 +211,8 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                 </button>
             </div>);
     }
+    sidebarWidth = () => !this.layoutDoc._showSidebar ? 0 : (NumCast(this.layoutDoc.nativeWidth) - Doc.NativeWidth(this.dataDoc)) * this.props.PanelWidth() / NumCast(this.layoutDoc.nativeWidth);
+
 
     specificContextMenu = (e: React.MouseEvent): void => {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
@@ -294,7 +226,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     }
 
     anchorMenuClick = (anchor: Doc) => {
-        this.Document._showSidebar = true;
+        this.props.Document._showSidebar = true;
         const startup = StrListCast(this.rootDoc.docFilters).map(filter => filter.split(":")[0]).join(" ");
         const target = Docs.Create.TextDocument(startup, {
             title: "anno",
@@ -303,9 +235,9 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         });
         FormattedTextBox.SelectOnLoad = target[Id];
         FormattedTextBox.DontSelectInitialText = true;
-        this.sidebarAllTags.map(tag => target[tag] = tag);
+        //this.sidebarAllTags.map(tag => target[tag] = tag);
         DocUtils.MakeLink({ doc: anchor }, { doc: target }, "inline markup", "annotation");
-        this.sidebarAddDocument(target);
+        this._sidebarRef.current?.addDocument(target);
     }
 
     @computed get renderTitleBox() {
@@ -316,6 +248,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             </div>
         </div>;
     }
+
     @computed get renderPdfView() {
         TraceMobx();
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
@@ -335,7 +268,17 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                 ContentScaling={this.props.scaling}
                 sidebarWidth={this.sidebarWidth}
             />
-            {this.sidebarOverlay}
+            <SidebarAnnos ref={this._sidebarRef}
+                {...this.props}
+                annotationsActive={this.annotationsActive}
+                rootDoc={this.rootDoc}
+                layoutDoc={this.layoutDoc}
+                dataDoc={this.dataDoc}
+                addDocument={this.addDocument}
+                moveDocument={this.moveDocument}
+                removeDocument={this.removeDocument}
+                active={this.active}
+            />
             {this.settingsPanel()}
         </div>;
     }

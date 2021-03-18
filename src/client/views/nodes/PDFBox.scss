@@ -189,26 +189,7 @@
         }
     }
 
-    .pdfBox-tagList {
-        display: flex;
-        flex-direction: row;
-        overflow: auto;
-        flex-flow: row;
-        flex-wrap: wrap;
-        .pdfBox-filterTag, .pdfBox-filterTag-active {
-            font-weight: bold;
-            padding-left: 6;
-            padding-right: 6;
-            box-shadow: black 1px 1px 4px;
-            border-radius: 5;
-            margin: 2; 
-            height: 20;
-            background-color: lightgrey;
-        }
-        .pdfBox-filterTag-active {
-            background-color: white;
-        }
-    }
+    
     .pdfBox-title-outer {
         width: 100%;
         height: 100%;
