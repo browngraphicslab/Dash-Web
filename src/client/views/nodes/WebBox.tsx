@@ -44,15 +44,15 @@ const WebDocument = makeInterface(documentSchema);
 @observer
 export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
+    private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _outerRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _disposers: { [name: string]: IReactionDisposer } = {};
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _keyInput = React.createRef<HTMLInputElement>();
-    @observable _scrollTimer: any;
-    @observable private _overlayAnnoInfo: Opt<Doc>;
     private _initialScroll: Opt<number>;
-    private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
+    @observable private _scrollTimer: any;
+    @observable private _overlayAnnoInfo: Opt<Doc>;
     @observable private _marqueeing: number[] | undefined;
     @observable private _url: string = "hello";
     @observable private _isAnnotating = false;
@@ -60,11 +60,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @observable private _savedAnnotations = new ObservableMap<number, HTMLDivElement[]>();
     @observable private _scrollHeight = 1500;
     @computed get scrollHeight() { return this._scrollHeight; }
+    @computed get allAnnotations() { return DocListCast(this.dataDoc[this.annotationKey]); }
     @computed get inlineTextAnnotations() { return this.allAnnotations.filter(a => a.textInlineAnnotations); }
+    @computed get webField() { return Cast(this.dataDoc[this.props.fieldKey], WebField)?.url; }
 
     constructor(props: any) {
         super(props);
-        if (this.dataDoc[this.fieldKey] instanceof WebField) {
+        if (this.webField) {
             Doc.SetNativeWidth(this.dataDoc, Doc.NativeWidth(this.dataDoc) || 850);
             Doc.SetNativeHeight(this.dataDoc, Doc.NativeHeight(this.dataDoc) || this.Document[HeightSym]() / this.Document[WidthSym]() * 850);
         }
@@ -72,6 +74,58 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             this.layoutDoc[this.fieldKey + "-contentWidth"] = Doc.NativeWidth(this.layoutDoc);
         }
         this._annotationKey = "annotations-" + this.urlHash(this._url);
+    }
+
+    async componentDidMount() {
+        this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
+
+        runInAction(() => this._url = this.webField?.toString() || "");
+
+        this._disposers.selection = reaction(() => this.props.isSelected(),
+            selected => !selected && setTimeout(() => {
+                Array.from(this._savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
+                this._savedAnnotations.clear();
+            }));
+
+        if (this.webField?.href.indexOf("youtube") !== -1) {
+            const youtubeaspect = 400 / 315;
+            const nativeWidth = Doc.NativeWidth(this.layoutDoc);
+            const nativeHeight = Doc.NativeHeight(this.layoutDoc);
+            if (this.webField) {
+                if (!nativeWidth || !nativeHeight || Math.abs(nativeWidth / nativeHeight - youtubeaspect) > 0.05) {
+                    if (!nativeWidth) Doc.SetNativeWidth(this.layoutDoc, 600);
+                    Doc.SetNativeHeight(this.layoutDoc, (nativeWidth || 600) / youtubeaspect);
+                    this.layoutDoc._height = this.layoutDoc[WidthSym]() / youtubeaspect;
+                }
+            } // else it's an HTMLfield
+        } else if (this.webField && !this.dataDoc.text) {
+            const result = await WebRequest.get(Utils.CorsProxy(this.webField.href));
+            if (result) {
+                this.dataDoc.text = htmlToText.fromString(result.content);
+            }
+        }
+
+        var quickScroll = true;
+        this._disposers.scrollReaction = reaction(() => NumCast(this.layoutDoc._scrollTop),
+            (scrollTop) => {
+                if (quickScroll) {
+                    this._initialScroll = scrollTop;
+                }
+                else {
+                    const viewTrans = StrCast(this.Document._viewTransition);
+                    const durationMiliStr = viewTrans.match(/([0-9]*)ms/);
+                    const durationSecStr = viewTrans.match(/([0-9.]*)s/);
+                    const duration = durationMiliStr ? Number(durationMiliStr[1]) : durationSecStr ? Number(durationSecStr[1]) * 1000 : 0;
+                    this.goTo(scrollTop, duration);
+                }
+            },
+            { fireImmediately: true }
+        );
+        quickScroll = false;
+    }
+    componentWillUnmount() {
+        Object.values(this._disposers).forEach(disposer => disposer?.());
+        this._iframe?.removeEventListener('wheel', this.iframeWheel, true);
     }
 
     @action
@@ -100,6 +154,32 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         } else if (sel.removeAllRanges) {  // Firefox
             sel.removeAllRanges();
         }
+    }
+
+    menuControls = () => this.urlEditor; // controls to be added to the top bar when a document of this type is selected
+
+    scrollFocus = (doc: Doc, smooth: boolean) => {
+        if (doc !== this.rootDoc && this._outerRef.current) {
+            const scrollTo = doc.type === DocumentType.TEXTANCHOR ? NumCast(doc.y) : Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
+            if (scrollTo !== undefined) {
+                const focusSpeed = smooth ? 500 : 0;
+                this._initialScroll !== undefined && (this._initialScroll = scrollTo);
+                this.goTo(scrollTo, focusSpeed);
+                return focusSpeed;
+            }
+        }
+        this._initialScroll = NumCast(doc.y);
+        return 0;
+    }
+
+    getAnchor = () => {
+        const anchor = Docs.Create.TextanchorDocument({
+            title: StrCast(this.rootDoc.title + " " + this.layoutDoc._scrollTop),
+            annotationOn: this.rootDoc,
+            y: NumCast(this.layoutDoc._scrollTop),
+        });
+        this.addDocument(anchor);
+        return anchor;
     }
 
     @action
@@ -151,8 +231,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 for (let ele = e.target; ele; ele = ele.parentElement) {
                     href = (typeof (ele.href) === "string" ? ele.href : ele.href?.baseVal) || ele.parentElement?.href || href;
                 }
-                if (href) {
-                    this.submitURL(href.replace(Utils.prepend(""), Cast(this.dataDoc[this.fieldKey], WebField, null)?.url.origin));
+                if (href && this.webField?.origin) {
+                    this.submitURL(href.replace(Utils.prepend(""), this.webField?.origin));
                     if (this._outerRef.current) {
                         this._outerRef.current.scrollTop = NumCast(this.layoutDoc._scrollTop);
                         this._outerRef.current.scrollLeft = 0;
@@ -161,6 +241,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             })));
             iframe.contentDocument.addEventListener('wheel', this.iframeWheel, false);
             //iframe.contentDocument.addEventListener('scroll', () => !this.active() && this._iframe && (this._iframe.scrollTop = NumCast(this.layoutDoc._scrollTop), false));
+        }
+    }
+
+    @action
+    iframeWheel = (e: any) => {
+        if (!this._scrollTimer) {
+            this._scrollTimer = setTimeout(action(() => this._scrollTimer = undefined), 250); // this turns events off on the iframe which allows scrolling to change direction smoothly
         }
     }
 
@@ -177,90 +264,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             }
         }), timeout);
     }
-    @action
-    iframeWheel = (e: any) => {
-        if (!this._scrollTimer) {
-            this._scrollTimer = setTimeout(action(() => this._scrollTimer = undefined), 250); // this turns events off on the iframe which allows scrolling to change direction smoothly
-        }
-    }
-    onWheel = (e: any) => {
-        e.stopPropagation();
-        e.preventDefault();
-    }
-    onScroll = (e: any) => this.setDashScrollTop(this._outerRef.current?.scrollTop || 0);
-    scrollFocus = (doc: Doc, smooth: boolean) => {
-        if (doc !== this.rootDoc && this._outerRef.current) {
-            const scrollTo = doc.type === DocumentType.TEXTANCHOR ? NumCast(doc.y) : Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
-            if (scrollTo !== undefined) {
-                const focusSpeed = smooth ? 500 : 0;
-                this._initialScroll !== undefined && (this._initialScroll = scrollTo);
-                this.goTo(scrollTo, focusSpeed);
-                return focusSpeed;
-            }
-        }
-        this._initialScroll = NumCast(doc.y);
-        return 0;
-    }
-
-    getAnchor = () => {
-        const anchor = Docs.Create.TextanchorDocument({
-            title: StrCast(this.rootDoc.title + " " + this.layoutDoc._scrollTop),
-            annotationOn: this.rootDoc,
-            y: NumCast(this.layoutDoc._scrollTop),
-        });
-        this.addDocument(anchor);
-        return anchor;
-    }
-
-    async componentDidMount() {
-        this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
-
-        const urlField = Cast(this.dataDoc[this.props.fieldKey], WebField);
-        runInAction(() => this._url = urlField?.url.toString() || "");
-
-        this._disposers.selection = reaction(() => this.props.isSelected(),
-            selected => !selected && setTimeout(() => {
-                Array.from(this._savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
-                this._savedAnnotations.clear();
-            }));
-
-        const field = Cast(this.rootDoc[this.props.fieldKey], WebField);
-        if (field?.url.href.indexOf("youtube") !== -1) {
-            const youtubeaspect = 400 / 315;
-            const nativeWidth = Doc.NativeWidth(this.layoutDoc);
-            const nativeHeight = Doc.NativeHeight(this.layoutDoc);
-            if (field) {
-                if (!nativeWidth || !nativeHeight || Math.abs(nativeWidth / nativeHeight - youtubeaspect) > 0.05) {
-                    if (!nativeWidth) Doc.SetNativeWidth(this.layoutDoc, 600);
-                    Doc.SetNativeHeight(this.layoutDoc, (nativeWidth || 600) / youtubeaspect);
-                    this.layoutDoc._height = this.layoutDoc[WidthSym]() / youtubeaspect;
-                }
-            } // else it's an HTMLfield
-        } else if (field?.url && !this.dataDoc.text) {
-            const result = await WebRequest.get(Utils.CorsProxy(field.url.href));
-            if (result) {
-                this.dataDoc.text = htmlToText.fromString(result.content);
-            }
-        }
-
-        var quickScroll = true;
-        this._disposers.scrollReaction = reaction(() => NumCast(this.layoutDoc._scrollTop),
-            (scrollTop) => {
-                if (quickScroll) {
-                    this._initialScroll = scrollTop;
-                }
-                else {
-                    const viewTrans = StrCast(this.Document._viewTransition);
-                    const durationMiliStr = viewTrans.match(/([0-9]*)ms/);
-                    const durationSecStr = viewTrans.match(/([0-9.]*)s/);
-                    const duration = durationMiliStr ? Number(durationMiliStr[1]) : durationSecStr ? Number(durationSecStr[1]) * 1000 : 0;
-                    this.goTo(scrollTop, duration);
-                }
-            },
-            { fireImmediately: true }
-        );
-        quickScroll = false;
-    }
 
     goTo = (scrollTop: number, duration: number) => {
         if (this._outerRef.current) {
@@ -273,11 +276,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 this.setDashScrollTop(scrollTop);
             }
         }
-    }
-
-    componentWillUnmount() {
-        Object.values(this._disposers).forEach(disposer => disposer?.());
-        this._iframe?.removeEventListener('wheel', this.iframeWheel, true);
     }
 
     @action
@@ -312,12 +310,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     @action
-    submitURL = (newUrl: string) => {
+    submitURL = (newUrl?: string) => {
+        if (!newUrl) return;
         if (!newUrl.startsWith("http")) newUrl = "http://" + newUrl;
         try {
             const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
             const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
-            const url = Cast(this.dataDoc[this.fieldKey], WebField, null)?.url.toString();
+            const url = this.webField?.toString();
             if (url) {
                 if (history === undefined) {
                     this.dataDoc[this.fieldKey + "-history"] = new List<string>([url]);
@@ -336,7 +335,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         return true;
     }
 
-    menuControls = () => this.urlEditor;
     onWebUrlDrop = (e: React.DragEvent) => {
         const { dataTransfer } = e;
         const html = dataTransfer.getData("text/html");
@@ -371,12 +369,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     <button className="submitUrl" onClick={() => this.submitURL(this._keyInput.current!.value)} onDragOver={e => e.stopPropagation()} onDrop={this.onWebUrlDrop}>
                         GO
                     </button>
-                    <button className="submitUrl" onClick={this.back}>
-                        <FontAwesomeIcon icon="caret-left" size="lg"></FontAwesomeIcon>
-                    </button>
-                    <button className="submitUrl" onClick={this.forward}>
-                        <FontAwesomeIcon icon="caret-right" size="lg"></FontAwesomeIcon>
-                    </button>
+                    <button className="submitUrl" onClick={this.back}> <FontAwesomeIcon icon="caret-left" size="lg" /> </button>
+                    <button className="submitUrl" onClick={this.forward}> <FontAwesomeIcon icon="caret-right" size="lg" />  </button>
                 </div>
             </div>
         );
@@ -389,6 +383,19 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         funcs.push({ description: (this.layoutDoc[this.fieldKey + "-contentWidth"] ? "Unfreeze" : "Freeze") + " Content Width", event: () => this.layoutDoc[this.fieldKey + "-contentWidth"] = this.layoutDoc[this.fieldKey + "-contentWidth"] ? undefined : Doc.NativeWidth(this.layoutDoc), icon: "snowflake" });
         funcs.push({ description: "Toggle Annotation View ", event: () => this.Document._showSidebar = !this.Document._showSidebar, icon: "expand-arrows-alt" });
         cm.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
+    }
+
+    @action
+    onMarqueeDown = (e: React.PointerEvent) => {
+        if (!e.altKey && e.button === 0 && this.active(true)) {
+            this._marqueeing = [e.clientX, e.clientY];
+            this.props.select(false);
+        }
+    }
+    @action finishMarquee = (x?: number, y?: number) => {
+        this._marqueeing = undefined;
+        this._isAnnotating = false;
+        x !== undefined && y !== undefined && this._setPreviewCursor?.(x, y, false);
     }
 
     @computed
@@ -424,7 +431,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         });
         FormattedTextBox.SelectOnLoad = target[Id];
         FormattedTextBox.DontSelectInitialText = true;
-        this.allTags.map(tag => target[tag] = tag);
+        this.sidebarAllTags.map(tag => target[tag] = tag);
         DocUtils.MakeLink({ doc: anchor }, { doc: target }, "inline markup", "annotation");
         this.sidebarAddDocument(target);
     }
@@ -445,19 +452,19 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     sidebarMoveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean) => this.moveDocument(doc, targetCollection, addDocument, this.sidebarKey());
     sidebarRemDocument = (doc: Doc | Doc[]) => this.removeDocument(doc, this.sidebarKey());
     sidebarDocFilters = () => [...StrListCast(this.layoutDoc._docFilters), ...StrListCast(this.layoutDoc[this.sidebarKey() + "-docFilters"])];
-    @computed get allTags() {
+    @computed get sidebarAllTags() {
         const keys = new Set<string>();
         DocListCast(this.rootDoc[this.sidebarKey()]).forEach(doc => SearchBox.documentKeys(doc).forEach(key => keys.add(key)));
         return Array.from(keys.keys()).filter(key => key[0]).filter(key => !key.startsWith("_") && (key[0] === "#" || key[0] === key[0].toUpperCase())).sort();
     }
-    renderTag = (tag: string) => {
-        const active = StrListCast(this.rootDoc[this.sidebarKey() + "-docFilters"]).includes(`${tag}:${tag}:check`);
-        return <div className={`webBox-filterTag${active ? "-active" : ""}`}
-            onClick={e => Doc.setDocFilter(this.rootDoc, tag, tag, "check", true, this.sidebarKey(), e.shiftKey)}>
-            {tag}
-        </div>;
-    }
     @computed get sidebarOverlay() {
+        const renderTag = (tag: string) => {
+            const active = StrListCast(this.rootDoc[this.sidebarKey() + "-docFilters"]).includes(`${tag}:${tag}:check`);
+            return <div className={`webBox-filterTag${active ? "-active" : ""}`}
+                onClick={e => Doc.setDocFilter(this.rootDoc, tag, tag, "check", true, this.sidebarKey(), e.shiftKey)}>
+                {tag}
+            </div>;
+        }
         return !this.layoutDoc._showSidebar ? (null) :
             <div style={{
                 position: "absolute", pointerEvents: this.active() ? "all" : undefined, top: 0, right: 0,
@@ -494,21 +501,18 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     />
                 </div>
                 <div className="webBox-tagList" style={{ height: this.sidebarFiltersHeight(), width: this.sidebarWidth() }}>
-                    {this.allTags.map(tag => this.renderTag(tag))}
+                    {this.sidebarAllTags.map(renderTag)}
                 </div>
             </div>;
     }
 
-    @computed
-    get content() {
+    @computed get content() {
         return <div className={"webBox-cont" + (this.active() && CurrentUserUtils.SelectedTool === InkTool.None && !DocumentDecorations.Instance?.Interacting ? "-interactive" : "")}
             style={{ width: NumCast(this.layoutDoc[this.fieldKey + "-contentWidth"]) || `${100 / (this.props.scaling?.() || 1)}%`, }}>
             {this.urlContent}
         </div>;
     }
 
-    showInfo = action((anno: Opt<Doc>) => this._overlayAnnoInfo = anno);
-    @computed get allAnnotations() { return DocListCast(this.dataDoc[this.annotationKey]); }
     @computed get annotationLayer() {
         TraceMobx();
         return <div className="webBox-annotationLayer" style={{ height: Doc.NativeHeight(this.Document) || undefined }} ref={this._annotationLayer}>
@@ -518,20 +522,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         </div>;
     }
 
-    @action
-    onMarqueeDown = (e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.active(true)) {
-            this._marqueeing = [e.clientX, e.clientY];
-            this.props.select(false);
-        }
-    }
+    showInfo = action((anno: Opt<Doc>) => this._overlayAnnoInfo = anno);
     setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => this._setPreviewCursor = func;
-    @action finishMarquee = (x?: number, y?: number) => {
-        this._marqueeing = undefined;
-        this._isAnnotating = false;
-        x !== undefined && y !== undefined && this._setPreviewCursor?.(x, y, false);
-    }
-
     panelWidth = () => this.props.PanelWidth() / (this.props.scaling?.() || 1) - this.sidebarWidth(); // (this.Document.scrollHeight || Doc.NativeHeight(this.Document) || 0);
     panelHeight = () => this.props.PanelHeight() / (this.props.scaling?.() || 1); // () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : Doc.NativeWidth(this.Document);
     scrollXf = () => this.props.ScreenToLocalTransform().translate(0, NumCast(this.layoutDoc._scrollTop));
@@ -551,8 +543,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             transform: `scale(${scale})`,
                             pointerEvents: inactiveLayer ? "none" : undefined
                         }}
-                        onWheel={this.onWheel}
-                        onScroll={this.onScroll}
+                        onWheel={e => { e.stopPropagation(); e.preventDefault(); }} // block wheel events from propagating since they're handled by the iframe
+                        onScroll={e => this.setDashScrollTop(this._outerRef.current?.scrollTop || 0)}
                         onPointerDown={this.onMarqueeDown}
                     >
                         <div className={"webBox-innerContent"} style={{

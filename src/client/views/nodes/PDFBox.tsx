@@ -38,7 +38,7 @@ const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
 export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocument>(PdfDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PDFBox, fieldKey); }
     private _searchString: string = "";
-    private _initialScale: number = 0;  // the initial scale of the PDF when first rendered which determines whether the document will be live on startup or not.  Getting bigger after startup won't make it automatically be live.
+    private _initialScrollTarget: Opt<Doc>;
     private _displayPdfLive = false; // has this box ever had its contents activated -- if so, stop drawing the overlay title
     private _pdfViewer: PDFViewer | undefined;
     private _searchRef = React.createRef<HTMLInputElement>();
@@ -50,7 +50,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
     constructor(props: any) {
         super(props);
-        this._initialScale = this.props.ScreenToLocalTransform().Scale;
         const nw = Doc.NativeWidth(this.Document, this.dataDoc) || 927;
         const nh = Doc.NativeHeight(this.Document, this.dataDoc) || 1200;
         !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
@@ -87,7 +86,16 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         }
     }
 
-    initialScrollTarget: Opt<Doc>;
+    componentWillUnmount() { this._selectReactionDisposer?.(); }
+    componentDidMount() {
+        this.props.setContentView?.(this);
+        this._selectReactionDisposer = reaction(() => this.props.isSelected(),
+            () => {
+                document.removeEventListener("keydown", this.onKeyDown);
+                this.props.isSelected(true) && document.addEventListener("keydown", this.onKeyDown);
+            }, { fireImmediately: true });
+    }
+
     scrollFocus = (doc: Doc, smooth: boolean) => {
         if (DocListCast(this.rootDoc[this.sidebarKey()]).includes(doc)) {
             if (this.layoutDoc["_" + this.sidebarKey() + "-docFilters"]) {
@@ -95,7 +103,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                 return 1;
             }
         }
-        this.initialScrollTarget = doc;
+        this._initialScrollTarget = doc;
         return this._pdfViewer?.scrollFocus(doc, smooth);
     }
     getAnchor = () => {
@@ -107,15 +115,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         this.addDocument(anchor);
         return anchor;
     }
-    componentWillUnmount() { this._selectReactionDisposer?.(); }
-    componentDidMount() {
-        this.props.setContentView?.(this);
-        this._selectReactionDisposer = reaction(() => this.props.isSelected(),
-            () => {
-                document.removeEventListener("keydown", this.onKeyDown);
-                this.props.isSelected(true) && document.addEventListener("keydown", this.onKeyDown);
-            }, { fireImmediately: true });
-    }
 
     @action
     loaded = (nw: number, nh: number, np: number) => {
@@ -125,6 +124,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         this.layoutDoc._height = this.layoutDoc[WidthSym]() / (Doc.NativeAspect(this.dataDoc) || 1);
         !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
     }
+
     sidebarKey = () => this.fieldKey + "-sidebar";
     sidebarFiltersHeight = () => 50;
     sidebarTransform = () => this.props.ScreenToLocalTransform().translate(Doc.NativeWidth(this.dataDoc), 0).scale(this.props.scaling?.() || 1);
@@ -134,19 +134,19 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     sidebarMoveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean) => this.moveDocument(doc, targetCollection, addDocument, this.sidebarKey());
     sidebarRemDocument = (doc: Doc | Doc[]) => this.removeDocument(doc, this.sidebarKey());
     sidebarDocFilters = () => [...StrListCast(this.layoutDoc._docFilters), ...StrListCast(this.layoutDoc[this.sidebarKey() + "-docFilters"])];
-    @computed get allTags() {
+    @computed get sidebarAllTags() {
         const keys = new Set<string>();
         DocListCast(this.rootDoc[this.sidebarKey()]).forEach(doc => SearchBox.documentKeys(doc).forEach(key => keys.add(key)));
         return Array.from(keys.keys()).filter(key => key[0]).filter(key => !key.startsWith("_") && (key[0] === "#" || key[0] === key[0].toUpperCase())).sort();
     }
-    renderTag = (tag: string) => {
-        const active = StrListCast(this.rootDoc[this.sidebarKey() + "-docFilters"]).includes(`${tag}:${tag}:check`);
-        return <div key={tag} className={`pdfbox-filterTag${active ? "-active" : ""}`}
-            onClick={e => Doc.setDocFilter(this.rootDoc, tag, tag, "check", true, this.sidebarKey(), e.shiftKey)}>
-            {tag}
-        </div>;
-    }
     @computed get sidebarOverlay() {
+        const renderTag = (tag: string) => {
+            const active = StrListCast(this.rootDoc[this.sidebarKey() + "-docFilters"]).includes(`${tag}:${tag}:check`);
+            return <div key={tag} className={`pdfbox-filterTag${active ? "-active" : ""}`}
+                onClick={e => Doc.setDocFilter(this.rootDoc, tag, tag, "check", true, this.sidebarKey(), e.shiftKey)}>
+                {tag}
+            </div>;
+        }
         return !this.layoutDoc._showSidebar ? (null) :
             <div style={{
                 position: "absolute", pointerEvents: this.active() ? "all" : undefined, top: 0, right: 0,
@@ -183,7 +183,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                     />
                 </div>
                 <div className="pdfBox-tagList" style={{ height: this.sidebarFiltersHeight(), width: this.sidebarWidth() }}>
-                    {this.allTags.map(tag => this.renderTag(tag))}
+                    {this.sidebarAllTags.map(renderTag)}
                 </div>
             </div>;
     }
@@ -217,9 +217,9 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
     setPdfViewer = (pdfViewer: PDFViewer) => {
         this._pdfViewer = pdfViewer;
-        if (this.initialScrollTarget) {
-            this.scrollFocus(this.initialScrollTarget, false);
-            this.initialScrollTarget = undefined;
+        if (this._initialScrollTarget) {
+            this.scrollFocus(this._initialScrollTarget, false);
+            this._initialScrollTarget = undefined;
         }
     }
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
@@ -303,7 +303,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         });
         FormattedTextBox.SelectOnLoad = target[Id];
         FormattedTextBox.DontSelectInitialText = true;
-        this.allTags.map(tag => target[tag] = tag);
+        this.sidebarAllTags.map(tag => target[tag] = tag);
         DocUtils.MakeLink({ doc: anchor }, { doc: target }, "inline markup", "annotation");
         this.sidebarAddDocument(target);
     }

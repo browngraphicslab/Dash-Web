@@ -642,7 +642,7 @@ export namespace Docs {
          * only when creating a DockDocument from the current user's already existing
          * main document.
          */
-        export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data", protoId?: string) {
+        function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data", protoId?: string) {
             const viewKeys = ["x", "y", "system"]; // keys that should be addded to the view document even though they don't begin with an "_"
             const { omit: dataProps, extract: viewProps } = OmitKeys(options, viewKeys, "^_");
 
