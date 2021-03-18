@@ -424,7 +424,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     PanelWidth={this.props.PanelWidth}
-                    PanelHeight={() => 100}
+                    PanelHeight={this.props.PanelHeight}
                     rootSelected={this.props.rootSelected}
                     renderDepth={1}
                     dropAction={this.props.dropAction}
@@ -450,13 +450,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     removeDocument={returnFalse}
                     addDocument={returnFalse} />
             </div>
-            {/* <Flyout className="filterBox-flyout" anchorPoint={anchorPoints.RIGHT_TOP} content={flyout}>
-                <div className="filterBox-addWrapper">
-                    <div className="filterBox-addFilter"> + add a filter</div>
-                </div>
-            </Flyout> */}
             <div className="filterBox-bottom">
-                <div className="filterBox-select-matched">
+                {/* <div className="filterBox-select-matched">
                     <input className="filterBox-select-box" type="checkbox"
                         onChange={this.changeSelected} />
                     <div className="filterBox-select-text">select</div>
@@ -465,7 +460,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                         <option value="unmatched" key="unmatched">unmatched</option>
                     </select>
                     <div className="filterBox-select-text">documents</div>
-                </div>
+                </div> */}
 
                 <div style={{ display: "flex" }}>
                     <div className="filterBox-saveWrapper">

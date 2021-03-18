@@ -975,6 +975,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             updateFilterDoc={this.updateFilterDoc}
                             docViewPath={returnEmptyDoclist}
                             layerProvider={undefined}
+                            dontCenter="y"
                         />
                     </div>
             }

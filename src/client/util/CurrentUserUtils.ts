@@ -804,7 +804,7 @@ export class CurrentUserUtils {
         doc.currentFilter === undefined;
         if (doc.currentFilter === undefined) {
             doc.currentFilter = Docs.Create.FilterDocument({
-                title: "FilterDoc", _height: 20,
+                title: "FilterDoc", _height: 150,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "none",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
