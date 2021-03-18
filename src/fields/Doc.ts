@@ -94,6 +94,7 @@ export const AclAddonly = Symbol("AclAddonly");
 export const AclEdit = Symbol("AclEdit");
 export const AclAdmin = Symbol("AclAdmin");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
+export const Initializing = Symbol("Initializing");
 export const ForceServerWrite = Symbol("ForceServerWrite");
 export const CachedUpdates = Symbol("Cached updates");
 
@@ -189,6 +190,7 @@ export class Doc extends RefField {
 
     private [UpdatingFromServer]: boolean = false;
     private [ForceServerWrite]: boolean = false;
+    public [Initializing]: boolean = false;
 
     private [Update] = (diff: any) => {
         (!this[UpdatingFromServer] || this[ForceServerWrite]) && DocServer.UpdateField(this[Id], diff);
@@ -371,7 +373,8 @@ export namespace Doc {
      * @param fields the fields to project onto the target. Its type signature defines a mapping from some string key
      * to a potentially undefined field, where each entry in this mapping is optional. 
      */
-    export function assign<K extends string>(doc: Doc, fields: Partial<Record<K, Opt<Field>>>, skipUndefineds: boolean = false) {
+    export function assign<K extends string>(doc: Doc, fields: Partial<Record<K, Opt<Field>>>, skipUndefineds: boolean = false, isInitializing = false) {
+        isInitializing && (doc[Initializing] = true);
         for (const key in fields) {
             if (fields.hasOwnProperty(key)) {
                 const value = fields[key];
@@ -380,6 +383,7 @@ export namespace Doc {
                 }
             }
         }
+        isInitializing && (doc[Initializing] = false);
         return doc;
     }
 
@@ -510,11 +514,11 @@ export namespace Doc {
         cloneMap.set(doc[Id], copy);
         if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
         const filter = [...exclusions, ...Cast(doc.cloneFieldFilter, listSpec("string"), [])];
-        await Promise.all(Object.keys(doc).map(async key => {
+        await Promise.all([...Object.keys(doc), "links"].map(async key => {
             if (filter.includes(key)) return;
             const assignKey = (val: any) => !dontCreate && (copy[key] = val);
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
-            const field = ProxyField.WithoutProxy(() => doc[key]);
+            const field = key === "links" && Doc.IsPrototype(doc) ? doc[key] : ProxyField.WithoutProxy(() => doc[key]);
             const copyObjectField = async (field: ObjectField) => {
                 const list = Cast(doc[key], listSpec(Doc));
                 const docs = list && (await DocListCastAsync(list))?.filter(d => d instanceof Doc);
@@ -779,10 +783,12 @@ export namespace Doc {
     export function MakeDelegate(doc: Opt<Doc>, id?: string, title?: string): Opt<Doc> {
         if (doc) {
             const delegate = new Doc(id, true);
+            delegate[Initializing] = true;
             delegate.proto = doc;
             delegate.author = Doc.CurrentUserEmail;
             if (!Doc.IsSystem(doc)) Doc.AddDocToList(doc[DataSym], "aliases", delegate);
             title && (delegate.title = title);
+            delegate[Initializing] = false;
             return delegate;
         }
         return undefined;
@@ -1063,9 +1069,9 @@ export namespace Doc {
     // filters document in a container collection:
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
-    export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers: "remove" | "match" | "check" | "x", toggle?: boolean, fieldSuffix?:string) {
+    export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers: "remove" | "match" | "check" | "x", toggle?: boolean, fieldSuffix?: string) {
         const container = target ?? CollectionDockingView.Instance.props.Document;
-        const filterField = "_"+(fieldSuffix ? fieldSuffix+"-":"")+"docFilters";
+        const filterField = "_" + (fieldSuffix ? fieldSuffix + "-" : "") + "docFilters";
         const docFilters = Cast(container[filterField], listSpec("string"), []);
         runInAction(() => {
             for (let i = 0; i < docFilters.length; i++) {

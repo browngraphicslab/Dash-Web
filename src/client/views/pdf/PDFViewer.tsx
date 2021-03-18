@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, ObservableMap } from "mobx";
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -8,14 +8,16 @@ import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
 import { createSchema, makeInterface } from "../../../fields/Schema";
-import { Cast, NumCast, StrCast, ScriptCast } from "../../../fields/Types";
+import { Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { PdfField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, OmitKeys, smoothScroll, Utils } from "../../../Utils";
 import { DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { CompiledScript, CompileScript } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
+import { SharingManager } from "../../util/SharingManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
@@ -27,8 +29,6 @@ import { Annotation } from "./Annotation";
 import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
-import { SharingManager } from "../../util/SharingManager";
-import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 const _global = (window /* browser */ || global /* node */) as any;
@@ -52,7 +52,6 @@ interface IViewerProps extends FieldViewProps {
     url: string;
     startupLive: boolean;
     loaded?: (nw: number, nh: number, np: number) => void;
-    isChildActive: (outsideReaction?: boolean) => boolean;
     setPdfViewer: (view: PDFViewer) => void;
     ContentScaling?: () => number;
     sidebarWidth: () => number;
@@ -66,9 +65,10 @@ interface IViewerProps extends FieldViewProps {
 export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocument>(PdfDocument) {
     static _annotationStyle: any = addStyleSheet();
     @observable private _pageSizes: { width: number, height: number }[] = [];
-    @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
+    @observable private _savedAnnotations = new ObservableMap<number, HTMLDivElement[]>();
     @observable private _script: CompiledScript = CompileScript("return true") as CompiledScript;
     @observable private _marqueeing: number[] | undefined;
+    @observable private _textSelecting = true;
     @observable private _showWaiting = true;
     @observable private _showCover = false;
     @observable private _zoomed = 1;
@@ -140,14 +140,13 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this._disposers.selected = reaction(() => this.props.isSelected(),
             selected => {
                 if (!selected) {
-                    this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
-                    this._savedAnnotations.keys().forEach(k => this._savedAnnotations.setValue(k, []));
+                    Array.from(this._savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
+                    Array.from(this._savedAnnotations.keys()).forEach(k => this._savedAnnotations.set(k, []));
                 }
                 (SelectionManager.Views().length === 1) && this.setupPdfJsViewer();
             },
             { fireImmediately: true });
-        this._disposers.curPage = reaction(
-            () => this.Document._curPage,
+        this._disposers.curPage = reaction(() => this.Document._curPage,
             (page) => page !== undefined && page !== this._pdfViewer?.currentPageNumber && this.gotoPage(page),
             { fireImmediately: true }
         );
@@ -379,16 +378,18 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         if ((e.button !== 0 || e.altKey) && this.active(true)) {
             this._setPreviewCursor?.(e.clientX, e.clientY, true);
         }
-        if (!e.altKey && e.button === 0 && this.active(true)) {
+        if (!e.altKey && e.button === 0 && this.props.active(true)) {
+            this.props.select(false);
             this._marqueeing = [e.clientX, e.clientY];
             if (e.target && ((e.target as any).className.includes("endOfContent") || ((e.target as any).parentElement.className !== "textLayer"))) {
+                this._textSelecting = false;
                 document.addEventListener("pointermove", this.onSelectMove); // need this to prevent document from being dragged if stopPropagation doesn't get called
             } else {
                 // if textLayer is hit, then we select text instead of using a marquee so clear out the marquee.
                 setTimeout(action(() => this._marqueeing = undefined), 100); // bcz: hack .. anchor menu is setup within MarqueeAnnotator so we need to at least create the marqueeAnnotator even though we aren't using it.
                 // clear out old marquees and initialize menu for new selection
                 AnchorMenu.Instance.Status = "marquee";
-                this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                Array.from(this._savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
                 this._savedAnnotations.clear();
                 this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
                 document.addEventListener("pointerup", this.onSelectEnd);
@@ -398,10 +399,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 
     @action
-    finishMarquee = () => {
+    finishMarquee = (x?: number, y?: number) => {
         this._marqueeing = undefined;
+        this._textSelecting = true;
         document.removeEventListener("pointermove", this.onSelectMove);
-        this.props.select(false);
     }
 
     onSelectMove = (e: PointerEvent) => e.stopPropagation();
@@ -541,7 +542,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         </div>;
     }
     @computed get pdfViewerDiv() {
-        return <div className={"pdfViewerDash-text" + ((this.props.isSelected() || this.props.isChildActive()) ? "-selected" : "")} ref={this._viewer} />;
+        return <div className={"pdfViewerDash-text" + (this._textSelecting && (this.props.isSelected() || this.props.active()) ? "-selected" : "")} ref={this._viewer} />;
     }
     @computed get contentScaling() { return this.props.ContentScaling?.() || 1; }
     @computed get standinViews() {
@@ -572,6 +573,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                         anchorMenuClick={this.props.anchorMenuClick}
                         addDocument={this.addDocument}
                         finishMarquee={this.finishMarquee}
+                        docView={this.props.docViewPath().lastElement()}
                         getPageFromScroll={this.getPageFromScroll}
                         savedAnnotations={this._savedAnnotations}
                         annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}

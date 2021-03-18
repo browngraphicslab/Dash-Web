@@ -81,7 +81,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @action
     toggleChrome = (): void => {
         this.props.docViews.map(dv => Doc.Layout(dv.layoutDoc)).forEach(layout =>
-            layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : StrCast(layout._replacedChrome, "enabled")));
+            layout._chromeStatus = (layout._chromeStatus ? undefined : StrCast(layout._replacedChrome, "enabled")));
     }
 
     // todo: add brushes to brushMap to save with a style name
@@ -115,7 +115,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         const addedTypes = Doc.UserDoc().noviceMode ? [] : DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
         const layout = Doc.Layout(firstDoc);
         const templateMenu: Array<JSX.Element> = [];
-        this.props.templates?.forEach((checked, template) =>
+        this.props.templates.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template} template={template} checked={checked} toggle={this.toggleTemplate} />));
         templateMenu.push(<OtherToggle key={"audio"} name={"Audio"} checked={firstDoc._showAudio ? true : false} toggle={this.toggleAudio} />);
         templateMenu.push(<OtherToggle key={"default"} name={"Default"} checked={templateName === "layout"} toggle={this.toggleDefault} />);
@@ -133,6 +133,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 ContainingCollectionView={undefined}
                 styleProvider={DefaultStyleProvider}
                 layerProvider={undefined}
+                setHeight={returnFalse}
                 docViewPath={returnEmptyDoclist}
                 docFilters={returnEmptyFilter}
                 docRangeFilters={returnEmptyFilter}
@@ -140,7 +141,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 rootSelected={returnFalse}
                 onCheckedClick={this.scriptField}
                 onChildClick={this.scriptField}
-                setHeight={returnFalse}
                 dropAction={undefined}
                 active={returnTrue}
                 parentActive={returnFalse}

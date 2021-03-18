@@ -17,7 +17,6 @@ import { aggregateBounds, emptyFunction, intersectRect, returnFalse, setupMoveUp
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
-import { DocumentType } from "../../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../../util/DragManager";
@@ -111,6 +110,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @observable _clusterSets: (Doc[])[] = [];
     @observable _timelineRef = React.createRef<Timeline>();
     @observable _marqueeRef = React.createRef<HTMLDivElement>();
+    @observable _keyframeEditing = false;
     @observable _focusFilters: Opt<string[]>; // docFilters that are overridden when previewing a link to an anchor which has docFilters set on it
     @observable _focusRangeFilters: Opt<string[]>; // docRangeFilters that are overridden when previewing a link to an anchor which has docRangeFilters set on it
     @observable ChildDrag: DocumentView | undefined; // child document view being dragged.  needed to update drop areas of groups when a group item is dragged.
@@ -148,6 +148,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return this.getTransformOverlay().translate(- this.cachedCenteringShiftX, - this.cachedCenteringShiftY).transform(this.cachedGetLocalTransform);
     }
 
+    @action setKeyFrameEditing = (set: boolean) => this._keyframeEditing = set;
+    getKeyFrameEditing = () => this._keyframeEditing;
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.props.parentActive?.(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
@@ -236,7 +238,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     internalDocDrop(e: Event, de: DragManager.DropEvent, docDragData: DragManager.DocumentDragData, xp: number, yp: number) {
-        if (!this.ChildDrag && this.props.layerProvider?.(this.props.Document) !== false && this.props.Document._isGroup) return false;
+        if (!de.embedKey && !this.ChildDrag && this.props.layerProvider?.(this.props.Document) !== false && this.props.Document._isGroup) return false;
         if (!super.onInternalDrop(e, de)) return false;
         const refDoc = docDragData.droppedDocuments[0];
         const [xpo, ypo] = this.getTransformOverlay().transformPoint(de.x, de.y);
@@ -290,25 +292,22 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @undoBatch
     internalLinkDrop(e: Event, de: DragManager.DropEvent, linkDragData: DragManager.LinkDragData, xp: number, yp: number) {
-        if (linkDragData.dragDocument === this.props.Document || this.props.Document.annotationOn) return false;
-        if (!linkDragData.dragDocument.context || StrCast(Cast(linkDragData.dragDocument.context, Doc, null)?.type) === DocumentType.COL) {
-            // const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
-            // this.props.addDocument(source);
-            // linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
-            return false;
-        } else {
-            const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
-            this.props.addDocument?.(source);
-            de.complete.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceGetAnchor() }, "doc annotation", ""); // TODODO this is where in text links get passed
-            e.stopPropagation();
+        if (linkDragData.linkDragView.props.docViewPath().includes(this.props.docViewPath().lastElement())) { // dragged document is a child of this collection
+            if (!linkDragData.linkDragView.props.CollectionFreeFormDocumentView?.() || linkDragData.dragDocument.context !== this.props.Document) { // if the source doc view's context isn't this same freeformcollectionlinkDragData.dragDocument.context === this.props.Document
+                const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
+                this.props.addDocument?.(source);
+                de.complete.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceGetAnchor() }, "doc annotation", ""); // TODODO this is where in text links get passed
+            }
+            e.stopPropagation();  //  do nothing if link is dropped into any freeform view parent of dragged document
             return true;
         }
+        return false;
     }
 
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         const [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
         if (de.complete.annoDragData?.dragDocument && super.onInternalDrop(e, de)) return this.internalAnchorAnnoDrop(e, de.complete.annoDragData, xp, yp);
-        else if (this.isAnnotationOverlay !== true && de.complete.linkDragData) return this.internalLinkDrop(e, de, de.complete.linkDragData, xp, yp);
+        else if (de.complete.linkDragData) return this.internalLinkDrop(e, de, de.complete.linkDragData, xp, yp);
         else if (de.complete.docDragData?.droppedDocuments.length) return this.internalDocDrop(e, de, de.complete.docDragData, xp, yp);
         return false;
     }
@@ -1055,7 +1054,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         //fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)} // bcz: check this
         />;
     }
-
     addDocTab = action((doc: Doc, where: string) => {
         if (where === "inParent") {
             ((doc instanceof Doc) ? [doc] : doc).forEach(doc => {
@@ -1080,7 +1078,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document._currentFrame);
         return {
             x: NumCast(x), y: NumCast(y), z: Cast(z, "number"), color: StrCast(color), zIndex: Cast(zIndex, "number"),
-            transition: StrCast(layoutDoc.dataTransition), opacity: this.Document.editing ? 1 : Cast(opacity, "number", null),
+            transition: StrCast(layoutDoc.dataTransition), opacity: this._keyframeEditing ? 1 : Cast(opacity, "number", null),
             width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number"), pair: params.pair, replica: ""
         };
     }
@@ -1289,10 +1287,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @undoBatch
     toggleNativeDimensions = () => Doc.toggleNativeDimensions(this.layoutDoc, 1, this.nativeWidth, this.nativeHeight)
 
-    @undoBatch
-    @action
-    toggleLockTransform = () => this.layoutDoc._lockedTransform = this.layoutDoc._lockedTransform ? undefined : true
-
     onContextMenu = (e: React.MouseEvent) => {
         if (this.props.isAnnotationOverlay || this.props.Document.annotationOn || !ContextMenu.Instance) return;
 
@@ -1317,7 +1311,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const optionItems = options && "subitems" in options ? options.subitems : [];
         !this.props.isAnnotationOverlay && !Doc.UserDoc().noviceMode &&
             optionItems.push({ description: (this._showAnimTimeline ? "Close" : "Open") + " Animation Timeline", event: action(() => this._showAnimTimeline = !this._showAnimTimeline), icon: "eye" });
-        optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
         this.props.renderDepth && optionItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
         if (!Doc.UserDoc().noviceMode) {
             optionItems.push({ description: (!Doc.NativeWidth(this.layoutDoc) || !Doc.NativeHeight(this.layoutDoc) ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
@@ -1496,7 +1489,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             onDragOver={e => e.preventDefault()}
             onContextMenu={this.onContextMenu}
             style={{
-                pointerEvents: this.backgroundEvents ? "all" : undefined,
+                pointerEvents: this.backgroundEvents ? "all" : this.props.pointerEvents as any,
                 transform: `scale(${this.contentScaling || 1})`,
                 width: `${100 / (this.contentScaling || 1)}%`,
                 height: this.isAnnotationOverlay && this.Document.scrollHeight ? this.Document.scrollHeight : `${100 / (this.contentScaling || 1)}%`// : this.isAnnotationOverlay ? (this.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight()

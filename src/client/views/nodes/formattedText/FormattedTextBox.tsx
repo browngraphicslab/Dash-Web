@@ -84,9 +84,6 @@ type PullHandler = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, da
 export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(FormattedTextBox, fieldStr); }
     public static blankState = () => EditorState.create(FormattedTextBox.Instance.config);
-    public static get DefaultLayout() {
-        return Cast(Doc.UserDoc().defaultTextLayout, Doc, null) || StrCast(Doc.UserDoc().defaultTextLayout, null);
-    }
     public static Instance: FormattedTextBox;
     public static LiveTextUndo: UndoManager.Batch | undefined;
     static _highlights: string[] = ["Audio Tags", "Text from Others", "Todo Items", "Important Items", "Disagree Items", "Ignore Items"];
@@ -229,7 +226,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 return target;
             };
 
-            DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.rootDoc, this.getAnchor, targetCreator), e.pageX, e.pageY);
+            DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.props.docViewPath().lastElement(), this.getAnchor, targetCreator), e.pageX, e.pageY);
         });
         const coordsB = this._editorView!.coordsAtPos(this._editorView!.state.selection.to);
         this.props.isSelected(true) && AnchorMenu.Instance.jumpTo(coordsB.left, coordsB.bottom);
@@ -574,7 +571,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }));
 
         const uicontrols: ContextMenuProps[] = [];
-        uicontrols.push({ description: `${FormattedTextBox._canAnnotate ? "Hide" : "Show"} Annotation Bar`, event: () => FormattedTextBox._canAnnotate = !FormattedTextBox._canAnnotate, icon: "expand-arrows-alt" });
+        !Doc.UserDoc().noviceMode && uicontrols.push({ description: `${FormattedTextBox._canAnnotate ? "Don't" : ""} Show Menu on Selections`, event: () => FormattedTextBox._canAnnotate = !FormattedTextBox._canAnnotate, icon: "expand-arrows-alt" });
         uicontrols.push({ description: !this.Document._noSidebar ? "Hide Sidebar Handle" : "Show Sidebar Handle", event: () => this.layoutDoc._noSidebar = !this.layoutDoc._noSidebar, icon: "expand-arrows-alt" });
         uicontrols.push({ description: `${this.layoutDoc._showAudio ? "Hide" : "Show"} Dictation Icon`, event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Show Highlights...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
@@ -670,7 +667,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const splitter = state.schema.marks.splitter.create({ id: Utils.GenerateGuid() });
             let tr = state.tr.addMark(sel.from, sel.to, splitter);
             if (sel.from !== sel.to) {
-                const anchor = anchorDoc ?? Docs.Create.TextanchorDocument();
+                const anchor = anchorDoc ?? Docs.Create.TextanchorDocument({ title: this._editorView?.state.doc.textBetween(sel.from, sel.to) });
                 const href = targetHref ?? Utils.prepend("/doc/" + anchor[Id]);
                 if (anchor !== anchorDoc) this.addDocument(anchor);
                 tr.doc.nodesBetween(sel.from, sel.to, (node: any, pos: number, parent: any) => {
@@ -684,7 +681,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 this.dataDoc[ForceServerWrite] = this.dataDoc[UpdatingFromServer] = true;  // need to allow permissions for adding links to readonly/augment only documents
                 this._editorView!.dispatch(tr.removeMark(sel.from, sel.to, splitter));
                 this.dataDoc[UpdatingFromServer] = this.dataDoc[ForceServerWrite] = false;
-                Doc.GetProto(anchor).title = this._editorView?.state.doc.textBetween(sel.from, sel.to);
                 return anchor;
             }
             return anchorDoc ?? this.rootDoc;
@@ -751,8 +747,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
         this.props.contentsActive?.(this.active);
         this._cachedLinks = DocListCast(this.Document.links);
-        this._disposers.autoHeight = reaction(() => ({ scrollHeight: this.scrollHeight, autoHeight: this.autoHeight, width: NumCast(this.layoutDoc._width) }),
-            ({ width, autoHeight, scrollHeight }) => width && autoHeight && this.resetNativeHeight(scrollHeight)
+        this._disposers.autoHeight = reaction(() => this.autoHeight, autoHeight => autoHeight && this.tryUpdateScrollHeight());
+        this._disposers.autoHeight = reaction(() => ({ scrollHeight: this.scrollHeight, width: NumCast(this.layoutDoc._width) }),
+            ({ width, scrollHeight }) => width && this.autoHeight && this.resetNativeHeight(scrollHeight)
         );
         this._disposers.componentHeights = reaction(  // set the document height when one of the component heights changes and autoHeight is on
             () => ({ sidebarHeight: this.sidebarHeight, textHeight: this.textHeight, autoHeight: this.autoHeight }),
@@ -1105,6 +1102,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
+        this.tryUpdateScrollHeight(); // if a doc a fitwidth doc is being viewed in different context (eg freeform & lightbox), then it will have conflicting heights.  so when the doc is clicked on, we want to make sure it has the appropriate height for the selected view.
         if ((e.target as any).tagName === "AUDIOTAG") {
             e.preventDefault();
             e.stopPropagation();
@@ -1202,19 +1200,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         prosediv && (prosediv.keeplocation = undefined);
         const pos = this._editorView?.state.selection.$from.pos || 1;
         keeplocation && setTimeout(() => this._editorView?.dispatch(this._editorView?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
-        const coords = !Number.isNaN(this._downX) ? { left: this._downX, top: this._downY, bottom: this._downY, right: this._downX } : this._editorView?.coordsAtPos(pos);
 
-        // jump rich text menu to this textbox
-        const bounds = this._ref.current?.getBoundingClientRect();
-        if (bounds && this.layoutDoc._chromeStatus !== "disabled" && RichTextMenu.Instance) {
-            const x = Math.min(Math.max(bounds.left, 0), window.innerWidth - RichTextMenu.Instance.width);
-            let y = Math.min(Math.max(0, bounds.top - RichTextMenu.Instance.height - 50), window.innerHeight - RichTextMenu.Instance.height);
-            if (coords && coords.left > x && coords.left < x + RichTextMenu.Instance.width && coords.top > y && coords.top < y + RichTextMenu.Instance.height + 50) {
-                y = Math.min(bounds.bottom, window.innerHeight - RichTextMenu.Instance.height);
-            }
-            this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props);
-            setTimeout(() => window.document.activeElement === this.ProseRef?.children[0] && RichTextMenu.Instance.jumpTo(x, y), 250);
-        }
+        this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props);
     }
     onPointerWheel = (e: React.WheelEvent): void => {
         // if a text note is selected and scrollable, stop event to prevent, say, outer collection from zooming.
@@ -1394,13 +1381,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
     tryUpdateScrollHeight() {
-        const proseHeight = this.ProseRef?.scrollHeight || 0;
-        const scrollHeight = this.ProseRef && Math.min(NumCast(this.layoutDoc.docMaxAutoHeight, proseHeight), proseHeight);
-        if (scrollHeight && this.props.renderDepth && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
-            const setScrollHeight = () => this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight;
-            if (this.rootDoc === this.layoutDoc.doc || this.layoutDoc.resolvedDataDoc) {
-                setScrollHeight();
-            } else setTimeout(setScrollHeight, 10); // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
+        if (!LightboxView.LightboxDoc || LightboxView.IsLightboxDocView(this.props.docViewPath())) {
+            const proseHeight = this.ProseRef?.scrollHeight || 0;
+            const scrollHeight = this.ProseRef && Math.min(NumCast(this.layoutDoc.docMaxAutoHeight, proseHeight), proseHeight);
+            if (scrollHeight && this.props.renderDepth && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
+                const setScrollHeight = () => this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight;
+                if (this.rootDoc === this.layoutDoc.doc || this.layoutDoc.resolvedDataDoc) {
+                    setScrollHeight();
+                } else setTimeout(setScrollHeight, 10); // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
+            }
         }
     }
     fitToBox = () => this.props.Document._fitToBox;
@@ -1418,11 +1407,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         </div>;
     }
     @computed get sidebarHandle() {
+        TraceMobx();
         const annotated = DocListCast(this.dataDoc[this.SidebarKey]).filter(d => d?.author).length;
         return (!annotated && !this.active()) ? (null) : <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown}
             style={{
                 left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`,
-                background: this.props.styleProvider?.(this.props.Document, this.props, StyleProp.WidgetColor + (annotated ? ":annotated" : ""))
+                background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.WidgetColor + (annotated ? ":annotated" : ""))
             }} />;
     }
     @computed get sidebarCollection() {

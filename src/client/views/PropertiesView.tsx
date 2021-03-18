@@ -344,6 +344,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     addField = () => {
         MainViewPopup.hide();
         const docs = SelectionManager.Views().length < 2 && this.selectedDoc ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] : SelectionManager.Views().map(dv => this.layoutFields ? dv.layoutDoc : dv.dataDoc);
+        this._popupKey[0].toUpperCase();
         if (this._popupKey !== "" && this._popupValue !== "") {
             docs.forEach(doc => {
                 KeyValueBox.SetField(doc, this._popupKey, this._popupValue, true);

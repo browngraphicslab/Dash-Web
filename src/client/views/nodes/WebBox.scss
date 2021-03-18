@@ -6,6 +6,39 @@
     position: relative;
     display: flex;
 
+    .webBox-overlayButton-sidebar {
+        background: #121721;
+        height: 25px;
+        width: 25px;
+        right: 0;
+        display: flex;
+        position: absolute;
+        align-items: center;
+        justify-content: center;
+        border-radius: 3px;
+        pointer-events: all;
+    }
+    .webBox-tagList {
+        display: flex;
+        flex-direction: row;
+        overflow: auto;
+        flex-flow: row;
+        flex-wrap: wrap;
+        .webBox-filterTag, .webBox-filterTag-active {
+            font-weight: bold;
+            padding-left: 6;
+            padding-right: 6;
+            box-shadow: black 1px 1px 4px;
+            border-radius: 5;
+            margin: 2; 
+            height: 20;
+            background-color: lightgrey;
+        }
+        .webBox-filterTag-active {
+            background-color: white;
+        }
+    }
+
     .pdfViewerDash-dragAnnotationBox {
         position: absolute;
         background-color: transparent;

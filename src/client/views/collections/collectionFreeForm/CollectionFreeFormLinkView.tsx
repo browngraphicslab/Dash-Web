@@ -40,7 +40,6 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         if (SnappingManager.GetIsDragging() || !A.ContentDiv || !B.ContentDiv) return;
         setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
         setTimeout(action(() => (!LinkDocs.length || !linkDoc.linkDisplay) && (this._opacity = 0.05)), 750); // this will unhighlight the link line.
-        if (!linkDoc.linkAutoMove) return;
         const acont = A.rootDoc.type === DocumentType.LINK ? A.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
         const bcont = B.rootDoc.type === DocumentType.LINK ? B.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
         const adiv = acont.length ? acont[0] : A.ContentDiv;
@@ -60,8 +59,10 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const targetBhyperlink = Array.from(window.document.getElementsByClassName((linkDoc.anchor2 as Doc)[Id])).lastElement();
         if ((!targetAhyperlink && !a.width) || (!targetBhyperlink && !b.width)) return;
         if (!targetAhyperlink) {
-            linkDoc.anchor1_x = (apt.point.x - aleft) / awidth * 100;
-            linkDoc.anchor1_y = (apt.point.y - atop) / aheight * 100;
+            if (linkDoc.linkAutoMove) {
+                linkDoc.anchor1_x = (apt.point.x - aleft) / awidth * 100;
+                linkDoc.anchor1_y = (apt.point.y - atop) / aheight * 100;
+            }
         } else {
             const m = targetAhyperlink.getBoundingClientRect();
             const mp = A.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
@@ -69,8 +70,10 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             linkDoc.anchor1_y = Math.min(1, mp[1] / A.props.PanelHeight()) * 100;
         }
         if (!targetBhyperlink) {
-            linkDoc.anchor2_x = (bpt.point.x - bleft) / bwidth * 100;
-            linkDoc.anchor2_y = (bpt.point.y - btop) / bheight * 100;
+            if (linkDoc.linkAutoMove) {
+                linkDoc.anchor2_x = (bpt.point.x - bleft) / bwidth * 100;
+                linkDoc.anchor2_y = (bpt.point.y - btop) / bheight * 100;
+            }
         } else {
             const m = targetBhyperlink.getBoundingClientRect();
             const mp = B.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);

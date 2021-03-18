@@ -1,6 +1,6 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked, ObservableMap } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
 import { Dictionary } from "typescript-collections";
@@ -51,7 +51,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     private _playRegionDuration = 0;
     @observable static _showControls: boolean;
     @observable _marqueeing: number[] | undefined;
-    @observable _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
+    @observable _savedAnnotations = new ObservableMap<number, HTMLDivElement[]>();
     @observable _screenCapture = false;
     @observable _clicking = false;
     @observable _forceCreateYouTubeIFrame = false;
@@ -152,8 +152,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             const b = Docs.Create.LabelDocument({
                 x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 1),
                 _width: 150, _height: 50, title: (this.layoutDoc._currentTimecode || 0).toString(),
+                _isLinkButton: true
             });
-            b.isLinkButton = true;
             this.props.addDocument?.(b);
             DocUtils.MakeLink({ doc: b }, { doc: this.rootDoc }, "video snapshot");
             Networking.PostToServer("/youtubeScreenshot", {
@@ -183,7 +183,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const height = this.layoutDoc._height || 0;
         const imageSummary = Docs.Create.ImageDocument(url, {
             _nativeWidth: Doc.NativeWidth(this.layoutDoc), _nativeHeight: Doc.NativeHeight(this.layoutDoc),
-            x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0), isLinkButton: true,
+            x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0), _isLinkButton: true,
             _width: 150, _height: height / width * 150, title: "--snapshot" + (this.layoutDoc._currentTimecode || 0) + " image-"
         });
         Doc.SetNativeWidth(Doc.GetProto(imageSummary), Doc.NativeWidth(this.layoutDoc));
@@ -206,7 +206,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
         this._disposers.selection = reaction(() => this.props.isSelected(),
             selected => !selected && setTimeout(() => {
-                this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                Array.from(this._savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
                 this._savedAnnotations.clear();
             }));
         this._disposers.triggerVideo = reaction(
@@ -345,7 +345,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             this._disposers.youtubeReactionDisposer?.();
             this._disposers.reactionDisposer = reaction(() => this.layoutDoc._currentTimecode, () => !this._playing && this.Seek((this.layoutDoc._currentTimecode || 0)));
             this._disposers.youtubeReactionDisposer = reaction(
-                () => !this.props.Document.isAnnotating && CurrentUserUtils.SelectedTool === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
+                () => CurrentUserUtils.SelectedTool === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
                 (interactive) => iframe.style.pointerEvents = interactive ? "all" : "none", { fireImmediately: true });
         };
         if (typeof (YT) === undefined) setTimeout(() => this.loadYouTube(iframe), 100);
@@ -575,6 +575,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                         scrollTop={0}
                         rootDoc={this.rootDoc}
                         down={this._marqueeing}
+                        docView={this.props.docViewPath().lastElement()}
                         scaling={this.marqueeFitScaling}
                         containerOffset={this.marqueeOffset}
                         addDocument={this.addDocWithTimecode}
