@@ -5,10 +5,10 @@
     height: auto;
     position: absolute;
     z-index: 2001;
+    padding-top: 5px;
 
     .linkMenu-list,
-    .linkMenu-listEditor
-     {
+    .linkMenu-listEditor {
         display: inline-block;
         position: relative;
         border: 1px solid black;
@@ -19,8 +19,11 @@
         max-height: 170px;
         overflow-y: scroll;
         z-index: 10;
-     }
-     .linkMenu-list {
+        margin-top: 5px;
+        margin-left: 3px;
+    }
+
+    .linkMenu-list {
         white-space: nowrap;
         overflow-x: hidden;
         width: 240px;
@@ -38,6 +41,8 @@
 
 .linkMenu-group {
     border-bottom: 0.5px solid lightgray;
+    padding-top: 5px;
+    padding-left: 5px;
     //@extend: 5px 0;
 
 

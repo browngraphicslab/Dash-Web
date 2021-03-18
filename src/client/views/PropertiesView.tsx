@@ -399,7 +399,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 <div className="propertiesView-addTag-title">Tag: </div>
                 <input className="propertiesView-tagInput"
                     type="text"
-                    onChange={this.changeTagsText} />
+                    onChange={this.changeTagsText}
+                    onBlur={(e) => { e.preventDefault(); }} />
             </div>
             <div className="propertiesView-addTag-wrapper">
                 <div className="propertiesView-addTag-btn" onClick={this.addTag}>Add</div>
