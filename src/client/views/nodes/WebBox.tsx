@@ -161,10 +161,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             })));
             iframe.contentDocument.addEventListener('wheel', this.iframeWheel, false);
             //iframe.contentDocument.addEventListener('scroll', () => !this.active() && this._iframe && (this._iframe.scrollTop = NumCast(this.layoutDoc._scrollTop), false));
-            iframe.contentDocument.addEventListener('scroll', () => {
-                console.log("Scroll = " + this._iframe?.scrollTop)
-            }
-                , true);
         }
     }
 

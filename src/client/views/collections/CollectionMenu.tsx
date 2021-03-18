@@ -223,7 +223,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             case CollectionViewType.Carousel3D: return this._freeform_commands;
         }
     }
-    private _picker: any;
     private _commandRef = React.createRef<HTMLInputElement>();
     private _viewRef = React.createRef<HTMLInputElement>();
     @observable private _currentKey: string = "";
@@ -342,8 +341,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     }
 
     @computed get viewModes() {
-        const excludedViewTypes = Doc.UserDoc().noviceMode ? [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.Map, CollectionViewType.Linear, CollectionViewType.Time] :
-            [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.Linear];
+        const excludedViewTypes = Doc.UserDoc().noviceMode ? [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.StackedTimeline, CollectionViewType.Stacking, CollectionViewType.Map, CollectionViewType.Linear] :
+            [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.StackedTimeline, CollectionViewType.Linear];
         const isPres: boolean = (this.document && this.document.type === DocumentType.PRES);
         return isPres ? (null) : (<div className="collectionViewBaseChrome-viewModes" >
             <Tooltip title={<div className="dash-tooltip">drop document to apply or drag to create button</div>} placement="bottom">
@@ -430,14 +429,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed
     get pinWithViewButton() {
         const presPinWithViewIcon = <img src={`/assets/pinWithView.png`} style={{ margin: "auto", width: 19 }} />;
-        const targetDoc = this.selectedDoc;
-        {/* return (!targetDoc || (targetDoc._viewType !== CollectionViewType.Freeform && targetDoc.type !== DocumentType.IMG)) ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top"> */ }
-        return (targetDoc && targetDoc.type !== DocumentType.PRES && (targetDoc._viewType === CollectionViewType.Freeform || targetDoc._viewType === CollectionViewType.Stacking || targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.COMPARISON)) ? <Tooltip title={<><div className="dash-tooltip">{"Pin with current view"}</div></>} placement="top">
-            <button className="antimodeMenu-button" style={{ borderRight: "1px solid gray", borderLeft: "1px solid gray", justifyContent: 'center' }}
-                onClick={() => this.pinWithView(targetDoc)}>
-                {presPinWithViewIcon}
-            </button>
-        </Tooltip> : (null);
+        return !this.selectedDoc ? (null) :
+            <Tooltip title={<div className="dash-tooltip">{"Pin with current view"}</div>} placement="top">
+                <button className="antimodeMenu-button" style={{ justifyContent: 'center' }}
+                    onClick={() => this.pinWithView(this.selectedDoc)}>
+                    {presPinWithViewIcon}
+                </button>
+            </Tooltip>;
     }
 
 
@@ -488,22 +486,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 
     @computed get lightboxButton() {
         const targetDoc = this.selectedDoc;
-        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Show Lightbox of Documents"}</div>} placement="top">
-            <button className="antimodeMenu-button" onPointerDown={() => {
+        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"View in Lightbox"}</div>} placement="top">
+            <button className="antimodeMenu-button" style={{ borderRight: "1px solid gray", justifyContent: 'center' }} onPointerDown={() => {
                 const docs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
-                if (docs.length) {
-                    LightboxView.SetLightboxDoc(targetDoc, undefined, docs);
-                }
+                LightboxView.SetLightboxDoc(targetDoc, undefined, docs);
             }}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="desktop" size="lg" />
-            </button>
-        </Tooltip>;
-    }
-    @computed get gridbackgroundButton() {
-        const targetDoc = this.selectedDoc;
-        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Toggle background grid"}</div>} placement="top">
-            <button className="antimodeMenu-button" onPointerDown={action(() => targetDoc["_backgroundGrid-show"] = !targetDoc["_backgroundGrid-show"])}>
-                <FontAwesomeIcon className="documentdecorations-icon" icon={targetDoc["_backgroundGrid-show"] ? "border-all" : ["far", "square"]} size="lg" />
             </button>
         </Tooltip>;
     }
@@ -513,23 +501,25 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             <div className="collectionMenu-cont" >
                 <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
-                        {this.notACollection || this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes}
-                        {!this._buttonizableCommands ? (null) : this.templateChrome}
-                        {this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? (null) :
-                            <Tooltip title={<div className="dash-tooltip">Toggle Overlay Layer</div>} placement="bottom">
-                                <button className={"antimodeMenu-button"} key="float"
-                                    style={{ backgroundColor: this.props.docView.layoutDoc.z ? "121212" : undefined, borderRight: "1px solid gray" }}
-                                    onClick={undoBatch(() => this.props.docView.props.CollectionFreeFormDocumentView?.().float())}>
-                                    <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
-                                </button>
-                            </Tooltip>}
-                        {this.notACollection ? (null) : this.lightboxButton}
-                        {this.notACollection ? (null) : this.gridbackgroundButton}
                         {this.aliasButton}
                         {/* {this.pinButton} */}
                         {this.pinWithViewButton}
+                        {this.lightboxButton}
+                        <Tooltip title={<div className="dash-tooltip">Toggle Overlay Layer</div>} placement="bottom">
+                            <button className={"antimodeMenu-button"} key="float"
+                                style={{
+                                    backgroundColor: this.props.docView.layoutDoc.z ? "121212" : undefined, borderRight: "1px solid gray",
+                                    pointerEvents: this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? "none" : undefined,
+                                    color: this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? "dimgrey" : undefined
+                                }}
+                                onClick={undoBatch(() => this.props.docView.props.CollectionFreeFormDocumentView?.().float())}>
+                                <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
+                            </button>
+                        </Tooltip>
+                        {this.subChrome}
+                        {/* {this.notACollection || this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes} */}
+                        {!this._buttonizableCommands ? (null) : this.templateChrome}
                     </div>
-                    {this.subChrome}
                 </div>
             </div>
         );
@@ -737,38 +727,36 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     render() {
         return !this.props.docView.layoutDoc ? (null) :
             <div className="collectionFreeFormMenu-cont">
-                {!Doc.UserDoc().noviceMode && !this.isText && !this.props.isDoc ?
-                    <>
-                        <Tooltip key="back" title={<div className="dash-tooltip">Back Frame</div>} placement="bottom">
-                            <div className="backKeyframe" onClick={this.prevKeyframe}>
-                                <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
-                            </div>
-                        </Tooltip>
-                        <Tooltip key="num" title={<div className="dash-tooltip">Toggle View All</div>} placement="bottom">
-                            <div className="numKeyframe" style={{ color: this.document.editing ? "white" : "black", backgroundColor: this.document.editing ? "#5B9FDD" : "#AEDDF8" }}
-                                onClick={action(() => this.document.editing = !this.document.editing)} >
-                                {NumCast(this.document._currentFrame)}
-                            </div>
-                        </Tooltip>
-                        <Tooltip key="fwd" title={<div className="dash-tooltip">Forward Frame</div>} placement="bottom">
-                            <div className="fwdKeyframe" onClick={this.nextKeyframe}>
-                                <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
-                            </div>
-                        </Tooltip>
-                    </>
-                    : null}
 
-                {!this.selectedDocumentView?.ComponentView?.menuControls ? (null) : this.selectedDocumentView?.ComponentView?.menuControls?.()}
                 {!this.isText ?
                     <>
                         {this.drawButtons}
                         {this.widthPicker}
                         {this.colorPicker}
                         {this.fillPicker}
+                        {Doc.UserDoc().noviceMode || this.props.isDoc ? (null) :
+                            <>
+                                <Tooltip key="back" title={<div className="dash-tooltip">Back Frame</div>} placement="bottom">
+                                    <div className="backKeyframe" onClick={this.prevKeyframe}>
+                                        <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
+                                    </div>
+                                </Tooltip>
+                                <Tooltip key="num" title={<div className="dash-tooltip">Toggle View All</div>} placement="bottom">
+                                    <div className="numKeyframe" style={{ color: this.props.docView.ComponentView?.getKeyFrameEditing?.() ? "white" : "black", backgroundColor: this.props.docView.ComponentView?.getKeyFrameEditing?.() ? "#5B9FDD" : "#AEDDF8" }}
+                                        onClick={action(() => this.props.docView.ComponentView?.setKeyFrameEditing?.(!this.props.docView.ComponentView?.getKeyFrameEditing?.()))} >
+                                        {NumCast(this.document._currentFrame)}
+                                    </div>
+                                </Tooltip>
+                                <Tooltip key="fwd" title={<div className="dash-tooltip">Forward Frame</div>} placement="bottom">
+                                    <div className="fwdKeyframe" onClick={this.nextKeyframe}>
+                                        <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
+                                    </div>
+                                </Tooltip>
+                            </>}
                     </> :
-                    (null)
+                    <RichTextMenu />
                 }
-                {<div style={{ display: !this.isText ? "none" : undefined }}><RichTextMenu /></div>}
+                {!this.selectedDocumentView?.ComponentView?.menuControls ? (null) : this.selectedDocumentView?.ComponentView?.menuControls?.()}
             </div>;
     }
 }

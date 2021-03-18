@@ -110,6 +110,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @observable _clusterSets: (Doc[])[] = [];
     @observable _timelineRef = React.createRef<Timeline>();
     @observable _marqueeRef = React.createRef<HTMLDivElement>();
+    @observable _keyframeEditing = false;
     @observable _focusFilters: Opt<string[]>; // docFilters that are overridden when previewing a link to an anchor which has docFilters set on it
     @observable _focusRangeFilters: Opt<string[]>; // docRangeFilters that are overridden when previewing a link to an anchor which has docRangeFilters set on it
     @observable ChildDrag: DocumentView | undefined; // child document view being dragged.  needed to update drop areas of groups when a group item is dragged.
@@ -147,6 +148,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return this.getTransformOverlay().translate(- this.cachedCenteringShiftX, - this.cachedCenteringShiftY).transform(this.cachedGetLocalTransform);
     }
 
+    @action setKeyFrameEditing = (set: boolean) => this._keyframeEditing = set;
+    getKeyFrameEditing = () => this._keyframeEditing;
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.props.parentActive?.(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
@@ -1051,7 +1054,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         //fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)} // bcz: check this
         />;
     }
-
     addDocTab = action((doc: Doc, where: string) => {
         if (where === "inParent") {
             ((doc instanceof Doc) ? [doc] : doc).forEach(doc => {
@@ -1076,7 +1078,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document._currentFrame);
         return {
             x: NumCast(x), y: NumCast(y), z: Cast(z, "number"), color: StrCast(color), zIndex: Cast(zIndex, "number"),
-            transition: StrCast(layoutDoc.dataTransition), opacity: this.Document.editing ? 1 : Cast(opacity, "number", null),
+            transition: StrCast(layoutDoc.dataTransition), opacity: this._keyframeEditing ? 1 : Cast(opacity, "number", null),
             width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number"), pair: params.pair, replica: ""
         };
     }

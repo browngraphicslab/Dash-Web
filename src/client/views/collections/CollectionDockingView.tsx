@@ -342,25 +342,27 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         }
     }
 
-    public static Copy(doc: Doc) {
+    public static async Copy(doc: Doc, clone = false) {
+        clone = !Doc.UserDoc().noviceMode;
         let json = StrCast(doc.dockingConfig);
+        if (clone) {
+            const cloned = (await Doc.MakeClone(doc));
+            Array.from(cloned.map.entries()).map(entry => json = json.replace(entry[0], entry[1][Id]));
+            Doc.SetInPlace(cloned.clone, "dockingConfig", json, true);
+            return cloned.clone;
+        }
         const matches = json.match(/\"documentId\":\"[a-z0-9-]+\"/g);
-        const docids = matches?.map(m => m.replace("\"documentId\":\"", "").replace("\"", "")) || [];
-        const docs = docids.map(id => DocServer.GetCachedRefField(id)).filter(f => f).map(f => f as Doc);
-        const newtabs = docs.map(doc => {
-            const copy = Doc.MakeAlias(doc);
-            json = json.replace(doc[Id], copy[Id]);
-            return copy;
+        const origtabids = matches?.map(m => m.replace("\"documentId\":\"", "").replace("\"", "")) || [];
+        const origtabs = origtabids.map(id => DocServer.GetCachedRefField(id)).filter(f => f).map(f => f as Doc);
+        const newtabs = origtabs.map(origtab => {
+            const origtabdocs = DocListCast(origtab.data);
+            const newtab = origtabdocs.length ? Doc.MakeCopy(origtab, true) : Doc.MakeAlias(origtab);
+            const newtabdocs = origtabdocs.map(origtabdoc => Doc.MakeAlias(origtabdoc));
+            newtabdocs.length && Doc.SetInPlace(newtab, "data", new List<Doc>(newtabdocs), true);
+            json = json.replace(origtab[Id], newtab[Id]);
+            return newtab;
         });
-        const copy = Docs.Create.DockDocument(newtabs, json, { title: "Snapshot: " + doc.title });
-        const docsublists = DocListCast(doc.data);
-        const copysublists = DocListCast(copy.data);
-        const docother = Cast(docsublists[1], Doc, null);
-        const copyother = Cast(copysublists[1], Doc, null);
-        const newother = DocListCast(docother.data).map(doc => Doc.MakeAlias(doc));
-        Doc.GetProto(copyother).data = new List<Doc>(newother);
-
-        return copy;
+        return Docs.Create.DockDocument(newtabs, json, { title: "Snapshot: " + doc.title });
     }
 
     @action

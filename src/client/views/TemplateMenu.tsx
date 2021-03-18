@@ -45,7 +45,7 @@ class OtherToggle extends React.Component<{ checked: boolean, name: string, togg
 
 export interface TemplateMenuProps {
     docViews: DocumentView[];
-    templates: Map<string, boolean>;
+    templates?: Map<string, boolean>;
 }
 
 
@@ -133,6 +133,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 ContainingCollectionView={undefined}
                 styleProvider={DefaultStyleProvider}
                 layerProvider={undefined}
+                setHeight={returnFalse}
                 docViewPath={returnEmptyDoclist}
                 docFilters={returnEmptyFilter}
                 docRangeFilters={returnEmptyFilter}
