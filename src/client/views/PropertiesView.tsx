@@ -51,7 +51,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get filterDoc() {
-        return FilterBox._filterScope === "Current Collection" ? this.selectedDoc || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
+        return FilterBox.targetDoc;
     }
     @computed get selectedDocumentView() {
         if (SelectionManager.Views().length) return SelectionManager.Views()[0];
@@ -59,8 +59,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         return undefined;
     }
     @computed get isPres(): boolean {
-        if (this.selectedDoc?.type === DocumentType.PRES) return true;
-        return false;
+        return this.selectedDoc?.type === DocumentType.PRES;
     }
     @computed get dataDoc() { return this.selectedDoc?.[DataSym]; }
 
@@ -934,7 +933,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get filtersSubMenu() {
-        return <div className="propertiesView-filters">
+        return !this.filterDoc?.currentFilter ? (null) : <div className="propertiesView-filters">
             <div className="propertiesView-filters-title"
                 onPointerDown={action(() => this.openFilters = !this.openFilters)}
                 style={{ backgroundColor: this.openFilters ? "black" : "" }}>
@@ -944,7 +943,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 </div>
             </div>
             {
-                !this.openFilters || !this.filterDoc.currentFilter ? (null) :
+                !this.openFilters ? (null) :
                     <div className="propertiesView-filters-content">
                         <DocumentView
                             Document={this.filterDoc.currentFilter as Doc}
@@ -1100,7 +1099,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
                     {this.sharingSubMenu}
 
-                    {this.selectedDoc.type === DocumentType.COL && this.filtersSubMenu}
+                    {this.filtersSubMenu}
 
                     {this.inkSubMenu}
 

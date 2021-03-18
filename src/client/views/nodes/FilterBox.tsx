@@ -40,7 +40,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     constructor(props: Readonly<FieldViewProps>) {
         super(props);
         const targetDoc = FilterBox.targetDoc;
-        if (!targetDoc) CurrentUserUtils.setupFilterDocs(targetDoc);
+        if (targetDoc && !targetDoc.currentFilter) CurrentUserUtils.setupFilterDocs(targetDoc);
     }
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(FilterBox, fieldKey); }
 
@@ -49,11 +49,43 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     public _filterSelected = false;
     public _filterMatch = "matched";
 
+    @computed static get currentContainingCollectionDoc() {
+        let docView: any = SelectionManager.Views()[0];
+        let doc = docView.Document;
+
+        while (docView && doc && doc.type !== "collection") {
+            doc = docView.props.ContainingCollectionDoc;
+            docView = docView.props.ContainingCollectionView;
+        }
+
+        return doc;
+    }
+
+    // /**
+    //  * @returns the relevant doc according to the value of FilterBox._filterScope i.e. either the Current Dashboard or the Current Collection
+    //  */
+
+
+    // trying to get this to work rather than the version below this
+
+    // @computed static get targetDoc() {
+    //     console.log(FilterBox.currentContainingCollectionDoc.type);
+    //     if (FilterBox._filterScope === "Current Collection") {
+    //         return FilterBox.currentContainingCollectionDoc;
+    //     }
+    //     else return CollectionDockingView.Instance.props.Document;
+    //     // return FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
+    // }
+
+
     /**
-     * @returns the relevant doc according to the value of FilterBox._filterScope i.e. either the Current Dashboard or the Current Collection
-     */
+    * @returns the relevant doc according to the value of FilterBox._filterScope i.e. either the Current Dashboard or the Current Collection
+    */
     @computed static get targetDoc() {
-        return FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
+        if (FilterBox._filterScope === "Current Collection") {
+            return SelectionManager.Views()[0].Document.type === "collection" ? SelectionManager.Views()[0].Document : SelectionManager.Views()[0].props.ContainingCollectionDoc!;
+        }
+        else return CurrentUserUtils.ActiveDashboard;
     }
 
     @observable _loaded = false;
@@ -70,7 +102,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         const allDocs = new Set<Doc>();
         const targetDoc = FilterBox.targetDoc;
         if (this._loaded && targetDoc) {
-            // if (targetDoc) {
             const activeTabs = DocListCast(targetDoc.data);
             SearchBox.foreachRecursiveDoc(activeTabs, (doc: Doc) => allDocs.add(doc));
             setTimeout(() => targetDoc.allDocuments = new List<Doc>(Array.from(allDocs)));
@@ -247,20 +278,30 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         return script ? () => script : undefined;
     }
 
+    /**
+     * Changes the value of the variable that determines whether filters are ANDed or ORed together
+     */
     @action
     changeBool = (e: any) => {
         FilterBox._filterBoolean = e.currentTarget.value;
     }
 
+    /**
+     * Changes the value of the variable that determines whether the filters should apply to the dashboard or the collection
+     */
     @action
     changeScope = (e: any) => {
         FilterBox._filterScope = e.currentTarget.value;
     }
 
+    /**
+     * Changes whether to select matched or unmatched documents
+     */
     @action
     changeMatch = (e: any) => {
         this._filterMatch = e.currentTarget.value;
     }
+
     @action
     changeSelected = () => {
         if (this._filterSelected) {
@@ -296,19 +337,26 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
     suppressChildClick = () => ScriptField.MakeScript("")!;
 
+    /**
+     * Adds a filterDoc to the list of saved filters
+     */
     saveFilter = () => {
         Doc.AddDocToList(Doc.UserDoc(), "savedFilters", this.props.Document);
-        console.log("saved filter");
     }
 
+    /**
+     * Changes the title of the filterDoc
+     */
     onTitleValueChange = (val: string) => {
-        this.props.Document.title = val || `FilterDoc for ${SelectionManager.Views()[0].Document.title}`;
+        this.props.Document.title = val || `FilterDoc for ${FilterBox.targetDoc.title}`;
         return true;
     }
 
+    /**
+     * The flyout from which you can select a saved filter to apply
+     */
     @computed get flyoutPanel() {
         return DocListCast(Doc.UserDoc().savedFilters).map(doc => {
-            // console.log("mapping");
             return <>
                 <div className="filterBox-tempFlyout" onWheel={e => e.stopPropagation()} style={{ height: 50, border: "2px" }} onPointerDown={() => this.props.updateFilterDoc?.(doc)}>
                     {StrCast(doc.title)}
@@ -320,15 +368,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
     render() {
         const facetCollection = this.props.Document;
-        // const flyout = DocListCast(Doc.UserDoc().savedFilters).map(doc => {
-        //     // console.log("mapping");
-        //     return <>
-        //         <div className="filterBox-tempFlyout" onWheel={e => e.stopPropagation()} style={{ height: 50, border: "2px" }} onPointerDown={() => this.props.updateFilterDoc?.(doc)}>
-        //             {StrCast(doc.title)}
-        //         </div>
-        //     </>;
-        // }
-        // );
 
         // TODO uncomment the line below when the treeview x works
         // const options = this._allFacets.filter(facet => this.currentFacets.indexOf(facet) === -1).map(facet => ({ value: facet, label: facet }));
