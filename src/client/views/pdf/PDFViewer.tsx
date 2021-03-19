@@ -391,7 +391,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 AnchorMenu.Instance.Status = "marquee";
                 Array.from(this._savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
                 this._savedAnnotations.clear();
-                this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
+                this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "htmlAnnotation", { "pointer-events": "none" });
                 document.addEventListener("pointerup", this.onSelectEnd);
                 document.addEventListener("pointermove", this.onSelectMove);
             }

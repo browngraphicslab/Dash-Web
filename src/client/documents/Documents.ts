@@ -420,7 +420,7 @@ export namespace Docs {
             [DocumentType.PRESELEMENT, {
                 layout: { view: PresElementBox, dataField: defaultDataKey }
             }],
-            [DocumentType.PDFANNO, {
+            [DocumentType.HTMLANCHOR, {
                 layout: { view: CollectionView, dataField: defaultDataKey },
                 options: { links: ComputedField.MakeFunction("links(self)") as any, hideLinkButton: true }
             }],
@@ -665,7 +665,7 @@ export namespace Docs {
             const viewDoc = Doc.assign(Doc.MakeDelegate(dataDoc, delegId), viewProps, true, true);
             viewProps.type !== DocumentType.LINK && viewDoc.type !== DocumentType.LABEL && DocUtils.MakeLinkToActiveAudio(viewDoc);
 
-            !Doc.IsSystem(dataDoc) && ![DocumentType.PDFANNO, DocumentType.KVP, DocumentType.LINK, DocumentType.LINKANCHOR, DocumentType.TEXTANCHOR].includes(proto.type as any) &&
+            !Doc.IsSystem(dataDoc) && ![DocumentType.HTMLANCHOR, DocumentType.KVP, DocumentType.LINK, DocumentType.LINKANCHOR, DocumentType.TEXTANCHOR].includes(proto.type as any) &&
                 !dataDoc.isFolder && !dataProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
 
             return viewDoc;
@@ -805,8 +805,8 @@ export namespace Docs {
             documents.map(d => d.context = inst);
             return inst;
         }
-        export function PdfAnnoDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.PDFANNO), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Freeform }, id);
+        export function HTMLAnchorDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.HTMLANCHOR), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Freeform }, id);
         }
 
         export function PileDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
