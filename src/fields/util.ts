@@ -277,8 +277,6 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
     dataDocChanged && updateCachedAcls(dataDoc);
 }
 
-const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
-    "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
     const effectiveAcl = getPropAcl(target, prop);
@@ -288,10 +286,6 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
     // if (typeof prop === "string" && prop.startsWith("acl") && !["Can Edit", "Can Augment", "Can View", "Not Shared", undefined].includes(value)) return true;
 
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && prop.startsWith("_")) {
-        // if (!prop.startsWith("_")) {
-        //     console.log(prop + " is deprecated - switch to _" + prop);
-        //     prop = "_" + prop;
-        // }
         if (!prop.startsWith("__")) prop = prop.substring(1);
         if (target.__LAYOUT__) {
             target.__LAYOUT__[prop] = value;

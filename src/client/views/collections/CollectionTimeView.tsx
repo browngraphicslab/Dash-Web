@@ -230,7 +230,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         }
 
         return <div className={"collectionTimeView" + (doTimeline ? "" : "-pivot")} onContextMenu={this.specificMenu}
-            style={{ width: this.props.PanelWidth(), height: `calc(100%  - ${this.layoutDoc._chromeStatus === "enabled" ? 51 : 0}px)` }}>
+            style={{ width: this.props.PanelWidth(), height: "100%" }}>
             {this.pivotKeyUI}
             {this.contents}
             {!this.props.isSelected() || !doTimeline ? (null) : <>

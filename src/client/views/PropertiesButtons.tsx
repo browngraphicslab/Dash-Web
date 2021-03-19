@@ -74,7 +74,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         return this.propertyToggleBtn("Caption", "_showCaption", on => `${on ? "Hide" : "Show"} caption footer`, on => "closed-captioning", (dv, doc) => (dv?.rootDoc || doc)._showCaption = (dv?.rootDoc || doc)._showCaption === undefined ? "caption" : undefined);
     }
     @computed get chromeButton() {
-        return this.propertyToggleBtn("Controls", "_chromeStatus", on => `${on === "enabled" ? "Hide" : "Show"} editing UI`, on => "edit", (dv, doc) => (dv?.rootDoc || doc)._chromeStatus = !(dv?.rootDoc || doc)._chromeStatus ? "enabled" : "");
+        return this.propertyToggleBtn("Controls", "_chromeHidden", on => `${on ? "Show" : "Hide"} editing UI`, on => "edit", (dv, doc) => (dv?.rootDoc || doc)._chromeHidden = !(dv?.rootDoc || doc)._chromeHidden);
     }
     @computed get titleButton() {
         return this.propertyToggleBtn("Title", "_showTitle", on => "Switch between title styles", on => "text-width", (dv, doc) => (dv?.rootDoc || doc)._showTitle = !(dv?.rootDoc || doc)._showTitle ? "title" : (dv?.rootDoc || doc)._showTitle === "title" ? "title:hover" : undefined);
@@ -165,8 +165,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     }
     @computed
     get onPerspectiveFlyout() {
-        const excludedViewTypes = Doc.UserDoc().noviceMode ? [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.StackedTimeline, CollectionViewType.Stacking, CollectionViewType.Map, CollectionViewType.Linear] :
-            [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.StackedTimeline, CollectionViewType.Linear];
+        const excludedViewTypes = [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.StackedTimeline, CollectionViewType.Linear];
 
         const makeLabel = (value: string, label: string) => <div className="radio">
             <label>

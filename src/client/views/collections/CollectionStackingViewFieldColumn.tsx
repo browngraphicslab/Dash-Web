@@ -32,7 +32,7 @@ interface CSVFieldColumnProps {
     docList: Doc[];
     heading: string;
     pivotField: string;
-    chromeStatus: string;
+    chromeHidden?: boolean;
     columnHeaders: SchemaHeaderField[] | undefined;
     headingObject: SchemaHeaderField | undefined;
     yMargin: number;
@@ -249,8 +249,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 style={{
                     marginTop: this.props.yMargin,
                     width: (this.props.columnWidth) /
-                        ((uniqueHeadings.length +
-                            ((this.props.chromeStatus !== 'view-mode' && this.props.chromeStatus) ? 1 : 0)) || 1)
+                        ((uniqueHeadings.length + (this.props.chromeHidden ? 0 : 1)) || 1)
                 }}>
                 <div className={"collectionStackingView-collapseBar" + (this.props.headingObject.collapsed === true ? " active" : "")} onClick={this.collapseSection}></div>
                 {/* the default bucket (no key value) has a tooltip that describes what it is.
@@ -307,7 +306,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                             }}>
                             {this.props.renderChildren(this.props.docList)}
                         </div>
-                        {(this.props.chromeStatus !== 'view-mode' && this.props.chromeStatus && type !== DocumentType.PRES) ?
+                        {!this.props.chromeHidden && type !== DocumentType.PRES ?
                             <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
                                 style={{ width: this.props.columnWidth / this.props.numGroupColumns, marginBottom: 10 }}>
                                 <EditableView
@@ -332,7 +331,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         return (
             <div className={"collectionStackingViewFieldColumn" + (SnappingManager.GetIsDragging() ? "Dragging" : "")} key={heading}
                 style={{
-                    width: `${100 / ((uniqueHeadings.length + ((this.props.chromeStatus !== 'view-mode' && this.props.chromeStatus) ? 1 : 0)) || 1)}%`,
+                    width: `${100 / (uniqueHeadings.length + (this.props.chromeHidden ? 0 : 1) || 1)}%`,
                     height: undefined, // DraggingManager.GetIsDragging() ? "100%" : undefined,
                     background: this._background
                 }}

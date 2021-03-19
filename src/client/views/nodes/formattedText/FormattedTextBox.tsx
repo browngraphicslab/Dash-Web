@@ -1438,7 +1438,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 PanelWidth={this.sidebarWidth}
                 xMargin={0}
                 yMargin={0}
-                chromeStatus={"enabled"}
                 scaleField={this.SidebarKey + "-scale"}
                 isAnnotationOverlay={false}
                 select={emptyFunction}

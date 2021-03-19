@@ -71,6 +71,7 @@ export interface CollectionViewProps extends FieldViewProps {
     // property overrides for child documents
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     childDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explicit list (see LinkBox)
+    childFitWidth?: () => boolean;
     childOpacity?: () => number;
     childHideTitle?: () => boolean; // whether to hide the documentdecorations title for children
     childHideDecorationTitle?: () => boolean;

@@ -13,7 +13,7 @@ import { PrefetchProxy } from "../../../fields/Proxy";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { returnFalse, returnOne } from "../../../Utils";
+import { returnFalse, returnOne, returnTrue } from '../../../Utils';
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -195,7 +195,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     componentDidMount() {
         this.rootDoc.presBox = this.rootDoc;
         this.rootDoc._forceRenderEngine = "timeline";
-        this.rootDoc._replacedChrome = "replaced";
         this.layoutDoc.presStatus = PresStatus.Edit;
         this.layoutDoc._gridGap = 0;
         this.layoutDoc._yMargin = 0;
@@ -2262,7 +2261,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
         const isMini: boolean = this.toolbarWidth <= 100;
         return (
-            <div className="presBox-buttons" style={{ display: !this.rootDoc._chromeStatus ? "none" : undefined }}>
+            <div className="presBox-buttons" style={{ display: !this.rootDoc._chromeHidden ? "none" : undefined }}>
                 {isMini ? (null) : <select className="presBox-viewPicker"
                     style={{ display: this.layoutDoc.presStatus === "edit" ? "block" : "none" }}
                     onPointerDown={e => e.stopPropagation()}
@@ -2449,6 +2448,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             PanelHeight={this.panelHeight}
                             childIgnoreNativeSize={true}
                             moveDocument={returnFalse}
+                            childFitWidth={returnTrue}
                             childOpacity={returnOne}
                             childLayoutTemplate={this.childLayoutTemplate}
                             filterAddDocument={this.addDocumentFilter}

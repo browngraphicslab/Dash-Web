@@ -96,7 +96,6 @@ export class SidebarAnnos extends React.Component<FieldViewProps & extraProps> {
                         xMargin={0}
                         yMargin={0}
                         docFilters={this.docFilters}
-                        chromeStatus={"enabled"}
                         scaleField={this.sidebarKey() + "-scale"}
                         isAnnotationOverlay={false}
                         select={emptyFunction}

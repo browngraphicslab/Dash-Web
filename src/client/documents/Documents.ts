@@ -119,7 +119,7 @@ export class DocumentOptions {
     _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
     _scrollTop?: number; // scroll location for pdfs
     _noAutoscroll?: boolean;// whether collections autoscroll when this item is dragged
-    _chromeStatus?: string;
+    _chromeHidden?: boolean; // whether the editing chrome for a document is hidden
     _layerTags?: List<string>; // layer tags a document has (used for tab filtering "layers" in document tab)
     _searchDoc?: boolean; // is this a search document (used to change UI for search results in schema view)
     _forceActive?: boolean; // flag to handle pointer events when not selected (or otherwise active)
@@ -338,7 +338,7 @@ export namespace Docs {
             }],
             [DocumentType.COL, {
                 layout: { view: CollectionView, dataField: defaultDataKey },
-                options: { _chromeStatus: "collapsed", _fitWidth: true, _panX: 0, _panY: 0, _viewScale: 1, links: ComputedField.MakeFunction("links(self)") as any }
+                options: { _fitWidth: true, _panX: 0, _panY: 0, _viewScale: 1, links: ComputedField.MakeFunction("links(self)") as any }
             }],
             [DocumentType.KVP, {
                 layout: { view: KeyValueBox, dataField: defaultDataKey },

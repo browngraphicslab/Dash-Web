@@ -203,7 +203,7 @@ export class CurrentUserUtils {
                 new SchemaHeaderField("[Long Description]", "dimGray", undefined, undefined, undefined, true),
                 new SchemaHeaderField("[Details]", "dimGray", undefined, undefined, undefined, true),
             ]);
-            const detailView = Docs.Create.StackingDocument([carousel, descriptionWrapper], { ...shared, ...detailViewOpts, _chromeStatus: "", system: true });
+            const detailView = Docs.Create.StackingDocument([carousel, descriptionWrapper], { ...shared, ...detailViewOpts, _chromeHidden: true, system: true });
             detailView.isTemplateDoc = makeTemplate(detailView);
 
             details.title = "Details";
@@ -225,7 +225,7 @@ export class CurrentUserUtils {
         ];
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument(requiredTypes, {
-                title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title", _chromeStatus: "",
+                title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title", _chromeHidden: true,
                 hidden: ComputedField.MakeFunction("IsNoviceMode()") as any,
                 _stayInCollection: true, _hideContextMenu: true,
                 _autoHeight: true, _width: 500, _height: 300, _fitWidth: true, _columnWidth: 35, ignoreClick: true, _lockedPosition: true,
@@ -367,7 +367,7 @@ export class CurrentUserUtils {
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
-                { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _fitWidth: true, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true, cloneFieldFilter: new List<string>(["system"]) });
+                { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _fitWidth: true, _width: 400, _height: 500, targetDropAction: "alias", _chromeHidden: true, boxShadow: "0 0", system: true, cloneFieldFilter: new List<string>(["system"]) });
             ((doc.emptyPresentation as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyCollection === undefined) {
@@ -498,7 +498,7 @@ export class CurrentUserUtils {
 
         if (dragCreatorSet === undefined) {
             doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
-                title: "Basic Item Creators", _showTitle: "title", _xMargin: 0, _stayInCollection: true, _hideContextMenu: true, _chromeStatus: "",
+                title: "Basic Item Creators", _showTitle: "title", _xMargin: 0, _stayInCollection: true, _hideContextMenu: true, _chromeHidden: true,
                 _autoHeight: true, _width: 500, _height: 300, _fitWidth: true, _columnWidth: 35, ignoreClick: true, _lockedPosition: true,
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), system: true
             }));
@@ -559,7 +559,7 @@ export class CurrentUserUtils {
             doc.menuStack = new PrefetchProxy(Docs.Create.StackingDocument(menuBtns, {
                 title: "menuItemPanel",
                 childDropAction: "alias",
-                _chromeStatus: "",
+                _chromeHidden: true,
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
                 backgroundColor: "black", ignoreClick: true,
                 _gridGap: 0,
@@ -597,7 +597,7 @@ export class CurrentUserUtils {
     // Sets up mobileMenu stacking document
     static setupMobileMenu() {
         const menu = new PrefetchProxy(Docs.Create.StackingDocument(this.setupMobileButtons(), {
-            _width: 980, ignoreClick: true, _lockedPosition: false, title: "home", _yMargin: 100, system: true, _chromeStatus: ""
+            _width: 980, ignoreClick: true, _lockedPosition: false, title: "home", _yMargin: 100, system: true, _chromeHidden: true,
         }));
         return menu;
     }
@@ -691,13 +691,13 @@ export class CurrentUserUtils {
     static setupMobileUploadDoc(userDoc: Doc) {
         // const addButton = Docs.Create.FontIconDocument({ onDragStart: ScriptField.MakeScript('addWebToMobileUpload()'), title: "Add Web Doc to Upload Collection", icon: "plus", backgroundColor: "black" })
         const webDoc = Docs.Create.WebDocument("https://www.britannica.com/biography/Miles-Davis", {
-            title: "Upload Images From the Web", _chromeStatus: "enabled", _lockedPosition: true, system: true
+            title: "Upload Images From the Web", _lockedPosition: true, system: true
         });
         const uploadDoc = Docs.Create.StackingDocument([], {
-            title: "Mobile Upload Collection", backgroundColor: "white", _lockedPosition: true, system: true, _chromeStatus: ""
+            title: "Mobile Upload Collection", backgroundColor: "white", _lockedPosition: true, system: true, _chromeHidden: true,
         });
         return Docs.Create.StackingDocument([webDoc, uploadDoc], {
-            _width: screen.width, _lockedPosition: true, title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray", system: true, _chromeStatus: ""
+            _width: screen.width, _lockedPosition: true, title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray", system: true, _chromeHidden: true,
         });
     }
 
@@ -717,14 +717,13 @@ export class CurrentUserUtils {
         if (doc.myCreators === undefined) {
             doc.myCreators = new PrefetchProxy(Docs.Create.StackingDocument([creatorBtns, templateBtns], {
                 title: "all Creators", _yMargin: 0, _autoHeight: true, _xMargin: 0, _fitWidth: true,
-                _width: 500, _height: 300, ignoreClick: true, _lockedPosition: true, system: true,
-                _chromeStatus: ""
+                _width: 500, _height: 300, ignoreClick: true, _lockedPosition: true, system: true, _chromeHidden: true,
             }));
         }
         // setup a color picker
         if (doc.myColorPicker === undefined) {
             const color = Docs.Create.ColorDocument({
-                title: "color picker", _width: 300, _dropAction: "alias", _hideContextMenu: true, _stayInCollection: true, _forceActive: true, _removeDropProperties: new List<string>(["dropAction", "_stayInCollection", "_hideContextMenu", "forceActive"]), system: true
+                title: "color picker", _width: 220, _dropAction: "alias", _hideContextMenu: true, _stayInCollection: true, _forceActive: true, _removeDropProperties: new List<string>(["dropAction", "_stayInCollection", "_hideContextMenu", "forceActive"]), system: true
             });
             doc.myColorPicker = new PrefetchProxy(color);
         }
@@ -732,7 +731,7 @@ export class CurrentUserUtils {
         if (doc.myTools === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
                 title: "My Tools", _width: 500, _yMargin: 20, ignoreClick: true, _lockedPosition: true, _forceActive: true,
-                system: true, _stayInCollection: true, _hideContextMenu: true, _chromeStatus: ""
+                system: true, _stayInCollection: true, _hideContextMenu: true, _chromeHidden: true,
             })) as any as Doc;
 
             doc.myTools = toolsStack;
@@ -910,8 +909,7 @@ export class CurrentUserUtils {
             if (!sharedDocs) {
                 sharedDocs = Docs.Create.StackingDocument([], {
                     title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15,
-                    _showTitle: "title", ignoreClick: true, _lockedPosition: true, "acl-Public": SharingPermissions.Add, "_acl-Public": SharingPermissions.Add,
-                    _chromeStatus: ""
+                    _showTitle: "title", ignoreClick: true, _lockedPosition: true, "acl-Public": SharingPermissions.Add, "_acl-Public": SharingPermissions.Add, _chromeHidden: true,
                 }, sharingDocumentId + "outer", sharingDocumentId);
             }
             if (sharedDocs instanceof Doc) {
@@ -926,13 +924,13 @@ export class CurrentUserUtils {
         if (doc.myImportDocs === undefined) {
             doc.myImportDocs = new PrefetchProxy(Docs.Create.StackingDocument([], {
                 title: "My ImportDocuments", _forceActive: true, ignoreClick: true, _showTitle: "title", _stayInCollection: true, _hideContextMenu: true, childLimitHeight: 0,
-                childDropAction: "alias", _autoHeight: true, _yMargin: 50, _gridGap: 15, _lockedPosition: true, system: true, _chromeStatus: ""
+                childDropAction: "alias", _autoHeight: true, _yMargin: 50, _gridGap: 15, _lockedPosition: true, system: true, _chromeHidden: true,
             }));
         }
         if (doc.myImportPanel === undefined) {
             const uploads = Cast(doc.myImportDocs, Doc, null);
             const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _stayInCollection: true, _hideContextMenu: true, title: "Import", icon: "upload", system: true });
-            doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, _chromeStatus: "", _stayInCollection: true, _hideContextMenu: true, _lockedPosition: true, system: true }));
+            doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, _chromeHidden: true, _stayInCollection: true, _hideContextMenu: true, _lockedPosition: true, system: true }));
         }
     }
 
