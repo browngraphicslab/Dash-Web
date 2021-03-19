@@ -422,7 +422,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     sidebarWidth = () => !this.layoutDoc._showSidebar ? 0 : (NumCast(this.layoutDoc.nativeWidth) - Doc.NativeWidth(this.dataDoc)) * this.props.PanelWidth() / NumCast(this.layoutDoc.nativeWidth);
 
     @computed get content() {
-        return <div className={"webBox-cont" + (this.active() && CurrentUserUtils.SelectedTool === InkTool.None && !DocumentDecorations.Instance?.Interacting ? "-interactive" : "")}
+        return <div className={"webBox-cont" + (!this.props.docViewPath().lastElement()?.docView?._pendingDoubleClick && this.active() && CurrentUserUtils.SelectedTool === InkTool.None && !DocumentDecorations.Instance?.Interacting ? "-interactive" : "")}
             style={{ width: NumCast(this.layoutDoc[this.fieldKey + "-contentWidth"]) || `${100 / (this.props.scaling?.() || 1)}%`, }}>
             {this.urlContent}
         </div>;

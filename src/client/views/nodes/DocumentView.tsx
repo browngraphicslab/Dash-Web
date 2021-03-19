@@ -158,6 +158,7 @@ export interface DocumentViewInternalProps extends DocumentViewProps {
 export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps, Document>(Document) {
     @observable _animateScalingTo = 0;
     @observable _audioState = 0;
+    @observable _pendingDoubleClick = false;
     private _downX: number = 0;
     private _downY: number = 0;
     private _firstX: number = -1;
@@ -170,7 +171,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
     protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
-    _componentView: Opt<DocComponentView>;
+    _componentView: Opt<DocComponentView>; // needs to be accessed from DocumentView wrapper class
 
     private get topMost() { return this.props.renderDepth === 0; }
     private get active() { return this.props.isSelected(true) || this.props.parentActive(true); }
@@ -482,10 +483,9 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
-                    const ctrlPressed = e.ctrlKey || e.shiftKey;
-                    if (this.props.Document.type === DocumentType.WEB) {
-                        this._timeout = setTimeout(() => { this._timeout = undefined; this.props.select(ctrlPressed); }, 350);
-                    } else this.props.select(ctrlPressed);
+                    runInAction(() => this._pendingDoubleClick = true);
+                    this._timeout = setTimeout(action(() => { this._pendingDoubleClick = false; this._timeout = undefined; }), 350);
+                    this.props.select(e.ctrlKey || e.shiftKey);
                 }
                 preventDefault = false;
             }
