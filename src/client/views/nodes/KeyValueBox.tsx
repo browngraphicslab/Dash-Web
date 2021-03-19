@@ -163,7 +163,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     getTemplate = async () => {
-        const parent = Docs.Create.StackingDocument([], { _width: 800, _height: 800, title: "Template" });
+        const parent = Docs.Create.StackingDocument([], { _width: 800, _height: 800, title: "Template", _chromeStatus: "" });
         parent._columnWidth = 100;
         for (const row of this.rows.filter(row => row.isChecked)) {
             await this.createTemplateField(parent, row);

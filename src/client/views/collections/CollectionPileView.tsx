@@ -21,7 +21,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
             this.Document._pileLayoutEngine = "pass";
         }
         this._originalChrome = StrCast(this.layoutDoc._chromeStatus);
-        this.layoutDoc._chromeStatus = undefined;
+        this.layoutDoc._chromeStatus = "";
     }
     componentWillUnmount() {
         this.layoutDoc._chromeStatus = this._originalChrome;

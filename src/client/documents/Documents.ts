@@ -338,11 +338,11 @@ export namespace Docs {
             }],
             [DocumentType.COL, {
                 layout: { view: CollectionView, dataField: defaultDataKey },
-                options: { _panX: 0, _panY: 0, _viewScale: 1, links: ComputedField.MakeFunction("links(self)") as any }
+                options: { _chromeStatus: "collapsed", _fitWidth: true, _panX: 0, _panY: 0, _viewScale: 1, links: ComputedField.MakeFunction("links(self)") as any }
             }],
             [DocumentType.KVP, {
                 layout: { view: KeyValueBox, dataField: defaultDataKey },
-                options: { _height: 150 }
+                options: { _fitWidth: true, _height: 150 }
             }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, dataField: defaultDataKey },
@@ -363,7 +363,11 @@ export namespace Docs {
             [DocumentType.LINK, {
                 layout: { view: LinkBox, dataField: defaultDataKey },
                 options: {
-                    _height: 150, description: "", links: ComputedField.MakeFunction("links(self)") as any,
+                    childDontRegisterViews: true, _isLinkButton: true, treeViewHideTitle: true,
+                    treeViewOpen: true, _height: 150, description: "",
+                    backgroundColor: "lightblue", // lightblue is default color for linking dot and link documents text comment area
+                    treeViewExpandedView: "fields", _removeDropProperties: new List(["_layerTags", "isLinkButton"]),
+                    links: ComputedField.MakeFunction("links(self)") as any,
                     linkBoxExcludedKeys: new List(["treeViewExpandedView", "aliases", "treeViewHideTitle", "_removeDropProperties",
                         "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "creationDate", "author"])
                 }
@@ -434,7 +438,7 @@ export namespace Docs {
             }],
             [DocumentType.COMPARISON, {
                 layout: { view: ComparisonBox, dataField: defaultDataKey },
-                options: { links: ComputedField.MakeFunction("links(self)") as any }
+                options: { clipWidth: 50, backgroundColor: "gray", targetDropAction: "alias", links: ComputedField.MakeFunction("links(self)") as any }
             }],
             [DocumentType.GROUPDB, {
                 data: new List<Doc>(),
@@ -447,7 +451,7 @@ export namespace Docs {
             }],
             [DocumentType.TEXTANCHOR, {
                 layout: { view: EmptyBox, dataField: defaultDataKey },
-                options: { links: ComputedField.MakeFunction("links(self)") as any, useSmallLinkButton: true, hideLinkButton: true }
+                options: { targetDropAction: "move", links: ComputedField.MakeFunction("links(self)") as any, hideLinkButton: true }
             }]
         ]);
 
@@ -702,12 +706,12 @@ export namespace Docs {
         }
 
         export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { clipWidth: 50, backgroundColor: "gray", targetDropAction: "alias", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", options);
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)),
-                { useLinkSmallAnchor: true, ...options, backgroundColor: ComputedField.MakeFunction("this._audioState === 'playing' ? 'green':'gray'") as any }); // hideLinkButton: false, useLinkSmallAnchor: false,
+                { ...options, backgroundColor: ComputedField.MakeFunction("this._audioState === 'playing' ? 'green':'gray'") as any });
         }
 
         export function SearchDocument(options: DocumentOptions = {}) {
@@ -741,9 +745,7 @@ export namespace Docs {
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
             const linkDoc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
-                childDontRegisterViews: true, treeViewOpen: true, anchor1: source.doc, anchor2: target.doc,
-                _isLinkButton: true, treeViewHideTitle: true, backgroundColor: "lightblue", // lightblue is default color for linking dot and link documents text comment area
-                treeViewExpandedView: "fields", _removeDropProperties: new List(["_layerTags", "isLinkButton"]), ...options
+                anchor1: source.doc, anchor2: target.doc, ...options
             }, id);
 
             LinkManager.Instance.addLink(linkDoc);
@@ -781,11 +783,11 @@ export namespace Docs {
         }
 
         export function PdfDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.PDF), new PdfField(new URL(url)), { ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.PDF), new PdfField(new URL(url)), options);
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _chromeStatus: url ? undefined : "enabled", _lockedTransform: true, ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, options);
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
@@ -793,63 +795,63 @@ export namespace Docs {
         }
 
         export function KVPDocument(document: Doc, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { _fitWidth: true, title: document.title + ".kvp", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { title: document.title + ".kvp", ...options });
         }
 
         export function TextanchorDocument(options: DocumentOptions = {}, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.TEXTANCHOR), undefined, { targetDropAction: "move", ...options }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.TEXTANCHOR), undefined, options, id);
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Freeform }, id);
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Freeform }, id);
             documents.map(d => d.context = inst);
             return inst;
         }
         export function HTMLAnchorDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.HTMLANCHOR), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Freeform }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.HTMLANCHOR), new List(documents), options, id);
         }
 
         export function PileDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", _noAutoscroll: true, ...options, _viewType: CollectionViewType.Pile }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _noAutoscroll: true, ...options, _viewType: CollectionViewType.Pile }, id);
         }
 
         export function LinearDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", ...options, _viewType: CollectionViewType.Linear }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Linear }, id);
         }
 
         export function MapDocument(documents: Array<Doc>, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Map });
         }
 
         export function CarouselDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _fitWidth: true, ...options, _viewType: CollectionViewType.Carousel });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Carousel });
         }
 
         export function Carousel3DDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _fitWidth: true, ...options, _viewType: CollectionViewType.Carousel3D });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Carousel3D });
         }
 
         export function SchemaDocument(schemaHeaders: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _fitWidth: true, schemaHeaders: schemaHeaders.length ? new List(schemaHeaders) : undefined, ...options, _viewType: CollectionViewType.Schema });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaHeaders: new List(schemaHeaders), ...options, _viewType: CollectionViewType.Schema });
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _fitWidth: true, childDontRegisterViews: true, ...options, _viewType: CollectionViewType.Tree }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { childDontRegisterViews: true, ...options, _viewType: CollectionViewType.Tree }, id);
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions, id?: string, protoId?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _fitWidth: true, ...options, _viewType: CollectionViewType.Stacking }, id, undefined, protoId);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Stacking }, id, undefined, protoId);
         }
 
         export function MulticolumnDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Multicolumn });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Multicolumn });
         }
         export function MultirowDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Multirow });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Multirow });
         }
 
         export function MasonryDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Masonry });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Masonry });
         }
 
         export function LabelDocument(options?: DocumentOptions) {

@@ -721,7 +721,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             (this.rootDoc._viewType !== CollectionViewType.Docking || !Doc.UserDoc().noviceMode) && moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this.props.DocumentView()), icon: "users" });
             if (!Doc.UserDoc().noviceMode) {
                 moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
-                moreItems.push({ description: `${this.Document._chromeStatus ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus ? undefined : "enabled"), icon: "project-diagram" });
+                moreItems.push({ description: `${this.Document._chromeStatus ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus ? "" : "enabled"), icon: "project-diagram" });
 
                 if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
                     moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });

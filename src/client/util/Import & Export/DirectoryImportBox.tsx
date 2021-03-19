@@ -145,6 +145,7 @@ export class DirectoryImportBox extends React.Component<FieldViewProps> {
             title: `Import of ${directory}`,
             _width: 1105,
             _height: 500,
+            _chromeStatus: "",
             x: NumCast(doc.x),
             y: NumCast(doc.y) + offset
         };

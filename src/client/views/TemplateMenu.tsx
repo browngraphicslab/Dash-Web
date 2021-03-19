@@ -81,7 +81,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @action
     toggleChrome = (): void => {
         this.props.docViews.map(dv => Doc.Layout(dv.layoutDoc)).forEach(layout =>
-            layout._chromeStatus = (layout._chromeStatus ? undefined : StrCast(layout._replacedChrome, "enabled")));
+            layout._chromeStatus = (layout._chromeStatus ? "" : StrCast(layout._replacedChrome, "enabled")));
     }
 
     // todo: add brushes to brushMap to save with a style name
