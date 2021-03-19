@@ -1250,10 +1250,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             e.stopPropagation();
             return;
         }
-        this.props.isSelected(true) && ((e.nativeEvent as any).formattedHandled = true);
-
         if (this.props.isSelected(true)) { // if text box is selected, then it consumes all click events
-            // e.stopPropagation();  // bcz: not sure why this was here.  We need to allow the DocumentView to get clicks to process doubleClicks
+            (e.nativeEvent as any).formattedHandled = true
+            if (this.ProseRef?.children[0] !== e.nativeEvent.target) e.stopPropagation(); // if you double click on text, then it will be selected instead of sending a double click to DocumentView & opening a lightbox.  Also,if a text box has isLinkButton, this will prevent link following if you've selected the document to edit it.
+            // e.stopPropagation();  // bcz: not sure why this was here.  We need to allow the DocumentView to get clicks to process doubleClicks (see above comment)
             this.hitBulletTargets(e.clientX, e.clientY, !this._editorView?.state.selection.empty || this._forceUncollapse, false, this._forceDownNode, e.shiftKey);
         }
         this._forceUncollapse = !(this._editorView!.root as any).getSelection().isCollapsed;
