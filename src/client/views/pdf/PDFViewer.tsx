@@ -55,7 +55,7 @@ interface IViewerProps extends FieldViewProps {
     setPdfViewer: (view: PDFViewer) => void;
     ContentScaling?: () => number;
     sidebarWidth: () => number;
-    anchorMenuClick: (anchor: Doc) => void;
+    anchorMenuClick?: (anchor: Doc) => void;
 }
 
 /**

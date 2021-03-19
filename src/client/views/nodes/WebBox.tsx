@@ -8,19 +8,17 @@ import { Id } from "../../../fields/FieldSymbols";
 import { HtmlField } from "../../../fields/HtmlField";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
-import { listSpec, makeInterface } from "../../../fields/Schema";
+import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, getWordAtPoint, OmitKeys, returnOne, returnTrue, returnZero, smoothScroll, Utils } from "../../../Utils";
-import { Docs, DocUtils } from "../../documents/Documents";
+import { emptyFunction, getWordAtPoint, OmitKeys, returnOne, smoothScroll, Utils } from "../../../Utils";
+import { Docs } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { SnappingManager } from "../../util/SnappingManager";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
-import { CollectionStackingView } from "../collections/CollectionStackingView";
-import { CollectionViewType } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
@@ -29,14 +27,11 @@ import { LightboxView } from "../LightboxView";
 import { MarqueeAnnotator } from "../MarqueeAnnotator";
 import { AnchorMenu } from "../pdf/AnchorMenu";
 import { Annotation } from "../pdf/Annotation";
-import { SearchBox } from "../search/SearchBox";
-import { StyleProp } from "../StyleProvider";
+import { SidebarAnnos } from "../SidebarAnnos";
 import { FieldView, FieldViewProps } from './FieldView';
-import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 import { LinkDocPreview } from "./LinkDocPreview";
 import "./WebBox.scss";
 import React = require("react");
-import { SidebarAnnos } from "../SidebarAnnos";
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -110,9 +105,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         var quickScroll = true;
         this._disposers.scrollReaction = reaction(() => NumCast(this.layoutDoc._scrollTop),
             (scrollTop) => {
-                if (quickScroll) {
-                    this._initialScroll = scrollTop;
-                }
+                if (quickScroll) this._initialScroll = scrollTop;
                 else {
                     const viewTrans = StrCast(this.Document._viewTransition);
                     const durationMiliStr = viewTrans.match(/([0-9]*)ms/);
@@ -151,11 +144,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         //this._selectionText = selRange.cloneContents().textContent || "";
 
         // clear selection
-        if (sel.empty) {  // Chrome
-            sel.empty();
-        } else if (sel.removeAllRanges) {  // Firefox
-            sel.removeAllRanges();
-        }
+        if (sel.empty) sel.empty();// Chrome
+        else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
     }
 
     menuControls = () => this.urlEditor; // controls to be added to the top bar when a document of this type is selected
@@ -283,8 +273,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     @action
     forward = () => {
-        const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
-        const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
+        const future = StrListCast(this.dataDoc[this.fieldKey + "-future"]);
+        const history = StrListCast(this.dataDoc[this.fieldKey + "-history"]);
         if (future.length) {
             history.push(this._url);
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = future.pop()!));
@@ -296,8 +286,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     @action
     back = () => {
-        const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
-        const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
+        const future = StrListCast(this.dataDoc[this.fieldKey + "-future"]);
+        const history = StrListCast(this.dataDoc[this.fieldKey + "-history"]);
         if (history.length) {
             if (future === undefined) this.dataDoc[this.fieldKey + "-future"] = new List<string>([this._url]);
             else future.push(this._url);
@@ -317,8 +307,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (!newUrl) return;
         if (!newUrl.startsWith("http")) newUrl = "http://" + newUrl;
         try {
-            const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
-            const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
+            const future = StrListCast(this.dataDoc[this.fieldKey + "-future"]);
+            const history = StrListCast(this.dataDoc[this.fieldKey + "-history"]);
             const url = this.webField?.toString();
             if (url) {
                 if (history === undefined) {
@@ -409,7 +399,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             view = <span className="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
         } else if (field instanceof WebField) {
             const url = this.layoutDoc.useCors ? Utils.CorsProxy(field.url.href) : field.url.href;
-            //    view = <iframe className="webBox-iframe" src={url} onLoad={e => { e.currentTarget.before((e.currentTarget.contentDocument?.body || e.currentTarget.contentDocument)?.children[0]!); e.currentTarget.remove(); }}
             view = <iframe className="webBox-iframe" enable-annotation={"true"}
                 style={{ pointerEvents: this._scrollTimer ? "none" : undefined }}
                 ref={action((r: HTMLIFrameElement | null) => this._iframe = r)} src={url} onLoad={this.iframeLoaded}
@@ -424,27 +413,11 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         return view;
     }
 
-    anchorMenuClick = (anchor: Doc) => {
-        this.Document._showSidebar = true;
-        const startup = StrListCast(this.rootDoc.docFilters).map(filter => filter.split(":")[0]).join(" ");
-        const target = Docs.Create.TextDocument(startup, {
-            title: "anno",
-            annotationOn: this.rootDoc, _width: 200, _height: 50, _fitWidth: true, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
-            _fontFamily: StrCast(Doc.UserDoc().fontFamily)
-        });
-        FormattedTextBox.SelectOnLoad = target[Id];
-        FormattedTextBox.DontSelectInitialText = true;
-        //this.sidebarAllTags.map(tag => target[tag] = tag);
-        DocUtils.MakeLink({ doc: anchor }, { doc: target }, "inline markup", "annotation");
-        this._sidebarRef.current?.addDocument(target);
-    }
     toggleSidebar = () => {
-        if (this.layoutDoc.nativeWidth === this.layoutDoc[this.fieldKey + "-nativeWidth"]) {
-            this.layoutDoc.nativeWidth = 250 + NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
-        } else {
-            this.layoutDoc.nativeWidth = NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
-        }
-        this.layoutDoc._width = NumCast(this.layoutDoc._nativeWidth) * (NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]) / NumCast(this.layoutDoc[this.fieldKey + "-nativeHeight"]));
+        const nativeWidth = NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
+        const nativeHeight = NumCast(this.layoutDoc[this.fieldKey + "-nativeHeight"]);
+        this.layoutDoc.nativeWidth = nativeWidth + (this.layoutDoc.nativeWidth === nativeWidth ? 250 : 0);
+        this.layoutDoc._width = NumCast(this.layoutDoc._nativeWidth) * (nativeWidth / nativeHeight);
     }
     sidebarWidth = () => !this.layoutDoc._showSidebar ? 0 : (NumCast(this.layoutDoc.nativeWidth) - Doc.NativeWidth(this.dataDoc)) * this.props.PanelWidth() / NumCast(this.layoutDoc.nativeWidth);
 
@@ -513,14 +486,14 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                                 ScreenToLocalTransform={this.scrollXf}
                                 renderDepth={this.props.renderDepth + 1}
                                 scaling={returnOne}
-                                //pointerEvents={this._isAnnotating || SnappingManager.GetIsDragging() ? "all" : "none"}
-                                childPointerEvents={true} />
+                                childPointerEvents={true}
+                                pointerEvents={this._isAnnotating || SnappingManager.GetIsDragging() ? "all" : "none"} />
                             {this.annotationLayer}
                         </div>
                     </div>
                     {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
                         <MarqueeAnnotator rootDoc={this.rootDoc}
-                            anchorMenuClick={this.anchorMenuClick}
+                            anchorMenuClick={this._sidebarRef.current?.anchorMenuClick}
                             scrollTop={0}
                             down={this._marqueeing} scaling={returnOne}
                             addDocument={this.addDocument}

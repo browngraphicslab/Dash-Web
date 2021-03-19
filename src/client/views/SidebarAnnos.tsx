@@ -1,13 +1,16 @@
 import { computed } from 'mobx';
 import { observer } from "mobx-react";
 import { Doc, DocListCast, StrListCast } from "../../fields/Doc";
+import { Id } from '../../fields/FieldSymbols';
 import { List } from '../../fields/List';
-import { NumCast } from '../../fields/Types';
+import { NumCast, StrCast } from '../../fields/Types';
 import { emptyFunction, OmitKeys, returnOne, returnTrue, returnZero } from '../../Utils';
+import { Docs, DocUtils } from '../documents/Documents';
 import { Transform } from '../util/Transform';
 import { CollectionStackingView } from './collections/CollectionStackingView';
 import { CollectionViewType } from './collections/CollectionView';
 import { FieldViewProps } from './nodes/FieldView';
+import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 import { SearchBox } from './search/SearchBox';
 import "./SidebarAnnos.scss";
 import { StyleProp } from './StyleProvider';
@@ -27,6 +30,7 @@ interface extraProps {
 }
 @observer
 export class SidebarAnnos extends React.Component<FieldViewProps & extraProps> {
+    _stackRef = React.createRef<CollectionStackingView>();
     @computed get allHashtags() {
         const keys = new Set<string>();
         DocListCast(this.props.rootDoc[this.sidebarKey()]).forEach(doc => SearchBox.documentKeys(doc).forEach(key => keys.add(key)));
@@ -34,6 +38,21 @@ export class SidebarAnnos extends React.Component<FieldViewProps & extraProps> {
     }
     get filtersKey() { return "_" + this.sidebarKey() + "-docFilters"; }
 
+    anchorMenuClick = (anchor: Doc) => {
+        this.props.layoutDoc._showSidebar = true;
+        const startup = StrListCast(this.props.rootDoc.docFilters).map(filter => filter.split(":")[0]).join(" ");
+        const target = Docs.Create.TextDocument(startup, {
+            title: "anno",
+            annotationOn: this.props.rootDoc, _width: 200, _height: 50, _fitWidth: true, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
+            _fontFamily: StrCast(Doc.UserDoc().fontFamily)
+        });
+        FormattedTextBox.SelectOnLoad = target[Id];
+        FormattedTextBox.DontSelectInitialText = true;
+        this.allHashtags.map(tag => target[tag] = tag);
+        DocUtils.MakeLink({ doc: anchor }, { doc: target }, "inline markup", "annotation");
+        this.addDocument(target);
+        this._stackRef.current?.focusDocument(target);
+    }
     makeDocUnfiltered = (doc: Doc) => {
         if (DocListCast(this.props.rootDoc[this.sidebarKey()]).includes(doc)) {
             if (this.props.layoutDoc[this.filtersKey]) {
@@ -69,7 +88,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & extraProps> {
                 height: "100%"
             }}>
                 <div style={{ width: "100%", height: this.panelHeight(), position: "relative" }}>
-                    <CollectionStackingView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
+                    <CollectionStackingView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit} ref={this._stackRef}
                         NativeWidth={returnZero}
                         NativeHeight={returnZero}
                         PanelHeight={this.panelHeight}
