@@ -32,6 +32,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { LinkDocPreview } from "./LinkDocPreview";
 import "./WebBox.scss";
 import React = require("react");
+const _global = (window /* browser */ || global /* node */) as any;
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -53,6 +54,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @observable private _marqueeing: number[] | undefined;
     @observable private _url: string = "hello";
     @observable private _isAnnotating = false;
+    @observable private _iframeClick: HTMLIFrameElement | undefined = undefined;
     @observable private _iframe: HTMLIFrameElement | null = null;
     @observable private _savedAnnotations = new ObservableMap<number, HTMLDivElement[]>();
     @observable private _scrollHeight = 1500;
@@ -200,12 +202,19 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             this._iframe?.contentDocument?.addEventListener("pointerup", this.iframeUp);
             setTimeout(action(() => this._marqueeing = undefined), 100); // bcz: hack .. anchor menu is setup within MarqueeAnnotator so we need to at least create the marqueeAnnotator even though we aren't using it.
         } else {
+            this._iframeClick = this._iframe ?? undefined;
             this._isAnnotating = true;
             this.props.select(false);
             e.stopPropagation();
             e.preventDefault();
         }
     }
+
+    isFirefox = () => {
+        return "InstallTrigger" in window; // navigator.userAgent.indexOf("Chrome") !== -1;
+    }
+    iframeClick = () => this._iframeClick;
+    iframeScaling = () => 1 / this.props.ScreenToLocalTransform().Scale;
 
     @action
     iframeLoaded = (e: any) => {
@@ -388,6 +397,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @action finishMarquee = (x?: number, y?: number) => {
         this._marqueeing = undefined;
         this._isAnnotating = false;
+        this._iframeClick = undefined;
         x !== undefined && y !== undefined && this._setPreviewCursor?.(x, y, false);
     }
 
@@ -493,6 +503,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     </div>
                     {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
                         <MarqueeAnnotator rootDoc={this.rootDoc}
+                            iframe={this.isFirefox() ? this.iframeClick : undefined}
+                            iframeScaling={this.isFirefox() ? this.iframeScaling : undefined}
                             anchorMenuClick={this._sidebarRef.current?.anchorMenuClick}
                             scrollTop={0}
                             down={this._marqueeing} scaling={returnOne}

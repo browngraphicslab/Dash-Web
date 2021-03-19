@@ -193,8 +193,8 @@ export class MainView extends React.Component {
         document.addEventListener("pointerdown", this.globalPointerDown);
         document.addEventListener("click", (e: MouseEvent) => {
             if (!e.cancelBubble) {
-                const pathstr = (e as any)?.path.map((p: any) => p.classList?.toString()).join();
-                if (pathstr.includes("libraryFlyout")) {
+                const pathstr = (e as any)?.path?.map((p: any) => p.classList?.toString()).join();
+                if (pathstr?.includes("libraryFlyout")) {
                     SelectionManager.DeselectAll();
                 }
             }
