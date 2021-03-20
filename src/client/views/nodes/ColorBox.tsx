@@ -37,12 +37,12 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
                     view.props.Document.isTemplateForField ? view.props.Document : Doc.GetProto(view.props.Document);
             if (targetDoc) {
                 if (view.props.LayoutTemplate?.() || view.props.LayoutTemplateString) {  // this situation typically occurs when you have a link dot 
-                    targetDoc.backgroundColor = Doc.UserDoc().backgroundColor;  // bcz: don't know how to change the color of an inline template...
+                    targetDoc.backgroundColor = color.hex;  // bcz: don't know how to change the color of an inline template...
                 }
                 else if (RichTextMenu.Instance?.TextViewFieldKey && window.getSelection()?.toString() !== "") {
-                    Doc.Layout(view.props.Document)[RichTextMenu.Instance.TextViewFieldKey + "-color"] = Doc.UserDoc().backgroundColor;
+                    Doc.Layout(view.props.Document)[RichTextMenu.Instance.TextViewFieldKey + "-color"] = color.hex;
                 } else {
-                    Doc.Layout(view.props.Document)._backgroundColor = Doc.UserDoc().backgroundColor; // '_backgroundColor' is template specific.  'backgroundColor' would apply to all templates, but has no UI at the moment
+                    Doc.Layout(view.props.Document)._backgroundColor = color.hex; // '_backgroundColor' is template specific.  'backgroundColor' would apply to all templates, but has no UI at the moment
                 }
             }
         });
