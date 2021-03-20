@@ -521,6 +521,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 </button>
                 <SidebarAnnos ref={this._sidebarRef}
                     {...this.props}
+                    fieldKey={this.annotationKey}
                     annotationsActive={this.annotationsActive}
                     rootDoc={this.rootDoc}
                     layoutDoc={this.layoutDoc}
