@@ -123,6 +123,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get expandedField() {
+        const tags: string[] = [];
+
         if (this.dataDoc && this.selectedDoc) {
             const ids: { [key: string]: string } = {};
             const docs = SelectionManager.Views().length < 2 ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] :
@@ -134,25 +136,55 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 docs.forEach(doc => docvals.add(doc[key]));
                 const contents = Array.from(docvals.keys()).length > 1 ? "-multiple" : docs[0][key];
                 if (key[0] === "#") {
-                    rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "2px" }} key={key}>
-                        <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
-                    &nbsp;
-                </div>);
+                    tags.push(key.split("#")[1]);
+                    //     rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "2px" }} key={key}>
+                    //         <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
+                    //     &nbsp;
+                    // </div>);
                 } else {
-                    const contentElement = <EditableView key="editableView"
-                        contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
+                    const value = contents !== undefined ? Field.toString(contents as Field) : "null";
+                    const contentElement = <EditableView
+                        backgroundColor="#C4C4C4"
+                        outline={true}
+                        key="editableView"
+                        contents={value}
                         height={13}
                         fontSize={10}
                         GetValue={() => contents !== undefined ? Field.toString(contents as Field) : "null"}
                         SetValue={(value: string) => { docs.map(doc => KeyValueBox.SetField(doc, key, value, true)); return true; }}
                     />;
-                    rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "-1px" }} key={key}>
-                        <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ":"}</span>
-                        &nbsp;
-                        {contentElement}
+
+                    rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "5px" }} key={key}>
+                        <div className="propertiesView-field-info-btn" onClick={(e) => this.displayFieldInfo(key, value, e)}><FontAwesomeIcon icon="info-circle" size="sm" /></div>
+                        <span style={{ fontWeight: "bold", whiteSpace: "nowrap", float: "left" }}>{key}</span>
+                    &nbsp;
+                        <div className="propertiesView-editableField">
+                            {contentElement}
+                        </div>
+                        <div className="propertiesView-closeFieldIcon" onClick={() => { docs.map(doc => doc[key] = undefined); }}><FontAwesomeIcon icon="times" size="sm" /></div>
                     </div>);
                 }
             }
+
+            const tagDisplay = <div className="propertiesView-tags" style={{ display: "flex" }}>
+                <div style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>Tags:</div>
+                <div style={{
+                    textAlign: "right", alignSelf: "right", alignItems: "right", justifyContent: "flex-end", float: "right", width: "100%"
+                }}>
+                    {tags.map(tag => <div className="propertiesView-tags-wrapper" style={{
+                        display: "flex", textAlign: "right",
+                        alignSelf: "right", alignItems: "right", justifyContent: "flex-end"
+                    }}>
+                        <div className="propertiesView-tags-name" style={{ justifyContent: "right", marginRight: "5px" }}>{"#" + tag}</div>
+                        <div className="propertiesView-tags-close" style={{ justifyContent: "right", marginTop: "3px" }}
+                            onClick={() => { docs.map(doc => doc["#" + tag] = undefined); tags.splice(tags.indexOf(tag), 1); }}><FontAwesomeIcon icon="times" size="sm" /></div>
+                    </div>)}
+                </div>
+            </div>;
+
+            rows.push(tagDisplay);
+            rows.push(this.addFieldButtons);
+
             rows.push(<div className="propertiesView-field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
                 <EditableView
                     key="editableView"
@@ -220,8 +252,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 }
             }
 
-            let top = 0;
-
             const tagDisplay = <div className="propertiesView-tags" style={{ display: "flex" }}>
                 <div style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>Tags:</div>
                 <div style={{
@@ -240,15 +270,15 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
             rows.push(tagDisplay);
             rows.push(this.addFieldButtons);
-            rows.push(<div className="propertiesView-field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
-                <EditableView
-                    key="editableView"
-                    contents={"add key:value or #tags"}
-                    height={13}
-                    fontSize={10}
-                    GetValue={() => ""}
-                    SetValue={this.setKeyValue} />
-            </div>);
+            // rows.push(<div className="propertiesView-field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
+            //     <EditableView
+            //         key="editableView"
+            //         contents={"add key:value or #tags"}
+            //         height={13}
+            //         fontSize={10}
+            //         GetValue={() => ""}
+            //         SetValue={this.setKeyValue} />
+            // </div>);
             return rows;
         }
     }
