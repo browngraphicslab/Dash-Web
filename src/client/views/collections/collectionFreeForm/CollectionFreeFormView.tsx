@@ -921,7 +921,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             }
         }
         SelectionManager.DeselectAll();
-        if (this.props.Document.scrollHeight) {
+        if (this.props.Document.scrollHeight || this.props.Document.scrollTop !== undefined) {
             this.props.focus(doc, options);
         } else {
             const xfToCollection = options?.docTransform ?? Transform.Identity();
@@ -942,7 +942,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 this.setPan(panX, panY, focusSpeed, true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
                 scale && (this.Document[this.scaleFieldKey] = scale);
             }
-            Doc.BrushDoc(doc);
 
             const startTime = Date.now();
             // focus on this collection within its parent view.  the parent view after focusing determines whether to reset the view change within the collection
@@ -1202,12 +1201,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     getAnchor = () => {
-        const anchor = Docs.Create.TextanchorDocument({
-            title: StrCast(this.layoutDoc._viewType),
-            useLinkSmallAnchor: true,
-            hideLinkButton: true,
-            annotationOn: this.rootDoc
-        });
+        const anchor = Docs.Create.TextanchorDocument({ title: StrCast(this.layoutDoc._viewType), annotationOn: this.rootDoc });
         const proto = Doc.GetProto(anchor);
         proto[ViewSpecPrefix + "_viewType"] = this.layoutDoc._viewType;
         proto.docFilters = ObjectField.MakeCopy(this.layoutDoc.docFilters as ObjectField) || new List<string>([]);
@@ -1245,7 +1239,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if ((e as any).handlePan || this.props.isAnnotationOverlay) return;
         (e as any).handlePan = true;
 
-        if (!this.props.Document._noAutoscroll && !this.props.renderDepth && this._marqueeRef?.current) {
+        if (!this.layoutDoc._noAutoscroll && !this.props.renderDepth && this._marqueeRef?.current) {
             const dragX = e.detail.clientX;
             const dragY = e.detail.clientY;
             const bounds = this._marqueeRef.current?.getBoundingClientRect();

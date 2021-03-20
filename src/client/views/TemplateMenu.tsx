@@ -80,8 +80,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleChrome = (): void => {
-        this.props.docViews.map(dv => Doc.Layout(dv.layoutDoc)).forEach(layout =>
-            layout._chromeStatus = (layout._chromeStatus ? undefined : StrCast(layout._replacedChrome, "enabled")));
+        this.props.docViews.map(dv => Doc.Layout(dv.layoutDoc)).forEach(layout => layout._chromeHidden = !layout._chromeHidden);
     }
 
     // todo: add brushes to brushMap to save with a style name
@@ -115,11 +114,11 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         const addedTypes = Doc.UserDoc().noviceMode ? [] : DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
         const layout = Doc.Layout(firstDoc);
         const templateMenu: Array<JSX.Element> = [];
-        this.props.templates.forEach((checked, template) =>
+        this.props.templates?.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template} template={template} checked={checked} toggle={this.toggleTemplate} />));
         templateMenu.push(<OtherToggle key={"audio"} name={"Audio"} checked={firstDoc._showAudio ? true : false} toggle={this.toggleAudio} />);
         templateMenu.push(<OtherToggle key={"default"} name={"Default"} checked={templateName === "layout"} toggle={this.toggleDefault} />);
-        !Doc.UserDoc().noviceMode && templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
+        !Doc.UserDoc().noviceMode && templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={!layout._chromeHidden} toggle={this.toggleChrome} />);
         addedTypes.concat(noteTypes).map(template => template.treeViewChecked = this.templateIsUsed(firstDoc, template));
         this._addedKeys && Array.from(this._addedKeys).filter(key => !noteTypes.some(nt => nt.title === key)).forEach(template => templateMenu.push(
             <OtherToggle key={template} name={template} checked={templateName === template} toggle={e => this.toggleLayout(e, template)} />));

@@ -84,7 +84,7 @@ export interface ViewBoxAnnotatableProps {
 }
 export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
-        _annotationKey: string = "annotations";
+        @observable _annotationKey: string = "annotations";
 
         @observable _isChildActive = false;
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
@@ -125,7 +125,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
         protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
-        public get annotationKey() { return this.fieldKey + "-" + this._annotationKey; }
+        @computed public get annotationKey() { return this.fieldKey + "-" + this._annotationKey; }
 
         @action.bound
         removeDocument(doc: Doc | Doc[], annotationKey?: string, leavePushpin?: boolean): boolean {
@@ -203,8 +203,10 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
         active = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool === InkTool.None &&
-            (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0 || BoolCast((this.layoutDoc as any).forceActive)) ? true : false)
-        annotationsActive = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool !== InkTool.None || (this.props.layerProvider?.(this.props.Document) === false && this.props.active()) ||
+            (this.props.rootSelected(outsideReaction) ||
+                this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
+        annotationsActive = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool !== InkTool.None ||
+            (this.props.layerProvider?.(this.props.Document) === false && this.props.active()) ||
             (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
     }
     return Component;

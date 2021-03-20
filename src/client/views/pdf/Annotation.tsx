@@ -89,7 +89,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     }
 
     render() {
-        return (<div className="pdfAnnotation" onPointerEnter={() => this.props.showInfo(this.props.anno)} onPointerLeave={() => this.props.showInfo(undefined)} onPointerDown={this.onPointerDown} ref={this._mainCont}
+        return (<div className="htmlAnnotation" onPointerEnter={() => this.props.showInfo(this.props.anno)} onPointerLeave={() => this.props.showInfo(undefined)} onPointerDown={this.onPointerDown} ref={this._mainCont}
             style={{
                 left: NumCast(this.props.document.x),
                 top: NumCast(this.props.document.y),

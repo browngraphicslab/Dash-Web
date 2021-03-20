@@ -229,7 +229,10 @@ export class DocumentManager {
 }
 Scripting.addGlobal(function DocFocusOrOpen(doc: any) {
     const dv = DocumentManager.Instance.getDocumentView(doc);
-    if (dv && dv?.props.Document === doc) dv.props.focus(doc, { willZoom: true });
+    if (dv && dv.props.Document === doc) {
+        dv.props.focus(doc, { willZoom: true });
+        Doc.linkFollowHighlight(dv?.props.Document, false);
+    }
     else {
         const context = doc.context !== Doc.UserDoc().myFilesystem && Cast(doc.context, Doc, null);
         const showDoc = context || doc;

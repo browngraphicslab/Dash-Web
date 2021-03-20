@@ -37,11 +37,7 @@ export class FunctionPlotBox extends ViewBoxBaseComponent<FieldViewProps, Equati
             () => this.createGraph());
     }
     getAnchor = () => {
-        const anchor = Docs.Create.TextanchorDocument({
-            useLinkSmallAnchor: true,
-            hideLinkButton: true,
-            annotationOn: this.rootDoc
-        });
+        const anchor = Docs.Create.TextanchorDocument({ annotationOn: this.rootDoc });
         anchor.xRange = new List<number>(Array.from(this._plot.options.xAxis.domain));
         anchor.yRange = new List<number>(Array.from(this._plot.options.yAxis.domain));
         return anchor;

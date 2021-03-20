@@ -39,8 +39,6 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     getAnchor = () => {
         const anchor = Docs.Create.TextanchorDocument({
             title: ComputedField.MakeFunction(`"${this.pivotField}"])`) as any,
-            useLinkSmallAnchor: true,
-            hideLinkButton: true,
             annotationOn: this.rootDoc
         });
 
@@ -232,7 +230,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         }
 
         return <div className={"collectionTimeView" + (doTimeline ? "" : "-pivot")} onContextMenu={this.specificMenu}
-            style={{ width: this.props.PanelWidth(), height: `calc(100%  - ${this.layoutDoc._chromeStatus === "enabled" ? 51 : 0}px)` }}>
+            style={{ width: this.props.PanelWidth(), height: "100%" }}>
             {this.pivotKeyUI}
             {this.contents}
             {!this.props.isSelected() || !doTimeline ? (null) : <>

@@ -36,7 +36,7 @@ type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentS
 const StackingDocument = makeInterface(collectionSchema, documentSchema);
 
 export type collectionStackingViewProps = {
-    chromeStatus?: string;
+    chromeHidden?: boolean;
     viewType?: CollectionViewType;
     NativeWidth?: () => number;
     NativeHeight?: () => number;
@@ -53,7 +53,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @observable _heightMap = new Map<string, number>();
     @observable _cursor: CursorProperty = "grab";
     @observable _scroll = 0; // used to force the document decoration to update when scrolling
-    @computed get chromeStatus() { return this.props.chromeStatus || StrCast(this.layoutDoc._chromeStatus); }
+    @computed get chromeHidden() { return this.props.chromeHidden || BoolCast(this.layoutDoc.chromeHidden); }
     @computed get columnHeaders() { return Cast(this.layoutDoc._columnHeaders, listSpec(SchemaHeaderField), null); }
     @computed get pivotField() { return StrCast(this.layoutDoc._pivotField); }
     @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout); }
@@ -63,7 +63,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @computed get gridGap() { return NumCast(this.layoutDoc._gridGap, 10); }
     @computed get isStackingView() { return (this.props.viewType ?? this.layoutDoc._viewType) === CollectionViewType.Stacking; }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
-    @computed get showAddAGroup() { return (this.pivotField && (this.chromeStatus !== 'view-mode' && this.chromeStatus)); }
+    @computed get showAddAGroup() { return this.pivotField && !this.chromeHidden; }
     @computed get columnWidth() {
         return Math.min(this.props.PanelWidth() - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : this.layoutDoc._columnWidth === -1 ? this.props.PanelWidth() - 2 * this.xMargin : NumCast(this.layoutDoc._columnWidth, 250));
@@ -223,11 +223,12 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             styleProvider={this.styleProvider}
             layerProvider={this.props.layerProvider}
             docViewPath={this.props.docViewPath}
+            fitWidth={this.props.childFitWidth}
             LayoutTemplate={this.props.childLayoutTemplate}
             LayoutTemplateString={this.props.childLayoutString}
             freezeDimensions={this.props.childFreezeDimensions}
-            NativeWidth={this.props.childIgnoreNativeSize ? returnZero : doc._fitWidth && !Doc.NativeWidth(doc) ? width : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
-            NativeHeight={this.props.childIgnoreNativeSize ? returnZero : doc._fitWidth && !Doc.NativeHeight(doc) ? height : undefined}
+            NativeWidth={this.props.childIgnoreNativeSize ? returnZero : this.props.childFitWidth?.() || doc._fitWidth && !Doc.NativeWidth(doc) ? width : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
+            NativeHeight={this.props.childIgnoreNativeSize ? returnZero : this.props.childFitWidth?.() || doc._fitWidth && !Doc.NativeHeight(doc) ? height : undefined}
             dontCenter={this.props.childIgnoreNativeSize ? "xy" : undefined}
             dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.childDontRegisterViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}
@@ -266,7 +267,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         if (!d) return 0;
         const childLayoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
         const maxWidth = this.columnWidth / this.numGroupColumns;
-        if (!this.layoutDoc._columnsFill && !childLayoutDoc._fitWidth) {
+        if (!this.layoutDoc._columnsFill && !(childLayoutDoc._fitWidth || this.props.childFitWidth?.())) {
             return Math.min(d[WidthSym](), maxWidth);
         }
         return maxWidth;
@@ -276,8 +277,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         const childLayoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
         const childDataDoc = (!d.isTemplateDoc && !d.isTemplateForField && !d.PARAMS) ? undefined : this.props.DataDoc;
         const maxHeight = (lim => lim === 0 ? this.props.PanelWidth() : lim === -1 ? 10000 : lim)(NumCast(this.layoutDoc.childLimitHeight, -1));
-        const nw = Doc.NativeWidth(childLayoutDoc, childDataDoc) || (!childLayoutDoc._fitWidth ? d[WidthSym]() : 0);
-        const nh = Doc.NativeHeight(childLayoutDoc, childDataDoc) || (!childLayoutDoc._fitWidth ? d[HeightSym]() : 0);
+        const nw = Doc.NativeWidth(childLayoutDoc, childDataDoc) || (!(childLayoutDoc._fitWidth || this.props.childFitWidth?.()) ? d[WidthSym]() : 0);
+        const nh = Doc.NativeHeight(childLayoutDoc, childDataDoc) || (!(childLayoutDoc._fitWidth || this.props.childFitWidth?.()) ? d[HeightSym]() : 0);
         if (nw && nh) {
             const colWid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
             const docWid = this.layoutDoc._columnsFill ? colWid : Math.min(this.getDocWidth(d), colWid);
@@ -286,7 +287,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 docWid * nh / nw);
         }
         const childHeight = NumCast(childLayoutDoc._height);
-        const panelHeight = this.props.PanelHeight() - 2 * this.yMargin;
+        const panelHeight = (childLayoutDoc._fitWidth || this.props.childFitWidth?.()) ? Number.MAX_SAFE_INTEGER : this.props.PanelHeight() - 2 * this.yMargin;
         return Math.min(childHeight, maxHeight, panelHeight);
     }
 
@@ -412,7 +413,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 }
             }}
             addDocument={this.addDocument}
-            chromeStatus={this.chromeStatus}
+            chromeHidden={this.chromeHidden}
             columnHeaders={this.columnHeaders}
             Document={this.props.Document}
             DataDoc={this.props.DataDoc}
@@ -445,7 +446,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         return <CollectionMasonryViewFieldRow
             showHandle={first}
             Document={this.props.Document}
-            chromeStatus={this.chromeStatus}
+            chromeHidden={this.chromeHidden}
             pivotField={this.pivotField}
             unobserveHeight={(ref) => this.refList.splice(this.refList.indexOf(ref), 1)}
             observeHeight={(ref) => {
@@ -534,10 +535,6 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     ref={this.createRef}
                     style={{
                         overflowY: this.props.active() ? "auto" : "hidden",
-                        transform: `scale(${this.scaling}`,
-                        height: `${1 / this.scaling * 100}%`,
-                        width: `${1 / this.scaling * 100}%`,
-                        transformOrigin: "top left",
                         background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.BackgroundColor),
                         pointerEvents: this.backgroundEvents ? "all" : undefined
                     }}
@@ -551,11 +548,11 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                             style={{ width: !this.isStackingView ? "100%" : this.columnWidth / this.numGroupColumns - 10, marginTop: 10 }}>
                             <EditableView {...editableViewProps} />
                         </div>}
-                    {/* {!this.chromeStatus || !this.props.isSelected() ? (null) :
+                    {/* {this.chromeHidden || !this.props.isSelected() ? (null) :
                         <Switch
                             onChange={this.onToggle}
                             onClick={this.onToggle}
-                            defaultChecked={this.chromeStatus !== 'view-mode'}
+                            defaultChecked={true}
                             checkedChildren="edit"
                             unCheckedChildren="view"
                         />} */}

@@ -433,7 +433,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             if (node.className === "mainView-mainContent") inMainMenuPanel = true;
         }
         const leftBounds = inMainMenuPanel ? 0 : this.props.boundsLeft;
-        const topBounds = this.props.boundsTop;
+        const topBounds = LightboxView.LightboxDoc ? 0 : this.props.boundsTop;
         bounds.x = Math.max(leftBounds, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(topBounds, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
         const borderRadiusDraggerWidth = 15;

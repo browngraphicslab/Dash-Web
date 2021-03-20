@@ -1,6 +1,5 @@
-import { action, observable, runInAction, ObservableMap } from "mobx";
+import { action, observable, ObservableMap, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Dictionary } from "typescript-collections";
 import { AclAddonly, AclAdmin, AclEdit, DataSym, Doc, Opt } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { List } from "../../fields/List";
@@ -8,7 +7,6 @@ import { NumCast } from "../../fields/Types";
 import { GetEffectiveAcl } from "../../fields/util";
 import { Utils } from "../../Utils";
 import { Docs } from "../documents/Documents";
-import { DocumentType } from "../documents/DocumentTypes";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { DragManager } from "../util/DragManager";
 import { undoBatch } from "../util/UndoManager";
@@ -22,8 +20,10 @@ const _global = (window /* browser */ || global /* node */) as any;
 export interface MarqueeAnnotatorProps {
     rootDoc: Doc;
     down: number[];
+    iframe?: () => undefined | HTMLIFrameElement;
     scrollTop: number;
     scaling?: () => number;
+    iframeScaling?: () => number;
     containerOffset?: () => number[];
     mainCont: HTMLDivElement;
     docView: DocumentView;
@@ -60,8 +60,10 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         this._startX = this._left = (this.props.down[0] - boundingRect.left) * (this.props.mainCont.offsetWidth / boundingRect.width);
         this._startY = this._top = (this.props.down[1] - boundingRect.top) * (this.props.mainCont.offsetHeight / boundingRect.height) + this.props.mainCont.scrollTop;
         this._height = this._width = 0;
-        document.addEventListener("pointermove", this.onSelectMove, true);
-        document.addEventListener("pointerup", this.onSelectEnd, true);
+
+        const doc = (this.props.iframe?.()?.contentDocument ?? document);
+        doc.addEventListener("pointermove", this.onSelectMove);
+        doc.addEventListener("pointerup", this.onSelectEnd);
 
         AnchorMenu.Instance.OnClick = (e: PointerEvent) => this.props.anchorMenuClick?.(this.highlight("rgba(173, 216, 230, 0.75)", true));
         AnchorMenu.Instance.Highlight = this.highlight;
@@ -92,8 +94,9 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         });
     }
     componentWillUnmount() {
-        document.removeEventListener("pointermove", this.onSelectMove, true);
-        document.removeEventListener("pointerup", this.onSelectEnd, true);
+        const doc = (this.props.iframe?.()?.contentDocument ?? document);
+        doc.removeEventListener("pointermove", this.onSelectMove);
+        doc.removeEventListener("pointerup", this.onSelectEnd);
     }
 
     @undoBatch
@@ -114,7 +117,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
             return marqueeAnno;
         }
 
-        const textRegionAnno = Docs.Create.FreeformDocument([], { type: DocumentType.PDFANNO, annotationOn: this.props.rootDoc, title: "Selection on " + this.props.rootDoc.title, _width: 1, _height: 1 });
+        const textRegionAnno = Docs.Create.HTMLAnchorDocument([], { annotationOn: this.props.rootDoc, title: "Selection on " + this.props.rootDoc.title, _width: 1, _height: 1 });
         let maxX = -Number.MAX_VALUE;
         let minY = Number.MAX_VALUE;
         const annoDocs: Doc[] = [];
@@ -169,9 +172,12 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
     @action
     onSelectMove = (e: PointerEvent) => {
         // transform positions and find the width and height to set the marquee to
-        const boundingRect = this.props.mainCont.getBoundingClientRect();
-        this._width = ((e.clientX - boundingRect.left) * (this.props.mainCont.offsetWidth / boundingRect.width)) - this._startX;
-        this._height = ((e.clientY - boundingRect.top) * (this.props.mainCont.offsetHeight / boundingRect.height)) - this._startY + this.props.mainCont.scrollTop;
+        const boundingRect = (this.props.iframe?.()?.contentDocument?.body || this.props.mainCont).getBoundingClientRect();
+        const mainRect = this.props.mainCont.getBoundingClientRect();
+        const cliX = e.clientX * (this.props.iframeScaling?.() || 1) - boundingRect.left;
+        const cliY = e.clientY * (this.props.iframeScaling?.() || 1) - boundingRect.top;
+        this._width = (cliX * (this.props.mainCont.offsetWidth / mainRect.width)) - this._startX;
+        this._height = (cliY * (this.props.mainCont.offsetHeight / mainRect.height)) - this._startY + this.props.mainCont.scrollTop;
         this._left = Math.min(this._startX, this._startX + this._width);
         this._top = Math.min(this._startY, this._startY + this._height);
         this._width = Math.abs(this._width);
@@ -180,6 +186,9 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
     }
 
     onSelectEnd = (e: PointerEvent) => {
+        const mainRect = this.props.mainCont.getBoundingClientRect();
+        const cliX = e.clientX * (this.props.iframeScaling?.() || 1) + (this.props.iframe ? mainRect.left : 0);
+        const cliY = e.clientY * (this.props.iframeScaling?.() || 1) + (this.props.iframe ? mainRect.top : 0);
         if (this._width > 10 || this._height > 10) {  // configure and show the annotation/link menu if a the drag region is big enough
             const marquees = this.props.mainCont.getElementsByClassName("marqueeAnnotator-dragBox");
             if (marquees?.length) { // copy the temporary marquee to allow for multiple selections (not currently available though).
@@ -199,7 +208,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
                 MarqueeAnnotator.previewNewAnnotation(this.props.savedAnnotations, this.props.annotationLayer, copy, this.props.getPageFromScroll?.(this._top) || 0);
             }
 
-            AnchorMenu.Instance.jumpTo(e.clientX, e.clientY);
+            AnchorMenu.Instance.jumpTo(cliX, cliY);
 
             if (AnchorMenu.Instance.Highlighting) {// when highlighter has been toggled when menu is pinned, we auto-highlight immediately on mouse up
                 this.highlight("rgba(245, 230, 95, 0.75)", false);  // yellowish highlight color for highlighted text (should match AnchorMenu's highlight color)
@@ -207,7 +216,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
             this.props.finishMarquee();
         } else {
             runInAction(() => this._width = this._height = 0);
-            this.props.finishMarquee(e.clientX, e.clientY);
+            this.props.finishMarquee(cliX, cliY);
         }
     }
 
