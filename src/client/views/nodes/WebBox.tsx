@@ -8,7 +8,7 @@ import { Id } from "../../../fields/FieldSymbols";
 import { HtmlField } from "../../../fields/HtmlField";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
-import { makeInterface } from "../../../fields/Schema";
+import { makeInterface, listSpec } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
@@ -282,8 +282,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     @action
     forward = () => {
-        const future = StrListCast(this.dataDoc[this.fieldKey + "-future"]);
-        const history = StrListCast(this.dataDoc[this.fieldKey + "-history"]);
+        const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), []);
+        const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), []);
         if (future.length) {
             history.push(this._url);
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = future.pop()!));
@@ -295,8 +295,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     @action
     back = () => {
-        const future = StrListCast(this.dataDoc[this.fieldKey + "-future"]);
-        const history = StrListCast(this.dataDoc[this.fieldKey + "-history"]);
+        const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"));
+        const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), []);
         if (history.length) {
             if (future === undefined) this.dataDoc[this.fieldKey + "-future"] = new List<string>([this._url]);
             else future.push(this._url);
@@ -316,8 +316,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (!newUrl) return;
         if (!newUrl.startsWith("http")) newUrl = "http://" + newUrl;
         try {
-            const future = StrListCast(this.dataDoc[this.fieldKey + "-future"]);
-            const history = StrListCast(this.dataDoc[this.fieldKey + "-history"]);
+            const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"));
+            const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"));
             const url = this.webField?.toString();
             if (url) {
                 if (history === undefined) {
