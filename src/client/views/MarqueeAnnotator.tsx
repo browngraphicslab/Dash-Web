@@ -186,7 +186,6 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
     }
 
     onSelectEnd = (e: PointerEvent) => {
-        console.log("Scaling = " + this.props.iframeScaling?.() + " " + this.props.scaling?.())
         const mainRect = this.props.mainCont.getBoundingClientRect();
         const cliX = e.clientX * (this.props.iframeScaling?.() || 1) + (this.props.iframe ? mainRect.left : 0);
         const cliY = e.clientY * (this.props.iframeScaling?.() || 1) + (this.props.iframe ? mainRect.top : 0);

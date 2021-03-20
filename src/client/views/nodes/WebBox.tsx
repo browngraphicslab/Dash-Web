@@ -72,13 +72,15 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (this.layoutDoc[this.fieldKey + "-contentWidth"] === undefined) {
             this.layoutDoc[this.fieldKey + "-contentWidth"] = Doc.NativeWidth(this.layoutDoc);
         }
-        this._annotationKey = "annotations-" + this.urlHash(this._url);
     }
 
     async componentDidMount() {
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
 
-        runInAction(() => this._url = this.webField?.toString() || "");
+        runInAction(() => {
+            this._url = this.webField?.toString() || "";
+            this._annotationKey = "annotations-" + this.urlHash(this._url);
+        });
 
         this._disposers.selection = reaction(() => this.props.isSelected(),
             selected => !selected && setTimeout(() => {
@@ -307,7 +309,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         return false;
     }
 
-    urlHash(s: string) {
+    urlHash = (s: string) => {
+        console.log("Hash: " + s + "=" + this._url + " => " + s.split('').reduce((a: any, b: any) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0))
         return s.split('').reduce((a: any, b: any) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
     }
 

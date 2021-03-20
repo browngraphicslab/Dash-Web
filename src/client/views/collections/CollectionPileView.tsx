@@ -20,7 +20,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
         if (this.layoutEngine() !== "pass" && this.layoutEngine() !== "starburst") {
             this.Document._pileLayoutEngine = "pass";
         }
-        this._originalChrome = this.layoutDoc._chromeHidden
+        this._originalChrome = this.layoutDoc._chromeHidden;
         this.layoutDoc._chromeHidden = true;
     }
     componentWillUnmount() {

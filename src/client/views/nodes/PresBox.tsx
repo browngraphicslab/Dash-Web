@@ -13,7 +13,7 @@ import { PrefetchProxy } from "../../../fields/Proxy";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { returnFalse, returnOne, returnTrue } from '../../../Utils';
+import { returnFalse, returnOne, returnTrue, emptyFunction } from '../../../Utils';
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -423,7 +423,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // this still needs some fixing
             setTimeout(resetSelection, 500);
             if (doc !== targetDoc) {
-                setTimeout(() => finished?.(), 100); /// give it some time to create the targetDoc if we're opening up its context
+                setTimeout(finished ?? emptyFunction, 100); /// give it some time to create the targetDoc if we're opening up its context
             } else {
                 finished?.();
             }

@@ -16,7 +16,7 @@ import "./SidebarAnnos.scss";
 import { StyleProp } from './StyleProvider';
 import React = require("react");
 
-interface extraProps {
+interface ExtraProps {
     fieldKey: string;
     layoutDoc: Doc;
     rootDoc: Doc;
@@ -29,7 +29,7 @@ interface extraProps {
     moveDocument: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean, annotationKey?: string) => boolean;
 }
 @observer
-export class SidebarAnnos extends React.Component<FieldViewProps & extraProps> {
+export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
     _stackRef = React.createRef<CollectionStackingView>();
     @computed get allHashtags() {
         const keys = new Set<string>();
@@ -79,7 +79,8 @@ export class SidebarAnnos extends React.Component<FieldViewProps & extraProps> {
                 onClick={e => Doc.setDocFilter(this.props.rootDoc, tag, tag, "check", true, this.sidebarKey(), e.shiftKey)}>
                 {tag}
             </div>;
-        }
+        };
+        console.log(this.props.dataDoc.title, this.sidebarKey(), this.props.dataDoc[this.sidebarKey()])
         return !this.props.layoutDoc._showSidebar ? (null) :
             <div style={{
                 position: "absolute", pointerEvents: this.props.active() ? "all" : undefined, top: 0, right: 0,

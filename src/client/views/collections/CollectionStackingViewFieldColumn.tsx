@@ -166,7 +166,8 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             <div className="colorOptions">
                 {colors.map(col => {
                     const palette = PastelSchemaPalette.get(col);
-                    return <div className={"colorPicker" + (selected === palette ? " active" : "")} style={{ backgroundColor: palette }} onClick={() => this.changeColumnColor(palette!)} />
+                    return <div className={"colorPicker" + (selected === palette ? " active" : "")}
+                        style={{ backgroundColor: palette }} onClick={() => this.changeColumnColor(palette!)} />;
                 })}
             </div>
         </div>;

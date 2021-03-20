@@ -100,7 +100,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
             redo: () => receiver[prop] = value,
             undo: () => {
                 // console.log("Undo: " + prop + " = " + curValue); // bcz: uncomment to log undo
-                receiver[prop] = curValue
+                receiver[prop] = curValue;
             }
         });
         return true;

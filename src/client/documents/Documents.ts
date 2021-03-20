@@ -661,7 +661,7 @@ export namespace Docs {
             // so that the list of annotations is already initialised, prevents issues in addonly.
             // without this, if a doc has no annotations but the user has AddOnly privileges, they won't be able to add an annotation because they would have needed to create the field's list which they don't have permissions to do.
             dataProps[fieldKey + "-annotations"] = new List<Doc>();
-            const dataDoc = Doc.assign(Doc.MakeDelegate(proto, protoId), dataProps as any, undefined, true);
+            const dataDoc = Doc.assign(Doc.MakeDelegate(proto, protoId), dataProps, undefined, true);
 
             viewProps.author = Doc.CurrentUserEmail;
             viewProps["acl-Override"] = "None";
