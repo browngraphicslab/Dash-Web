@@ -145,12 +145,19 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         }
     }
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
-    toggleSidebar = () => {
-        const nativeWidth = NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
-        const nativeHeight = NumCast(this.layoutDoc[this.fieldKey + "-nativeHeight"]);
-        this.layoutDoc.nativeWidth = nativeWidth + (this.layoutDoc.nativeWidth === nativeWidth ? 250 : 0);
-        this.layoutDoc._width = NumCast(this.layoutDoc._nativeWidth) * (nativeWidth / nativeHeight);
+
+    sidebarAddDocument = (doc: Doc | Doc[], sidebarKey?: string) => {
+        if (!this.layoutDoc._showSidebar) this.toggleSidebar();
+        return this.addDocument(doc, sidebarKey);
     }
+    toggleSidebar = action(() => {
+        const nativeWidth = NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
+        const ratio = ((!this.layoutDoc.nativeWidth || this.layoutDoc.nativeWidth === nativeWidth ? 250 : 0) + nativeWidth) / nativeWidth;
+        const curNativeWidth = NumCast(this.layoutDoc.nativeWidth, nativeWidth);
+        this.layoutDoc.nativeWidth = nativeWidth * ratio;
+        this.layoutDoc._width = this.layoutDoc[WidthSym]() * nativeWidth * ratio / curNativeWidth;
+        this.layoutDoc._showSidebar = nativeWidth !== this.layoutDoc._nativeWidth;
+    });
     settingsPanel() {
         const pageBtns = <>
             <button className="pdfBox-backBtn" key="back" title="Page Back"
@@ -195,7 +202,8 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                         onClick={action(() => this._pageControls = !this._pageControls)} />
                     {this._pageControls ? pageBtns : (null)}
                 </div>
-                <button className="pdfBox-sidebarBtn" title="Toggle Sidebar" style={{ right: this.sidebarWidth() + 7 }}
+                <button className="pdfBox-sidebarBtn" title="Toggle Sidebar"
+                    style={{ right: this.sidebarWidth() + 7, display: !this.active() ? "none" : undefined }}
                     onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} >
                     <FontAwesomeIcon icon={"chevron-left"} size="sm" />
                 </button>
@@ -248,7 +256,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                 rootDoc={this.rootDoc}
                 layoutDoc={this.layoutDoc}
                 dataDoc={this.dataDoc}
-                addDocument={this.addDocument}
+                sidebarAddDocument={this.sidebarAddDocument}
                 moveDocument={this.moveDocument}
                 removeDocument={this.removeDocument}
                 active={this.active}

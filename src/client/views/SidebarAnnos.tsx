@@ -24,7 +24,7 @@ interface ExtraProps {
     annotationsActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     ScreenToLocalTransform: () => Transform;
-    addDocument: (doc: (Doc | Doc[]), suffix: string) => boolean;
+    sidebarAddDocument: (doc: (Doc | Doc[]), suffix: string) => boolean;
     removeDocument: (doc: (Doc | Doc[]), suffix: string) => boolean;
     moveDocument: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean, annotationKey?: string) => boolean;
 }
@@ -39,7 +39,6 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
     get filtersKey() { return "_" + this.sidebarKey() + "-docFilters"; }
 
     anchorMenuClick = (anchor: Doc) => {
-        this.props.layoutDoc._showSidebar = true;
         const startup = StrListCast(this.props.rootDoc.docFilters).map(filter => filter.split(":")[0]).join(" ");
         const target = Docs.Create.TextDocument(startup, {
             title: "anno",
@@ -67,7 +66,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
     screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(Doc.NativeWidth(this.props.dataDoc), 0).scale(this.props.scaling?.() || 1);
     panelWidth = () => !this.props.layoutDoc._showSidebar ? 0 : (NumCast(this.props.layoutDoc.nativeWidth) - Doc.NativeWidth(this.props.dataDoc)) * this.props.PanelWidth() / NumCast(this.props.layoutDoc.nativeWidth);
     panelHeight = () => this.props.PanelHeight() - this.filtersHeight() - 20;
-    addDocument = (doc: Doc | Doc[]) => this.props.addDocument(doc, this.sidebarKey());
+    addDocument = (doc: Doc | Doc[]) => this.props.sidebarAddDocument(doc, this.sidebarKey());
     moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean) => this.props.moveDocument(doc, targetCollection, addDocument, this.sidebarKey());
     removeDocument = (doc: Doc | Doc[]) => this.props.removeDocument(doc, this.sidebarKey());
     docFilters = () => [...StrListCast(this.props.layoutDoc._docFilters), ...StrListCast(this.props.layoutDoc[this.filtersKey])];
@@ -80,7 +79,6 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
                 {tag}
             </div>;
         };
-        console.log(this.props.dataDoc.title, this.sidebarKey(), this.props.dataDoc[this.sidebarKey()])
         return !this.props.layoutDoc._showSidebar ? (null) :
             <div style={{
                 position: "absolute", pointerEvents: this.props.active() ? "all" : undefined, top: 0, right: 0,

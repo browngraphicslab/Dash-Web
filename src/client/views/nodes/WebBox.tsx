@@ -310,7 +310,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     urlHash = (s: string) => {
-        console.log("Hash: " + s + "=" + this._url + " => " + s.split('').reduce((a: any, b: any) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0))
         return s.split('').reduce((a: any, b: any) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
     }
 
@@ -426,12 +425,18 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         return view;
     }
 
-    toggleSidebar = () => {
-        const nativeWidth = NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
-        const nativeHeight = NumCast(this.layoutDoc[this.fieldKey + "-nativeHeight"]);
-        this.layoutDoc.nativeWidth = nativeWidth + (this.layoutDoc.nativeWidth === nativeWidth ? 250 : 0);
-        this.layoutDoc._width = NumCast(this.layoutDoc._nativeWidth) * (nativeWidth / nativeHeight);
+    sidebarAddDocument = (doc: Doc | Doc[], sidebarKey?: string) => {
+        if (!this.layoutDoc._showSidebar) this.toggleSidebar();
+        return this.addDocument(doc, sidebarKey);
     }
+    toggleSidebar = action(() => {
+        const nativeWidth = NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
+        const ratio = ((!this.layoutDoc.nativeWidth || this.layoutDoc.nativeWidth === nativeWidth ? 250 : 0) + nativeWidth) / nativeWidth;
+        const curNativeWidth = NumCast(this.layoutDoc.nativeWidth, nativeWidth);
+        this.layoutDoc.nativeWidth = nativeWidth * ratio;
+        this.layoutDoc._width = this.layoutDoc[WidthSym]() * nativeWidth * ratio / curNativeWidth;
+        this.layoutDoc._showSidebar = nativeWidth !== this.layoutDoc._nativeWidth;
+    });
     sidebarWidth = () => !this.layoutDoc._showSidebar ? 0 : (NumCast(this.layoutDoc.nativeWidth) - Doc.NativeWidth(this.dataDoc)) * this.props.PanelWidth() / NumCast(this.layoutDoc.nativeWidth);
 
     @computed get content() {
@@ -494,7 +499,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                                 whenActiveChanged={this.whenActiveChanged}
                                 removeDocument={this.removeDocument}
                                 moveDocument={this.moveDocument}
-                                addDocument={this.addDocument}
+                                addDocument={this.sidebarAddDocument}
                                 CollectionView={undefined}
                                 ScreenToLocalTransform={this.scrollXf}
                                 renderDepth={this.props.renderDepth + 1}
@@ -518,7 +523,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             annotationLayer={this._annotationLayer.current}
                             mainCont={this._mainCont.current} />}
                 </div >
-                <button className="webBox-overlayButton-sidebar" key="sidebar" title="Toggle Sidebar" style={{ right: this.sidebarWidth() + 7 }}
+                <button className="webBox-overlayButton-sidebar" key="sidebar" title="Toggle Sidebar"
+                    style={{ right: this.sidebarWidth() + 7, display: !this.active() ? "none" : undefined }}
                     onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} >
                     <FontAwesomeIcon style={{ color: "white" }} icon={"chevron-left"} size="sm" />
                 </button>
@@ -529,7 +535,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     rootDoc={this.rootDoc}
                     layoutDoc={this.layoutDoc}
                     dataDoc={this.dataDoc}
-                    addDocument={this.addDocument}
+                    sidebarAddDocument={this.sidebarAddDocument}
                     moveDocument={this.moveDocument}
                     removeDocument={this.removeDocument}
                     active={this.active}
