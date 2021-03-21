@@ -153,22 +153,21 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
         if (this._screenCapture) {
             const stream = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
             this._videoRef!.srcObject = stream;
-            this._recorder = new MediaRecorder(stream, {
-                audioBitsPerSecond: 128000,
-                videoBitsPerSecond: 2500000,
-                mimeType: 'video/webm'
-            });
+            this._recorder = new MediaRecorder(stream);
             this._chunks = [];
             this._recorder.ondataavailable = (e: any) => this._chunks.push(e.data);
             this._recorder.onstop = async (e: any) => {
-                const file = new File([this._chunks], `${this.rootDoc[Id]}.mkv`, { type: this._chunks[0].type, lastModified: Date.now() });
-                const [{ result }] = await Networking.UploadFilesToServer(file);
+                const file = new File(this._chunks, `${this.rootDoc[Id]}.mkv`, { type: this._chunks[0].type, lastModified: Date.now() });
+                const completeBlob = new Blob(this._chunks, { type: this._chunks[0].type });
+                (completeBlob as any).lastModifiedDate = new Date();
+                (completeBlob as any).name = `${this.rootDoc[Id]}.mkv`;
+                const [{ result }] = await Networking.UploadFilesToServer(file);//completeBlob as File);
                 if (!(result instanceof Error)) {
                     this.dataDoc.type = DocumentType.VID;
                     this.layoutDoc.layout = VideoBox.LayoutString(this.fieldKey);
-                    this.props.Document[this.props.fieldKey] = new VideoField(Utils.prepend(result.accessPaths.agnostic.client));
+                    this.dataDoc[this.props.fieldKey] = new VideoField(Utils.prepend(result.accessPaths.agnostic.client));
                     console.log(this.props.Document[this.props.fieldKey]);
-                } else alert("video conversion failed")
+                } else alert("video conversion failed");
             };
             this._recorder.start();
         } else {

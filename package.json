@@ -164,6 +164,7 @@
         "find-in-files": "^0.5.0",
         "fit-curve": "^0.1.7",
         "flexlayout-react": "^0.3.11",
+        "fluent-ffmpeg": "^2.1.2",
         "formidable": "^1.2.1",
         "function-plot": "^1.22.7",
         "golden-layout": "^1.5.9",
