@@ -59,6 +59,7 @@ import { DocumentType } from "./DocumentTypes";
 import { EquationBox } from "../views/nodes/EquationBox";
 import { FunctionPlotBox } from "../views/nodes/FunctionPlotBox";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
+import { FieldViewProps } from "../views/nodes/FieldView";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -1043,12 +1044,12 @@ export namespace DocUtils {
         options?.afterFocus?.(false);
     }
 
-    export let ActiveRecordings: AudioBox[] = [];
+    export let ActiveRecordings: { props: FieldViewProps, getAnchor: () => Doc }[] = [];
 
     export function MakeLinkToActiveAudio(doc: Doc) {
         let lastLink: Doc | undefined;
         DocUtils.ActiveRecordings.map(audio => {
-            lastLink = DocUtils.MakeLink({ doc: doc }, { doc: audio.getAnchor() || audio.props.Document }, "audio link", "audio timeline");
+            lastLink = DocUtils.MakeLink({ doc: doc }, { doc: audio.getAnchor() || audio.props.Document }, "recording link", "recording timeline");
         });
         return lastLink;
     }

@@ -10,11 +10,11 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast } from "../../../fields/Types";
 import { VideoField } from "../../../fields/URLField";
 import { emptyFunction, returnFalse, returnOne, returnZero, Utils, OmitKeys } from "../../../Utils";
-import { Docs } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { ViewBoxBaseComponent } from "../DocComponent";
+import { ViewBoxBaseComponent, ViewBoxAnnotatableComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -22,6 +22,8 @@ import { Networking } from "../../Network";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { VideoBox } from "./VideoBox";
 import { Id } from "../../../fields/FieldSymbols";
+import { CollectionStackedTimeline } from "../collections/CollectionStackedTimeline";
+import { DateField } from "../../../fields/DateField";
 const path = require('path');
 declare class MediaRecorder {
     constructor(e: any, options?: any);  // whatever MediaRecorder has
@@ -32,13 +34,21 @@ type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
 const ScreenshotDocument = makeInterface(documentSchema);
 
 @observer
-export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
+export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
     private _reactionDisposer?: IReactionDisposer;
     private _videoRef: HTMLVideoElement | null = null;
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ScreenshotBox, fieldKey); }
+    @computed get recordingStart() { return Cast(this.dataDoc[this.props.fieldKey + "-recordingStart"], DateField)?.date.getTime(); }
 
     public get player(): HTMLVideoElement | null {
         return this._videoRef;
+    }
+
+    getAnchor = () => {
+        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "_timecodeToShow" /* audioStart */, "_timecodeToHide" /* audioEnd */,
+            Cast(this.layoutDoc._currentTimecode, "number", null) ||
+            (this._recorder ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined))
+            || this.rootDoc;
     }
 
     videoLoad = () => {
@@ -96,7 +106,9 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
     }
 
     componentWillUnmount() {
-        this._reactionDisposer && this._reactionDisposer();
+        this._reactionDisposer?.();
+        const ind = DocUtils.ActiveRecordings.indexOf(this);
+        ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
     }
 
     @action
@@ -154,6 +166,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
             const stream = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
             this._videoRef!.srcObject = stream;
             this._recorder = new MediaRecorder(stream);
+            this.dataDoc[this.props.fieldKey + "-recordingStart"] = new DateField(new Date());
             this._chunks = [];
             this._recorder.ondataavailable = (e: any) => this._chunks.push(e.data);
             this._recorder.onstop = async (e: any) => {
@@ -169,8 +182,11 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
                 } else alert("video conversion failed");
             };
             this._recorder.start();
+            DocUtils.ActiveRecordings.push(this);
         } else {
             this._recorder.stop();
+            const ind = DocUtils.ActiveRecordings.indexOf(this);
+            ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
         }
     });
 
