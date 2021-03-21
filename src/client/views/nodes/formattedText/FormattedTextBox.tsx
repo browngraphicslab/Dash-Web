@@ -113,7 +113,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _downEvent: any;
     private _downX = 0;
     private _downY = 0;
-    private _break = false;
+    private _break = true;
     public ProseRef?: HTMLDivElement;
     public get EditorView() { return this._editorView; }
     public get SidebarKey() { return this.fieldKey + "-sidebar"; }
@@ -126,7 +126,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @computed get sidebarHeight() { return NumCast(this.rootDoc[this.SidebarKey + "-height"]); }
     @computed get titleHeight() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin) || 0; }
     @computed get _recording() { return this.dataDoc?.audioState === "recording"; }
-    set _recording(value) { this.dataDoc.audioState = value ? "recording" : undefined; }
+    set _recording(value) {
+        !this.dataDoc.recordingSource && (this.dataDoc.audioState = value ? "recording" : undefined);
+    }
     @computed get config() {
         this._keymap = buildKeymap(schema, this.props);
         this._rules = new RichTextRules(this.props.Document, this);
@@ -649,26 +651,23 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     setDictationContent = (value: string) => {
         if (this._editorView) {
             const state = this._editorView.state;
-            const now = Date.now();
-            let mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(now / 1000) });
-            if (!this._break && state.selection.to !== state.selection.from) {
-                for (let i = state.selection.from; i <= state.selection.to; i++) {
-                    const pos = state.doc.resolve(i);
-                    const um = Array.from(pos.marks()).find(m => m.type === schema.marks.user_mark);
-                    if (um) {
-                        mark = um;
-                        break;
-                    }
+            if (this._recordingStart) {
+                let from = this._editorView.state.selection.from;
+                if (this._break) {
+                    const l = DocUtils.MakeLinkToActiveAudio(this.rootDoc);
+                    if (!l) return;
+                    const anchor = (l.anchor1 as Doc).annotationOn ? l.anchor1 as Doc : (l.anchor2 as Doc).annotationOn ? (l.anchor2 as Doc) : undefined;
+                    if (!anchor) return;
+                    const timeCode = NumCast(anchor._timecodeToShow /* audioStart */);
+                    const audiotag = this._editorView.state.schema.nodes.audiotag.create({ timeCode, audioId: anchor[Id] });
+                    this._editorView.dispatch(this._editorView.state.tr.insert(state.selection.from, audiotag));
+                    from = this._editorView.state.doc.content.size;
+                    this._editorView.dispatch(this._editorView.state.tr.setSelection(TextSelection.create(this._editorView.state.tr.doc, from)));
                 }
+                this._break = false;
+                const tr = this._editorView.state.tr.insertText(value);
+                this._editorView.dispatch(tr.setSelection(TextSelection.create(tr.doc, from, tr.doc.content.size)).scrollIntoView());
             }
-            const from = state.selection.from;
-            this._break = false;
-            if (this.props.Document.recordingStart) {
-                const recordingStart = DateCast(this.props.Document.recordingStart)?.date.getTime();
-                value = "" + (mark.attrs.modified * 1000 - recordingStart) / 1000 + value;
-            }
-            const tr = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
-            this._editorView.dispatch(tr.setSelection(TextSelection.create(tr.doc, from, from + value.length + 1)));
         }
     }
 
@@ -1045,11 +1044,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this._editorView = new EditorView(this.ProseRef, {
                 state: rtfField?.Data ? EditorState.fromJSON(config, JSON.parse(rtfField.Data)) : EditorState.create(config),
                 handleScrollToSelection: (editorView) => {
-                    const docPos = editorView.coordsAtPos(editorView.state.selection.from);
+                    const docPos = editorView.coordsAtPos(editorView.state.selection.to);
                     const viewRect = self._ref.current!.getBoundingClientRect();
                     const scrollRef = self._scrollRef.current;
-                    if ((docPos.top < viewRect.top || docPos.top > viewRect.bottom) && scrollRef) {
-                        const scrollPos = scrollRef.scrollTop + (docPos.top - viewRect.top) * self.props.ScreenToLocalTransform().Scale;
+                    if ((docPos.bottom < viewRect.top || docPos.bottom > viewRect.bottom) && scrollRef) {
+                        const scrollPos = scrollRef.scrollTop + (docPos.bottom - viewRect.top) * self.props.ScreenToLocalTransform().Scale;
                         if (this._focusSpeed !== undefined) {
                             scrollPos && smoothScroll(this._focusSpeed, scrollRef, scrollPos);
                         } else {

@@ -667,7 +667,7 @@ export namespace Docs {
             viewProps["acl-Override"] = "None";
             viewProps["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
             const viewDoc = Doc.assign(Doc.MakeDelegate(dataDoc, delegId), viewProps, true, true);
-            viewProps.type !== DocumentType.LINK && viewDoc.type !== DocumentType.LABEL && DocUtils.MakeLinkToActiveAudio(viewDoc);
+            ![DocumentType.LINK, DocumentType.TEXTANCHOR, DocumentType.LABEL].includes(viewDoc.type as any) && DocUtils.MakeLinkToActiveAudio(viewDoc);
 
             !Doc.IsSystem(dataDoc) && ![DocumentType.HTMLANCHOR, DocumentType.KVP, DocumentType.LINK, DocumentType.LINKANCHOR, DocumentType.TEXTANCHOR].includes(proto.type as any) &&
                 !dataDoc.isFolder && !dataProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
@@ -1046,7 +1046,11 @@ export namespace DocUtils {
     export let ActiveRecordings: AudioBox[] = [];
 
     export function MakeLinkToActiveAudio(doc: Doc) {
-        DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d.getAnchor() || d.props.Document }, "audio link", "audio timeline"));
+        let lastLink: Doc | undefined;
+        DocUtils.ActiveRecordings.map(audio => {
+            lastLink = DocUtils.MakeLink({ doc: doc }, { doc: audio.getAnchor() || audio.props.Document }, "audio link", "audio timeline");
+        });
+        return lastLink;
     }
 
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string, allowParCollectionLink?: boolean, showPopup?: number[]) {
