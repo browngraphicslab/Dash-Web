@@ -32,6 +32,12 @@ export class EquationBox extends ViewBoxBaseComponent<FieldViewProps, EquationDo
             this._ref.current!.mathField.focus();
             this._ref.current!.mathField.select();
         }
+        reaction(() => StrCast(this.dataDoc.text),
+            text => {
+                if (text && text !== this._ref.current!.mathField.latex()) {
+                    this._ref.current!.mathField.latex(text);
+                }
+            });
         reaction(() => this.props.isSelected(),
             selected => {
                 if (this._ref.current) {
@@ -59,7 +65,7 @@ export class EquationBox extends ViewBoxBaseComponent<FieldViewProps, EquationDo
             const graph = Docs.Create.FunctionPlotDocument([this.rootDoc], {
                 x: NumCast(this.layoutDoc.x) + this.layoutDoc[WidthSym](),
                 y: NumCast(this.layoutDoc.y),
-                _width: 400, _height: 300, _backgroundColor: "white"
+                _width: 400, _height: 300, backgroundColor: "white"
             });
             this.props.addDocument?.(graph);
             e.stopPropagation();

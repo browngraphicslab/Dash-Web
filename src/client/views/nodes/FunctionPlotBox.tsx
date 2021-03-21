@@ -33,15 +33,11 @@ export class FunctionPlotBox extends ViewBoxBaseComponent<FieldViewProps, Equati
     }
     componentDidMount() {
         this.props.setContentView?.(this);
-        reaction(() => [DocListCast(this.dataDoc.data).lastElement()?.text, this.dataDoc.xRange, this.dataDoc.yRange],
+        reaction(() => [DocListCast(this.dataDoc.data).lastElement()?.text, this.layoutDoc.width, this.layoutDoc.height, this.dataDoc.xRange, this.dataDoc.yRange],
             () => this.createGraph());
     }
     getAnchor = () => {
-        const anchor = Docs.Create.TextanchorDocument({
-            useLinkSmallAnchor: true,
-            hideLinkButton: true,
-            annotationOn: this.rootDoc
-        });
+        const anchor = Docs.Create.TextanchorDocument({ annotationOn: this.rootDoc });
         anchor.xRange = new List<number>(Array.from(this._plot.options.xAxis.domain));
         anchor.yRange = new List<number>(Array.from(this._plot.options.yAxis.domain));
         return anchor;
@@ -57,7 +53,6 @@ export class FunctionPlotBox extends ViewBoxBaseComponent<FieldViewProps, Equati
         const width = this.props.PanelWidth();
         const height = this.props.PanelHeight();
         const fn = StrCast(DocListCast(this.dataDoc.data).lastElement()?.text, "x^2").replace(/\\frac\{(.*)\}\{(.*)\}/, "($1/$2)");
-        console.log("Graphing:" + fn);
         try {
             this._plot = functionPlot({
                 target: "#" + this._plotEle.id,

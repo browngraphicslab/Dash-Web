@@ -61,10 +61,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         const options: ScriptOptions = { addReturn: true, params: { this: "Doc", _last_: "any" }, editable: false };
         if (dubEq) options.typecheck = false;
         const script = CompileScript(value, options);
-        if (!script.compiled) {
-            return undefined;
-        }
-        return { script, type: dubEq, onDelegate: eq };
+        return !script.compiled ? undefined : { script, type: dubEq, onDelegate: eq };
     }
 
     public static ApplyKVPScript(doc: Doc, key: string, kvpScript: KVPScript, forceOnDelegate?: boolean): boolean {
@@ -100,9 +97,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             e.stopPropagation();
         }
     }
-    onPointerWheel = (e: React.WheelEvent): void => {
-        e.stopPropagation();
-    }
+    onPointerWheel = (e: React.WheelEvent): void => e.stopPropagation();
 
     rowHeight = () => 30;
 
@@ -168,7 +163,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     getTemplate = async () => {
-        const parent = Docs.Create.StackingDocument([], { _width: 800, _height: 800, title: "Template" });
+        const parent = Docs.Create.StackingDocument([], { _width: 800, _height: 800, title: "Template", _chromeHidden: true });
         parent._columnWidth = 100;
         for (const row of this.rows.filter(row => row.isChecked)) {
             await this.createTemplateField(parent, row);

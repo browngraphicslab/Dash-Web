@@ -1,7 +1,6 @@
-import { IReactionDisposer, reaction } from "mobx";
+import { IReactionDisposer, reaction, observable, action } from "mobx";
 import { NodeSelection } from "prosemirror-state";
 import { Doc, HeightSym, WidthSym } from "../../../../fields/Doc";
-import { Id } from "../../../../fields/FieldSymbols";
 import { Cast, StrCast } from "../../../../fields/Types";
 import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
@@ -11,250 +10,182 @@ import { Transform } from "../../../util/Transform";
 import { DocumentView } from "../DocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import React = require("react");
+import * as ReactDOM from 'react-dom';
+import { observer } from "mobx-react";
 
-interface IDashDocView {
-    node: any;
-    view: any;
-    getPos: any;
-    tbox?: FormattedTextBox;
-    self: any;
+export class DashDocView {
+    _fieldWrapper: HTMLSpanElement; // container for label and value
+
+    constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
+        this._fieldWrapper = document.createElement("span");
+        this._fieldWrapper.style.position = "relative";
+        this._fieldWrapper.style.textIndent = "0";
+        this._fieldWrapper.style.border = "1px solid " + StrCast(tbox.layoutDoc.color, (CurrentUserUtils.ActiveDashboard.darkScheme ? "dimGray" : "lightGray"));
+        this._fieldWrapper.style.width = node.attrs.width;
+        this._fieldWrapper.style.height = node.attrs.height;
+        this._fieldWrapper.style.display = node.attrs.hidden ? "none" : "inline-block";
+        (this._fieldWrapper.style as any).float = node.attrs.float;
+        this._fieldWrapper.onkeypress = function (e: any) { e.stopPropagation(); };
+        this._fieldWrapper.onkeydown = function (e: any) { e.stopPropagation(); };
+        this._fieldWrapper.onkeyup = function (e: any) { e.stopPropagation(); };
+        this._fieldWrapper.onmousedown = function (e: any) { e.stopPropagation(); };
+
+        ReactDOM.render(<DashDocViewInternal
+            docid={node.attrs.docid}
+            alias={node.attrs.alias}
+            width={node.attrs.width}
+            height={node.attrs.height}
+            hidden={node.attrs.hidden}
+            fieldKey={node.attrs.fieldKey}
+            tbox={tbox}
+            view={view}
+            node={node}
+            getPos={getPos}
+        />, this._fieldWrapper);
+        (this as any).dom = this._fieldWrapper;
+    }
+    destroy() { ReactDOM.unmountComponentAtNode(this._fieldWrapper); }
+    selectNode() { }
 }
 
-export class DashDocView extends React.Component<IDashDocView> {
-
-    _dashDoc: Doc | undefined;
-    _reactionDisposer: IReactionDisposer | undefined;
-    _renderDisposer: IReactionDisposer | undefined;
+interface IDashDocViewInternal {
+    docid: string;
+    alias: string;
+    tbox: FormattedTextBox;
+    width: string;
+    height: string;
+    hidden: boolean;
+    fieldKey: string;
+    view: any;
+    node: any;
+    getPos: any;
+}
+@observer
+export class DashDocViewInternal extends React.Component<IDashDocViewInternal> {
+    _spanRef = React.createRef<HTMLDivElement>();
+    _disposers: { [name: string]: IReactionDisposer } = {};
     _textBox: FormattedTextBox;
-    _finalLayout: any;
-    _resolvedDataDoc: any;
+    @observable _dashDoc: Doc | undefined;
+    @observable _finalLayout: any;
+    @observable _resolvedDataDoc: any;
 
-
-    //    constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
-
-    constructor(props: IDashDocView) {
+    constructor(props: IDashDocViewInternal) {
         super(props);
+        this._textBox = this.props.tbox;
 
-        const node = this.props.node;
-        this._textBox = this.props.tbox as FormattedTextBox;
+        const updateDoc = action((dashDoc: Doc) => {
+            this._dashDoc = dashDoc;
+            this._finalLayout = this.props.docid ? dashDoc : Doc.expandTemplateLayout(Doc.Layout(dashDoc), dashDoc, this.props.fieldKey);
 
-        const alias = node.attrs.alias;
-        const docid = node.attrs.docid || this._textBox.props.Document[Id];
-
-        DocServer.GetRefField(docid + alias).then(async dashDoc => {
-            if (!(dashDoc instanceof Doc)) {
-                alias && DocServer.GetRefField(docid).then(async dashDocBase => {
-                    if (dashDocBase instanceof Doc) {
-                        const aliasedDoc = Doc.MakeAlias(dashDocBase, docid + alias);
-                        aliasedDoc.layoutKey = "layout";
-                        node.attrs.fieldKey && DocUtils.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
-                        this._dashDoc = aliasedDoc;
-                        //                        self.doRender(aliasedDoc, removeDoc, node, view, getPos);
-                    }
-                });
-            } else {
-                this._dashDoc = dashDoc;
-                //                self.doRender(dashDoc, removeDoc, node, view, getPos);
+            if (this._finalLayout) {
+                if (!Doc.AreProtosEqual(this._finalLayout, dashDoc)) {
+                    this._finalLayout.rootDocument = dashDoc.aliasOf;
+                }
+                this._resolvedDataDoc = Cast(this._finalLayout.resolvedDataDoc, Doc, null);
+            }
+            if (this.props.width !== (this._dashDoc?._width ?? "") + "px" || this.props.height !== (this._dashDoc?._height ?? "") + "px") {
+                try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
+                    this.props.view.dispatch(this.props.view.state.tr.setNodeMarkup(this.props.getPos(), null, {
+                        ...this.props.node.attrs, width: (this._dashDoc?._width ?? "") + "px", height: (this._dashDoc?._height ?? "") + "px"
+                    }));
+                } catch (e) {
+                    console.log("DashDocView:" + e);
+                }
             }
         });
 
-        this.onPointerLeave = this.onPointerLeave.bind(this);
-        this.onPointerEnter = this.onPointerEnter.bind(this);
-        this.onKeyDown = this.onKeyDown.bind(this);
-        this.onKeyPress = this.onKeyPress.bind(this);
-        this.onKeyUp = this.onKeyUp.bind(this);
-        this.onWheel = this.onWheel.bind(this);
+        DocServer.GetRefField(this.props.docid + this.props.alias).then(async dashDoc => {
+            if (!(dashDoc instanceof Doc)) {
+                this.props.alias && DocServer.GetRefField(this.props.docid).then(async dashDocBase => {
+                    if (dashDocBase instanceof Doc) {
+                        const aliasedDoc = Doc.MakeAlias(dashDocBase, this.props.docid + this.props.alias);
+                        aliasedDoc.layoutKey = "layout";
+                        this.props.fieldKey && DocUtils.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, this.props.fieldKey, undefined);
+                        updateDoc(aliasedDoc);
+                    }
+                });
+            } else {
+                updateDoc(dashDoc);
+            }
+        });
     }
-    /* #region Internal functions */
 
     removeDoc = () => {
-        const view = this.props.view;
-        const pos = this.props.getPos();
-        const ns = new NodeSelection(view.state.doc.resolve(pos));
-        view.dispatch(view.state.tr.setSelection(ns).deleteSelection());
+        this.props.view.dispatch(this.props.view.state.tr
+            .setSelection(new NodeSelection(this.props.view.state.doc.resolve(this.props.getPos())))
+            .deleteSelection());
         return true;
     }
 
     getDocTransform = () => {
-        const outerElement = document.getElementById('dash-document-view-outer') as HTMLElement;
-        const { scale, translateX, translateY } = Utils.GetScreenTransform(outerElement);
-        return new Transform(-translateX, -translateY, 1).scale(1 / this.contentScaling() / scale);
+        if (!this._spanRef.current) return Transform.Identity();
+        const { scale, translateX, translateY } = Utils.GetScreenTransform(this._spanRef.current);
+        return new Transform(-translateX, -translateY, 1).scale(1 / scale);
     }
-    contentScaling = () => Doc.NativeWidth(this._dashDoc) > 0 ? this._dashDoc![WidthSym]() / Doc.NativeWidth(this._dashDoc) : 1;
-
     outerFocus = (target: Doc) => this._textBox.props.focus(this._textBox.props.Document);  // ideally, this would scroll to show the focus target
 
-    onKeyPress = (e: any) => {
-        e.stopPropagation();
-    }
-    onWheel = (e: any) => {
-        e.preventDefault();
-    }
-    onKeyUp = (e: any) => {
-        e.stopPropagation();
-    }
     onKeyDown = (e: any) => {
         e.stopPropagation();
         if (e.key === "Tab" || e.key === "Enter") {
             e.preventDefault();
         }
     }
+
     onPointerLeave = () => {
-        const ele = document.getElementById("DashDocCommentView-" + this.props.node.attrs.docid);
-        if (ele) {
-            (ele as HTMLDivElement).style.backgroundColor = "";
-        }
+        const ele = document.getElementById("DashDocCommentView-" + this.props.docid) as HTMLDivElement;
+        ele && (ele.style.backgroundColor = "");
     }
+
     onPointerEnter = () => {
-        const ele = document.getElementById("DashDocCommentView-" + this.props.node.attrs.docid);
-        if (ele) {
-            (ele as HTMLDivElement).style.backgroundColor = "orange";
-        }
-    }
-    /*endregion*/
-
-    componentWillUnmount = () => {
-        this._reactionDisposer?.();
+        const ele = document.getElementById("DashDocCommentView-" + this.props.docid) as HTMLDivElement;
+        ele && (ele.style.backgroundColor = "orange");
     }
 
-    componentDidUpdate = () => {
-
-        this._renderDisposer?.();
-        this._renderDisposer = reaction(() => {
-
-            const dashDoc = this._dashDoc as Doc;
-            const dashLayoutDoc = Doc.Layout(dashDoc);
-            const finalLayout = this.props.node.attrs.docid ? dashDoc : Doc.expandTemplateLayout(dashLayoutDoc, dashDoc, this.props.node.attrs.fieldKey);
-
-            if (finalLayout) {
-                if (!Doc.AreProtosEqual(finalLayout, dashDoc)) {
-                    finalLayout.rootDocument = dashDoc.aliasOf;
-                }
-                this._finalLayout = finalLayout;
-                this._resolvedDataDoc = Cast(finalLayout.resolvedDataDoc, Doc, null);
-                return { finalLayout, resolvedDataDoc: Cast(finalLayout.resolvedDataDoc, Doc, null) };
-            }
-        },
-            (res) => {
-
-                if (res) {
-                    this._finalLayout = res.finalLayout;
-                    this._resolvedDataDoc = res.resolvedDataDoc;
-
-                    this.forceUpdate(); // doReactRender(res.finalLayout, res.resolvedDataDoc),
-                }
-            },
-            { fireImmediately: true });
-
-    }
+    componentWillUnmount = () => Object.values(this._disposers).forEach(disposer => disposer?.());
 
     render() {
-        // doRender(dashDoc: Doc, removeDoc: any, node: any, view: any, getPos: any) {
-
-        const node = this.props.node;
-        const view = this.props.view;
-        const getPos = this.props.getPos;
-
-        const spanStyle = {
-            width: this.props.node.props.width,
-            height: this.props.node.props.height,
-            position: 'absolute' as 'absolute',
-            display: 'inline-block'
-        };
-
-
-        const outerStyle = {
-            position: "relative" as "relative",
-            textIndent: "0",
-            border: "1px solid " + StrCast(this._textBox.Document.color, (CurrentUserUtils.ActiveDashboard.darkScheme ? "dimGray" : "lightGray")),
-            width: this.props.node.props.width,
-            height: this.props.node.props.height,
-            display: this.props.node.props.hidden ? "none" : "inline-block",
-            float: this.props.node.props.float,
-        };
-
-        const dashDoc = this._dashDoc as Doc;
-        const self = this;
-        const dashLayoutDoc = Doc.Layout(dashDoc);
-        const finalLayout = node.attrs.docid ? dashDoc : Doc.expandTemplateLayout(dashLayoutDoc, dashDoc, node.attrs.fieldKey);
-        const resolvedDataDoc = this._resolvedDataDoc; //Added this
-
-        if (!finalLayout) {
-            return <div></div>;
-            // if (!finalLayout) setTimeout(() => self.doRender(dashDoc, removeDoc, node, view, getPos), 0);
-        } else {
-
-            this._reactionDisposer?.();
-            this._reactionDisposer = reaction(() =>
-                ({
-                    dim: [finalLayout[WidthSym](), finalLayout[HeightSym]()],
-                    color: finalLayout.color
-                }),
-                ({ dim, color }) => {
-                    spanStyle.width = outerStyle.width = Math.max(20, dim[0]) + "px";
-                    spanStyle.height = outerStyle.height = Math.max(20, dim[1]) + "px";
-                    outerStyle.border = "1px solid " + StrCast(finalLayout.color, (CurrentUserUtils.ActiveDashboard.darkScheme ? "dimGray" : "lightGray"));
-                }, { fireImmediately: true });
-
-            if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
-                try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
-                    view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
-                } catch (e) {
-                    console.log("DashDocView:" + e);
-                }
-            }
-
-
-            //const doReactRender = (finalLayout: Doc, resolvedDataDoc: Doc) => {
-            //    ReactDOM.unmountComponentAtNode(this._dashSpan);
-
-            return (
-                <span id="dash-document-view-outer"
-                    className="outer"
-                    style={outerStyle}
-                >
-                    <div id="dashSpan"
-                        className="dash-span"
-                        style={spanStyle}
-                        onPointerLeave={this.onPointerLeave}
-                        onPointerEnter={this.onPointerEnter}
-                        onKeyDown={this.onKeyDown}
-                        onKeyPress={this.onKeyPress}
-                        onKeyUp={this.onKeyUp}
-                        onWheel={this.onWheel}
-                    >
-                        <DocumentView
-                            Document={finalLayout}
-                            DataDoc={resolvedDataDoc}
-                            addDocument={returnFalse}
-                            rootSelected={this._textBox.props.isSelected}
-                            removeDocument={this.removeDoc}
-                            ScreenToLocalTransform={this.getDocTransform}
-                            addDocTab={this._textBox.props.addDocTab}
-                            pinToPres={returnFalse}
-                            renderDepth={self._textBox.props.renderDepth + 1}
-                            PanelWidth={finalLayout[WidthSym]}
-                            PanelHeight={finalLayout[HeightSym]}
-                            focus={this.outerFocus}
-                            styleProvider={self._textBox.props.styleProvider}
-                            layerProvider={self._textBox.props.layerProvider}
-                            docViewPath={self._textBox.props.docViewPath}
-                            parentActive={returnFalse}
-                            whenActiveChanged={returnFalse}
-                            bringToFront={emptyFunction}
-                            dontRegisterView={false}
-                            docFilters={this.props.tbox?.props.docFilters || returnEmptyFilter}
-                            docRangeFilters={this.props.tbox?.props.docRangeFilters || returnEmptyFilter}
-                            searchFilterDocs={this.props.tbox?.props.searchFilterDocs || returnEmptyDoclist}
-                            ContainingCollectionView={this._textBox.props.ContainingCollectionView}
-                            ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
-                        />
-
-                    </div>
-                </span>
-            );
-
-        }
+        return !this._dashDoc || !this._finalLayout || this.props.hidden ? null :
+            <div ref={this._spanRef}
+                className="dash-span"
+                style={{
+                    width: this.props.width,
+                    height: this.props.height,
+                    position: 'absolute',
+                    display: 'inline-block'
+                }}
+                onPointerLeave={this.onPointerLeave}
+                onPointerEnter={this.onPointerEnter}
+                onKeyDown={this.onKeyDown}
+                onKeyPress={e => e.stopPropagation()}
+                onKeyUp={e => e.stopPropagation()}
+                onWheel={e => e.preventDefault()}
+            >
+                <DocumentView
+                    Document={this._finalLayout}
+                    DataDoc={this._resolvedDataDoc}
+                    addDocument={returnFalse}
+                    rootSelected={this._textBox.props.isSelected}
+                    removeDocument={this.removeDoc}
+                    layerProvider={this._textBox.props.layerProvider}
+                    styleProvider={this._textBox.props.styleProvider}
+                    docViewPath={this._textBox.props.docViewPath}
+                    ScreenToLocalTransform={this.getDocTransform}
+                    addDocTab={this._textBox.props.addDocTab}
+                    pinToPres={returnFalse}
+                    renderDepth={this._textBox.props.renderDepth + 1}
+                    PanelWidth={this._finalLayout[WidthSym]}
+                    PanelHeight={this._finalLayout[HeightSym]}
+                    focus={this.outerFocus}
+                    parentActive={returnFalse}
+                    whenActiveChanged={returnFalse}
+                    bringToFront={emptyFunction}
+                    dontRegisterView={false}
+                    docFilters={this.props.tbox?.props.docFilters}
+                    docRangeFilters={this.props.tbox?.props.docRangeFilters}
+                    searchFilterDocs={this.props.tbox?.props.searchFilterDocs}
+                    ContainingCollectionView={this._textBox.props.ContainingCollectionView}
+                    ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
+                />
+            </div>;
     }
-
 }

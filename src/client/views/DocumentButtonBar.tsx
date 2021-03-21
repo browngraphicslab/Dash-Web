@@ -131,7 +131,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const title = (() => {
             switch (this.openHover) {
                 default:
-                case UtilityButtonState.Default: return `${!dataDoc?.unchanged ? "Pull from" : "Fetch"} Google Docs`;
+                case UtilityButtonState.Default: return `${!dataDoc?.googleDocUnchanged ? "Pull from" : "Fetch"} Google Docs`;
                 case UtilityButtonState.OpenRight: return "Open in Right Split";
                 case UtilityButtonState.OpenExternally: return "Open in new Browser Tab";
             }
@@ -155,7 +155,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                         e.preventDefault();
                         let googleDoc = await Cast(dataDoc.googleDoc, Doc);
                         if (!googleDoc) {
-                            const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, useCors: false };
+                            const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, useCors: false };
                             googleDoc = Docs.Create.WebDocument(googleDocUrl, options);
                             dataDoc.googleDoc = googleDoc;
                         }
@@ -167,7 +167,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                         this.clearPullColor();
                         DocumentButtonBar.hasPulledHack = false;
                         targetDoc[Pulls] = NumCast(targetDoc[Pulls]) + 1;
-                        dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
+                        dataDoc.googleDocUnchanged && runInAction(() => this.isAnimatingFetch = true);
                     }
                 }}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm"
@@ -175,13 +175,25 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                     icon={(() => {
                         switch (this.openHover) {
                             default:
-                            case UtilityButtonState.Default: return dataDoc.unchanged === false ? (this.pullIcon as any) : fetch;
+                            case UtilityButtonState.Default: return dataDoc.googleDocUnchanged === false ? (this.pullIcon as any) : fetch;
                             case UtilityButtonState.OpenRight: return "arrow-alt-circle-right";
                             case UtilityButtonState.OpenExternally: return "share";
                         }
                     })()}
                 />
             </div></Tooltip>;
+    }
+    @computed
+    get followLinkButton() {
+        const targetDoc = this.view0?.props.Document;
+        return !targetDoc ? (null) : <Tooltip title={
+            <div className="dash-tooltip">{"follow primary link on click"}</div>}>
+            <div className="documentButtonBar-linker"
+                style={{ color: targetDoc.isLinkButton ? "black" : "white", backgroundColor: targetDoc.isLinkButton ? "white" : "black" }}
+                onClick={undoBatch(e => this.props.views().map(view => view?.docView?.toggleFollowLink(undefined, false, false)))}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="hand-point-right" />
+            </div>
+        </Tooltip>;
     }
     @computed
     get pinButton() {
@@ -202,7 +214,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         if (targetDoc) {
             TabDocView.PinDoc(targetDoc);
             const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
-            const scrollable: boolean = (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.WEB || targetDoc._viewType === CollectionViewType.Stacking);
+            const scrollable = [DocumentType.PDF, DocumentType.RTF, DocumentType.WEB].includes(targetDoc.type as any) || targetDoc._viewType === CollectionViewType.Stacking;
             const pannable: boolean = ((targetDoc.type === DocumentType.COL && targetDoc._viewType === CollectionViewType.Freeform) || targetDoc.type === DocumentType.IMG);
             if (scrollable) {
                 const scroll = targetDoc._scrollTop;
@@ -231,9 +243,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const presPinWithViewIcon = <img src="/assets/pinWithView.png" style={{ margin: "auto", width: 17, transform: 'translate(0, 1px)' }} />;
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with current view"}</div></>}>
-            <div
-                className="documentButtonBar-linker"
-                onClick={() => this.pinWithView(targetDoc)}>
+            <div className="documentButtonBar-linker" onClick={() => this.pinWithView(targetDoc)}>
                 {presPinWithViewIcon}
             </div>
         </Tooltip>;
@@ -244,19 +254,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Open Sharing Manager"}</div></>}>
             <div className="documentButtonBar-linker" style={{ color: "white" }} onClick={e => SharingManager.Instance.open(this.view0, targetDoc)}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="users"
-                />
-            </div></Tooltip >;
-    }
-
-    @computed
-    get annotateButton() {
-        const targetDoc = this.view0?.props.Document;
-        const isAnnotating = targetDoc?.isAnnotating;
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${isAnnotating ? "Exit" : "Enter"} annotation mode`}</div></>}>
-            <div className="documentButtonBar-linker" style={{ backgroundColor: isAnnotating ? "white" : "", color: isAnnotating ? "black" : "white", }}
-                onClick={e => targetDoc.isAnnotating = !targetDoc.isAnnotating}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="edit" />
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="users" />
             </div></Tooltip >;
     }
 
@@ -368,6 +366,9 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             <div className="documentButtonBar-button">
                 {this.contextButton}
             </div> */}
+            {!SelectionManager.Views()?.some(v => v.allLinks.length) ? (null) : <div className="documentButtonBar-button">
+                {this.followLinkButton}
+            </div>}
             <div className="documentButtonBar-button">
                 {this.pinButton}
             </div>
@@ -376,9 +377,6 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             </div> */}
             {!Doc.UserDoc()["documentLinksButton-fullMenu"] ? (null) : <div className="documentButtonBar-button">
                 {this.shareButton}
-            </div>}
-            {![DocumentType.VID, DocumentType.WEB].includes(StrCast(this.view0.props.Document.type) as DocumentType) ? (null) : <div className="documentButtonBar-button">
-                {this.annotateButton}
             </div>}
             {!Doc.UserDoc()["documentLinksButton-fullMenu"] ? (null) : <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}

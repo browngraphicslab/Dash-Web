@@ -45,8 +45,6 @@ export const documentSchema = createSchema({
     _showAudio: "boolean",      // whether to show the audio record icon on documents
     _freeformLOD: "boolean",    // whether to enable LOD switching for CollectionFreeFormViews
     _pivotField: "string",      // specifies which field key should be used as the timeline/pivot axis
-    _replacedChrome: "string",  // what the default chrome is replaced with. Currently only supports the value of 'replaced' for PresBox's.
-    _chromeStatus: "string",    // determines the state of the collection chrome. values allowed are 'replaced', 'enabled', 'disabled', 'collapsed'
     _columnsFill: "boolean",    // whether documents in a stacking view column should be sized to fill the column
     _columnsSort: "string",     // how a document should be sorted "ascending", "descending", undefined (none)   
     _columnsHideIfEmpty: "boolean",   // whether empty stacking view column headings should be hidden
@@ -109,11 +107,10 @@ export const documentSchema = createSchema({
 
 
 export const collectionSchema = createSchema({
-    childLayoutTemplateName: "string", // the name of a template to use to override the layoutKey when rendering a document -- ONLY used in DocHolderBox 
     childLayoutTemplate: Doc, // layout template to use to render children of a collecion
     childLayoutString: "string", //layout string to use to render children of a collection
     childClickedOpenTemplateView: Doc, // layout template to apply to a child when its clicked on in a collection and opened (requires onChildClick or other script to read this value and apply template)
-    dontRegisterChildViews: "boolean", // whether views made of this document are registered so that they can be found when drawing links 
+    childDontRegisterViews: "boolean", // whether views made of this document are registered so that they can be found when drawing links 
     onChildClick: ScriptField, // script to run for each child when its clicked
     onChildDoubleClick: ScriptField, // script to run for each child when its clicked
     onCheckedClick: ScriptField, // script to run when a checkbox is clicked next to a child in a tree view

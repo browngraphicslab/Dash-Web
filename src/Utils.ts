@@ -483,21 +483,20 @@ const easeInOutQuad = (currentTime: number, start: number, change: number, durat
     return (-change / 2) * (newCurrentTime * (newCurrentTime - 2) - 1) + start;
 };
 
-export function smoothScroll(duration: number, element: HTMLElement, to: number, finish?: () => void) {
-    const start = element.scrollTop;
-    const change = to - start;
+export function smoothScroll(duration: number, element: HTMLElement | HTMLElement[], to: number) {
+    const elements = (element instanceof HTMLElement ? [element] : element);
+    const starts = elements.map(element => element.scrollTop);
     const startDate = new Date().getTime();
 
     const animateScroll = () => {
         const currentDate = new Date().getTime();
         const currentTime = currentDate - startDate;
-        element.scrollTop = easeInOutQuad(currentTime, start, change, duration);
+        elements.map((element, i) => element.scrollTop = easeInOutQuad(currentTime, starts[i], to - starts[i], duration));
 
         if (currentTime < duration) {
             requestAnimationFrame(animateScroll);
         } else {
-            element.scrollTop = to;
-            finish?.();
+            elements.forEach(element => element.scrollTop = to);
         }
     };
     animateScroll();
@@ -574,6 +573,44 @@ export enum colorScheme {
     LIGHT_BUTTON = "#E3E3E3",
     LIGHT_BUTTON_ACTIVE_BACKGROUND = "#BEDBE6",
     LIGHT_BUTTON_ACTIVE = "#589AD6"
+}
+
+
+export function getWordAtPoint(elem: any, x: number, y: number): string | undefined {
+    if (elem.nodeType === elem.TEXT_NODE) {
+        const range = elem.ownerDocument.createRange();
+        range.selectNodeContents(elem);
+        var currentPos = 0;
+        const endPos = range.endOffset;
+        while (currentPos + 1 < endPos) {
+            range.setStart(elem, currentPos);
+            range.setEnd(elem, currentPos + 1);
+            const rangeRect = range.getBoundingClientRect();
+            if (rangeRect.left <= x && rangeRect.right >= x &&
+                rangeRect.top <= y && rangeRect.bottom >= y) {
+                range.expand?.("word"); // doesn't exist in firefox
+                const ret = range.toString();
+                range.detach();
+                return (ret);
+            }
+            currentPos += 1;
+        }
+    } else {
+        for (const childNode of elem.childNodes) {
+            const range = childNode.ownerDocument.createRange();
+            range.selectNodeContents(childNode);
+            const rangeRect = range.getBoundingClientRect();
+            if (rangeRect.left <= x && rangeRect.right >= x &&
+                rangeRect.top <= y && rangeRect.bottom >= y) {
+                range.detach();
+                const word = getWordAtPoint(childNode, x, y);
+                if (word) return word;
+            } else {
+                range.detach();
+            }
+        }
+    }
+    return undefined;
 }
 
 export function hasDescendantTarget(x: number, y: number, target: HTMLDivElement | null) {

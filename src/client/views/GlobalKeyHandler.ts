@@ -28,7 +28,7 @@ import { MainView } from "./MainView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
 import { AnchorMenu } from "./pdf/AnchorMenu";
 import { SearchBox } from "./search/SearchBox";
-import { DocUtils } from "../documents/Documents";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -97,8 +97,7 @@ export class KeyManager {
                 DocumentLinksButton.StartLink = undefined;
                 DocumentLinksButton.StartLinkView = undefined;
                 InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = false);
-
-                Doc.SetSelectedTool(InkTool.None);
+                CurrentUserUtils.SelectedTool = InkTool.None;
                 var doDeselect = true;
                 if (SnappingManager.GetIsDragging()) {
                     DragManager.AbortDrag();
@@ -251,7 +250,7 @@ export class KeyManager {
                     const pt = SelectionManager.Views()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
                     const text = `__DashDocId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.Views().map(dv => dv.Document[Id]).join(":");
                     SelectionManager.Views().length && navigator.clipboard.writeText(text);
-                    DocumentDecorations.Instance.onCloseClick(undefined);
+                    DocumentDecorations.Instance.onCloseClick();
                     stopPropagation = false;
                     preventDefault = false;
                 }

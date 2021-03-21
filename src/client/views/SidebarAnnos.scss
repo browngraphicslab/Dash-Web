@@ -1,0 +1,20 @@
+.sidebarAnnos-tagList {
+    display: flex;
+    flex-direction: row;
+    overflow: auto;
+    flex-flow: row;
+    flex-wrap: wrap;
+    .sidebarAnnos-filterTag, .sidebarAnnos-filterTag-active {
+        font-weight: bold;
+        padding-left: 6;
+        padding-right: 6;
+        box-shadow: black 1px 1px 4px;
+        border-radius: 5;
+        margin: 2; 
+        height: 20;
+        background-color: lightgrey;
+    }
+    .sidebarAnnos-filterTag-active {
+        background-color: white;
+    }
+}

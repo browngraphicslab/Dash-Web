@@ -51,7 +51,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         if (this.props.InMenu && this.props.StartLink) {
             if (this._linkButton.current !== null) {
                 const linkDrag = UndoManager.StartBatch("Drag Link");
-                this.props.View && DragManager.StartLinkDrag(this._linkButton.current, this.props.View.props.Document, this.props.View.ComponentView?.getAnchor, e.pageX, e.pageY, {
+                this.props.View && DragManager.StartLinkDrag(this._linkButton.current, this.props.View, this.props.View.ComponentView?.getAnchor, e.pageX, e.pageY, {
                     dragComplete: dropEv => {
                         if (this.props.View && dropEv.linkDocument) {// dropEv.linkDocument equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
                             !dropEv.linkDocument.linkRelationship && (Doc.GetProto(dropEv.linkDocument).linkRelationship = "hyperlink");
@@ -232,7 +232,18 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     }
 
     @computed get filteredLinks() {
-        return DocUtils.FilterDocs(Array.from(new Set<Doc>(this.props.links)), this.props.View.props.docFilters(), []);
+        const results = [] as Doc[];
+        Array.from(new Set<Doc>(this.props.links)).forEach(link => {
+            if (!DocUtils.FilterDocs([link], this.props.View.props.docFilters(), []).length) {
+                if (DocUtils.FilterDocs([link.anchor2 as Doc], this.props.View.props.docFilters(), []).length) {
+                    results.push(link);
+                }
+                if (DocUtils.FilterDocs([link.anchor1 as Doc], this.props.View.props.docFilters(), []).length) {
+                    results.push(link);
+                }
+            } else results.push(link);
+        });
+        return results;
     }
 
     @computed get linkButtonInner() {
@@ -276,11 +287,11 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         </div >;
     }
 
-    @computed get linkButton() {
+    render() {
         TraceMobx();
 
         const menuTitle = this.props.StartLink ? "Drag or tap to start link" : "Tap to complete link";
-        const buttonTitle = "Tap to view links";
+        const buttonTitle = "Tap to view links; double tap to open link collection";
         const title = this.props.InMenu ? menuTitle : buttonTitle;
 
         return !Array.from(this.filteredLinks).length && !this.props.AlwaysOn ? (null) :
@@ -294,9 +305,5 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                         {this.linkButtonInner}
                     </Tooltip>
                     : this.linkButtonInner;
-    }
-
-    render() {
-        return this.linkButton;
     }
 }

@@ -73,17 +73,13 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         const presSize = shape === 'round' ? 25 : 30;
         const presTrailsIcon = <img src={`/assets/${"presTrails.png"}`}
             style={{ width: presSize, height: presSize, filter: `invert(${color === "white" ? "100%" : "0%"})`, marginBottom: "5px" }} />;
-
-
-        const button = <button className={`menuButton-${type}`} onContextMenu={this.specificContextMenu}
-            style={{
-                backgroundColor: backgroundColor,
-            }}>
+        const button = <button className={`menuButton-${shape}`} onContextMenu={this.specificContextMenu}
+            style={{ backgroundColor: backgroundColor, }}>
             <div className="menuButton-wrap">
                 {icon === 'pres-trail' ? presTrailsIcon : <FontAwesomeIcon className={`menuButton-icon-${shape}`} icon={icon} color={color}
                     size={"sm"} />}
                 {!label ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
-                {this.props.Document.watchedDocuments ? <FontIconBadge collection={Cast(this.props.Document.watchedDocuments, Doc, null)} /> : (null)}
+                <FontIconBadge collection={Cast(this.rootDoc.watchedDocuments, Doc, null)} />
             </div>
         </button>;
 
@@ -95,7 +91,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
 }
 
 interface FontIconBadgeProps {
-    collection: Doc;
+    collection: Doc | undefined;
 }
 
 @observer
@@ -105,7 +101,7 @@ export class FontIconBadge extends React.Component<FontIconBadgeProps> {
     onPointerDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e,
             (e: PointerEvent) => {
-                const dragData = new DragManager.DocumentDragData([this.props.collection]);
+                const dragData = new DragManager.DocumentDragData([this.props.collection!]);
                 DragManager.StartDocumentDrag([this._notifsRef.current!], dragData, e.x, e.y);
                 return true;
             },

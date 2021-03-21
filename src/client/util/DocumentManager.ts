@@ -9,9 +9,6 @@ import { CollectionView } from '../views/collections/CollectionView';
 import { LightboxView } from '../views/LightboxView';
 import { DocumentView, ViewAdjustment } from '../views/nodes/DocumentView';
 import { Scripting } from './Scripting';
-import { CurrentUserUtils } from './CurrentUserUtils';
-import { TabDocView } from '../views/collections/TabDocView';
-import { UndoManager } from './UndoManager';
 
 export class DocumentManager {
 
@@ -160,12 +157,15 @@ export class DocumentManager {
             return false;
         };
         const annotatedDoc = Cast(targetDoc.annotationOn, Doc, null);
-        const rtfView = annotatedDoc && getFirstDocView(annotatedDoc);
+        const annoContainerView = annotatedDoc && getFirstDocView(annotatedDoc);
         const contextDocs = docContext ? await DocListCastAsync(docContext.data) : undefined;
         const contextDoc = contextDocs?.find(doc => Doc.AreProtosEqual(doc, targetDoc) || Doc.AreProtosEqual(doc, annotatedDoc)) ? docContext : undefined;
         const targetDocContext = contextDoc || annotatedDoc;
         const targetDocContextView = targetDocContext && getFirstDocView(targetDocContext);
-        const focusView = !docView && targetDoc.type === DocumentType.TEXTANCHOR && rtfView ? rtfView : docView;
+        const focusView = !docView && targetDoc.type === DocumentType.TEXTANCHOR && annoContainerView ? annoContainerView : docView;
+        if (!docView && annoContainerView && !focusView) {
+            annoContainerView.focus(targetDoc);  // this allows something like a PDF view to remove its doc filters to expose the target so that it can be found in the retry code below
+        }
         if (focusView) {
             focusView && Doc.linkFollowHighlight(focusView.rootDoc);
             focusView.focus(targetDoc, {
@@ -181,7 +181,12 @@ export class DocumentManager {
             } else {  // otherwise try to get a view of the context of the target
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
                     targetDocContext._viewTransition = "transform 500ms";
-                    targetDocContextView.props.focus(targetDocContextView.rootDoc, { willZoom });
+                    targetDocContextView.props.focus(targetDocContextView.rootDoc, {
+                        willZoom, afterFocus: async () => {
+                            targetDocContext._viewTransition = undefined;
+                            return ViewAdjustment.doNothing;
+                        }
+                    });
 
                     // now find the target document within the context
                     if (targetDoc._timecodeToShow) {  // if the target has a timecode, it should show up once the (presumed) video context scrubs to the display timecode;
@@ -191,6 +196,7 @@ export class DocumentManager {
                         const findView = (delay: number) => {
                             const retryDocView = getFirstDocView(targetDoc);  // test again for the target view snce we presumably created the context above by focusing on it
                             if (retryDocView) {   // we found the target in the context
+                                Doc.linkFollowHighlight(retryDocView.rootDoc);
                                 retryDocView.props.focus(targetDoc, {
                                     willZoom, afterFocus: (didFocus: boolean) =>
                                         new Promise<ViewAdjustment>(res => {
@@ -223,7 +229,10 @@ export class DocumentManager {
 }
 Scripting.addGlobal(function DocFocusOrOpen(doc: any) {
     const dv = DocumentManager.Instance.getDocumentView(doc);
-    if (dv && dv?.props.Document === doc) dv.props.focus(doc, { willZoom: true });
+    if (dv && dv.props.Document === doc) {
+        dv.props.focus(doc, { willZoom: true });
+        Doc.linkFollowHighlight(dv?.props.Document, false);
+    }
     else {
         const context = doc.context !== Doc.UserDoc().myFilesystem && Cast(doc.context, Doc, null);
         const showDoc = context || doc;

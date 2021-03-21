@@ -22,7 +22,7 @@ $linkGap : 3px;
         background: none;
     }
 
-    .documentDecorations-levelSelector {
+    .documentDecorations-selectorButton {
         pointer-events: auto;
         height: 15px;
         width: 15px;
@@ -210,37 +210,30 @@ $linkGap : 3px;
     grid-column-start: 4;
     grid-column-end: 4;
     pointer-events: all;
-    text-align: center;
     right: 0;
-    top: 0;
     cursor: pointer;
     position: absolute;
-    background: transparent;
     width: 20px;
 }
 
-.documentDecorations-openInTab {
+.documentDecorations-openButton {
+    display: flex;
+    align-items: center;
     opacity: 1;
     grid-column-start: 5;
     grid-column-end: 5;
     pointer-events: all;
-    text-align: center;
     cursor: pointer;
 }
 
 .documentDecorations-closeButton {
+    display: flex;
+    align-items: center;
     opacity: 1;
     grid-column-start: 1;
     grid-column-end: 3;
     pointer-events: all;
-    text-align: center;
     cursor: pointer;
-    position: absolute;
-    left: 0px;
-    top: 0px;
-    width: 8px;
-    height: $MINIMIZED_ICON_SIZE;
-    max-height: 20px;
 
     >svg {
         margin: 0;
@@ -343,12 +336,6 @@ $linkGap : 3px;
 .documentdecorations-icon {
     margin-top: 3px;
 }
-
-.documentdecorations-times {
-    margin-top: 3px;
-    padding-right: 3px;
-}
-
 .templating-button,
 .docDecs-tagButton {
     width: 20px;

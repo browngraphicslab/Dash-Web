@@ -249,7 +249,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
 
     componentDidMount() {
-        const selected = () => SelectionManager.Views().some(v => v.props.Document === this._document);
         new _global.ResizeObserver(action((entries: any) => {
             for (const entry of entries) {
                 this._panelWidth = entry.contentRect.width;
@@ -257,21 +256,23 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             }
         })).observe(this.props.glContainer._element[0]);
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
-        this.props.glContainer.tab?.isActive && this.onActiveContentItemChanged();
-        // this._tabReaction = reaction(() => ({ selected: this.active(), title: this.tab?.titleElement[0] }),
-        //     ({ selected, title }) => title && (title.style.backgroundColor = selected ? "white" : ""),
-        //     { fireImmediately: true });
+        this.props.glContainer.tab?.isActive && this.onActiveContentItemChanged(undefined);
+        this._tabReaction = reaction(() => ({ selected: this.active(), title: this.tab?.titleElement[0] }),
+            ({ selected, title }) => title && (title.style.backgroundColor = selected ? "white" : ""),
+            { fireImmediately: true });
     }
 
     componentWillUnmount() {
         this._tabReaction?.();
+        this.tab && CollectionDockingView.Instance.tabMap.delete(this.tab);
+
         this.props.glContainer.layoutManager.off("activeContentItemChanged", this.onActiveContentItemChanged);
     }
 
     @action.bound
-    private onActiveContentItemChanged() {
-        if (this.props.glContainer.tab && this._isActive !== this.props.glContainer.tab.isActive) {
-            this._isActive = this.props.glContainer.tab.isActive;
+    private onActiveContentItemChanged(contentItem: any) {
+        if (!contentItem || (this.stack === contentItem.parent && ((contentItem?.tab === this.tab && !this._isActive) || (contentItem?.tab !== this.tab && this._isActive)))) {
+            this._activated = this._isActive = !contentItem || contentItem?.tab === this.tab;
             (CollectionDockingView.Instance as any)._goldenLayout?.isInitialised && CollectionDockingView.Instance.stateChanged();
             !this._isActive && this._document && Doc.UnBrushDoc(this._document); // bcz: bad -- trying to simulate a pointer leave event when a new tab is opened up on top of an existing one.
         }
@@ -380,6 +381,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
 
     render() {
+        this.tab && CollectionDockingView.Instance.tabMap.delete(this.tab);
         return (
             <div className="collectionDockingView-content" style={{ height: "100%", width: "100%" }} ref={ref => {
                 if (this._mainCont = ref) {

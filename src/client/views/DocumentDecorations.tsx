@@ -10,7 +10,7 @@ import { InkField } from "../../fields/InkField";
 import { ScriptField } from '../../fields/ScriptField';
 import { Cast, NumCast } from "../../fields/Types";
 import { GetEffectiveAcl } from '../../fields/util';
-import { emptyFunction, returnFalse, setupMoveUpEvents } from "../../Utils";
+import { setupMoveUpEvents, emptyFunction, returnFalse } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
@@ -26,7 +26,6 @@ import { InkStrokeProperties } from './InkStrokeProperties';
 import { LightboxView } from './LightboxView';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
-import e = require('express');
 
 @observer
 export class DocumentDecorations extends React.Component<{ boundsLeft: number, boundsTop: number }, { value: string }> {
@@ -40,10 +39,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     private _rotateUndo?: UndoManager.Batch;
     private _offX = 0; _offY = 0;  // offset from click pt to inner edge of resize border
     private _snapX = 0; _snapY = 0; // last snapped location of resize border
-    private _prevX = 0;
     private _prevY = 0;
-    private _centerPoints: { X: number, Y: number }[] = [];
-    private _inkDocs: { x: number, y: number, width: number, height: number }[] = [];
+    private _dragHeights = new Map<Doc, { start: number, lowest: number }>();
+    private _inkCenterPts: { doc: Doc, X: number, Y: number }[] = [];
+    private _inkDragDocs: { doc: Doc, x: number, y: number, width: number, height: number }[] = [];
 
     @observable private _accumulatedTitle = "";
     @observable private _titleControlString: string = "#title";
@@ -58,12 +57,12 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     constructor(props: any) {
         super(props);
         DocumentDecorations.Instance = this;
-        reaction(() => SelectionManager.Views().slice(), docs => this.titleBlur(false));
+        reaction(() => SelectionManager.Views().slice(), action(docs => this._edtingTitle = false));
     }
 
     @computed
-    get Bounds(): { x: number, y: number, b: number, r: number } {
-        const boudns = SelectionManager.Views().map(dv => dv.getBounds()).reduce((bounds, rect) =>
+    get Bounds() {
+        return SelectionManager.Views().map(dv => dv.getBounds()).reduce((bounds, rect) =>
             !rect ? bounds :
                 {
                     x: Math.min(rect.left, bounds.x),
@@ -72,51 +71,34 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     b: Math.max(rect.bottom, bounds.b)
                 },
             { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
-        return boudns;
     }
 
-    titleBlur = action((commit: boolean) => {
+    @action
+    titleBlur = () => {
         this._edtingTitle = false;
-        if (commit) {
-            if (this._accumulatedTitle.startsWith("#") || this._accumulatedTitle.startsWith("=")) {
-                this._titleControlString = this._accumulatedTitle;
-            } else if (this._titleControlString.startsWith("#")) {
-                const selectionTitleFieldKey = this._titleControlString.substring(1);
-                selectionTitleFieldKey === "title" && (SelectionManager.Views()[0].dataDoc["title-custom"] = !this._accumulatedTitle.startsWith("-"));
-                UndoManager.RunInBatch(() => selectionTitleFieldKey && SelectionManager.Views().forEach(d => {
-                    const value = typeof d.props.Document[selectionTitleFieldKey] === "number" ? +this._accumulatedTitle : this._accumulatedTitle;
-                    Doc.SetInPlace(d.props.Document, selectionTitleFieldKey, value, true);
-                }), "title blur");
-            }
-        }
-    });
-
-    @action titleEntered = (e: any) => {
-        const key = e.keyCode || e.which;
-        // enter pressed
-        if (key === 13) {
-            const text = e.target.value;
-            if (text.startsWith("::")) {
-                this._accumulatedTitle = text.slice(2, text.length);
-                const promoteDoc = SelectionManager.Views()[0];
-                Doc.SetInPlace(promoteDoc.props.Document, "title", this._accumulatedTitle, true);
-                DocUtils.Publish(promoteDoc.props.Document, this._accumulatedTitle, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
-            }
-            e.target.blur();
+        if (this._accumulatedTitle.startsWith("#") || this._accumulatedTitle.startsWith("=")) {
+            this._titleControlString = this._accumulatedTitle;
+        } else if (this._titleControlString.startsWith("#")) {
+            const titleFieldKey = this._titleControlString.substring(1);
+            UndoManager.RunInBatch(() => titleFieldKey && SelectionManager.Views().forEach(d => {
+                titleFieldKey === "title" && (d.dataDoc["title-custom"] = !this._accumulatedTitle.startsWith("-"));
+                //@ts-ignore
+                Doc.SetInPlace(d.rootDoc, titleFieldKey, +this._accumulatedTitle == this._accumulatedTitle ? +this._accumulatedTitle : this._accumulatedTitle, true);
+            }), "title blur");
         }
     }
+
+    titleEntered = (e: React.KeyboardEvent) => e.key === "Enter" && (e.target as any).blur();
+
     @action onTitleDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, e => this.onBackgroundMove(true, e), (e) => { }, this.onTitleClick);
-    }
-    @action onTitleClick = (e: PointerEvent): void => {
-        !this._edtingTitle && (this._accumulatedTitle = this._titleControlString.startsWith("#") ? this.selectionTitle : this._titleControlString);
-        this._edtingTitle = true;
-        setTimeout(() => this._keyinput.current!.focus(), 0);
+        setupMoveUpEvents(this, e, e => this.onBackgroundMove(true, e), (e) => { }, action((e) => {
+            !this._edtingTitle && (this._accumulatedTitle = this._titleControlString.startsWith("#") ? this.selectionTitle : this._titleControlString);
+            this._edtingTitle = true;
+            setTimeout(() => this._keyinput.current!.focus(), 0);
+        }));
     }
 
-    onBackgroundDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, e => this.onBackgroundMove(false, e), (e) => { }, (e) => { });
-    }
+    onBackgroundDown = (e: React.PointerEvent) => setupMoveUpEvents(this, e, e => this.onBackgroundMove(false, e), emptyFunction, emptyFunction);
 
     @action
     onBackgroundMove = (dragTitle: boolean, e: PointerEvent): boolean => {
@@ -128,8 +110,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         dragData.isSelectionMove = true;
         dragData.canEmbed = dragTitle;
         dragData.dropAction = dragDocView.props.dropAction;
-        this.Interacting = true;
-        this._hidden = true;
+        this._hidden = this.Interacting = true;
         DragManager.StartDocumentDrag(SelectionManager.Views().map(dv => dv.ContentDiv!), dragData, e.x, e.y, {
             dragComplete: action(e => {
                 dragData.canEmbed && SelectionManager.DeselectAll();
@@ -140,202 +121,117 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         return true;
     }
 
-    onIconifyDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onIconifyClick);
+    @undoBatch
+    onCloseClick = () => {
+        const selected = SelectionManager.Views().slice();
+        SelectionManager.DeselectAll();
+        selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
     }
     @undoBatch
     @action
-    onCloseClick = async (e: React.MouseEvent | undefined) => {
-        if (!e?.button) {
-            const selected = SelectionManager.Views().slice();
-            SelectionManager.DeselectAll();
-            selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
-        }
-    }
-    @action
-    onMaximizeDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onMaximizeClick);
-    }
-    @undoBatch
-    @action
-    onMaximizeClick = (e: PointerEvent): void => {
-        if (e.button === 0) {
-            const selectedDocs = SelectionManager.Views();
-            if (selectedDocs.length) {
-                if (e.ctrlKey) {    // open an alias in a new tab with Ctrl Key
-                    selectedDocs[0].props.Document._fullScreenView = Doc.MakeAlias(selectedDocs[0].props.Document);
-                    (selectedDocs[0].props.Document._fullScreenView as Doc).context = undefined;
-                    CollectionDockingView.AddSplit(selectedDocs[0].props.Document._fullScreenView as Doc, "right");
-                } else if (e.shiftKey) {   // open centered in a new workspace with Shift Key
-                    const alias = Doc.MakeAlias(selectedDocs[0].props.Document);
-                    alias.context = undefined;
-                    alias.x = -alias[WidthSym]() / 2;
-                    alias.y = -alias[HeightSym]() / 2;
-                    CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([alias], { title: "Tab for " + alias.title }), "right");
-                } else if (e.altKey) {    // open same document in new tab
-                    CollectionDockingView.ToggleSplit(Cast(selectedDocs[0].props.Document._fullScreenView, Doc, null) || selectedDocs[0].props.Document, "right");
-                } else {
-                    LightboxView.SetLightboxDoc(selectedDocs[0].props.Document, undefined, selectedDocs.slice(1).map(view => view.props.Document));
-                }
+    onMaximizeClick = (e: any): void => {
+        const selectedDocs = SelectionManager.Views();
+        if (selectedDocs.length) {
+            if (e.ctrlKey) {    // open an alias in a new tab with Ctrl Key
+                selectedDocs[0].props.Document._fullScreenView = Doc.MakeAlias(selectedDocs[0].props.Document);
+                (selectedDocs[0].props.Document._fullScreenView as Doc).context = undefined;
+                CollectionDockingView.AddSplit(selectedDocs[0].props.Document._fullScreenView as Doc, "right");
+            } else if (e.shiftKey) {   // open centered in a new workspace with Shift Key
+                const alias = Doc.MakeAlias(selectedDocs[0].props.Document);
+                alias.context = undefined;
+                alias.x = -alias[WidthSym]() / 2;
+                alias.y = -alias[HeightSym]() / 2;
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([alias], { title: "Tab for " + alias.title }), "right");
+            } else if (e.altKey) {    // open same document in new tab
+                CollectionDockingView.ToggleSplit(Cast(selectedDocs[0].props.Document._fullScreenView, Doc, null) || selectedDocs[0].props.Document, "right");
+            } else {
+                LightboxView.SetLightboxDoc(selectedDocs[0].props.Document, undefined, selectedDocs.slice(1).map(view => view.props.Document));
             }
         }
         SelectionManager.DeselectAll();
     }
+
     @undoBatch
-    @action
-    onIconifyClick = (e: PointerEvent): void => {
-        (e.button === 0) && SelectionManager.Views().forEach(dv => dv?.iconify());
+    onIconifyClick = (): void => {
+        SelectionManager.Views().forEach(dv => dv?.iconify());
         SelectionManager.DeselectAll();
     }
 
-    @action
-    onSelectorUp = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, returnFalse, emptyFunction, action((e) =>
-            SelectionManager.Views()?.[0]?.props.ContainingCollectionView?.props.select(false)));
-    }
+    onSelectorClick = () => SelectionManager.Views()?.[0]?.props.ContainingCollectionView?.props.select(false);
 
-    @action
     onRadiusDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, this.onRadiusMove, (e) => this._resizeUndo?.end(), (e) => { });
-        if (e.button === 0) {
-            this._resizeUndo = UndoManager.StartBatch("DocDecs set radius");
-        }
+        this._resizeUndo = UndoManager.StartBatch("DocDecs set radius");
+        setupMoveUpEvents(this, e, (e, down) => {
+            const dist = Math.sqrt((e.clientX - down[0]) * (e.clientX - down[0]) + (e.clientY - down[1]) * (e.clientY - down[1]));
+            SelectionManager.Views().map(dv => dv.props.Document).map(doc => doc.layout instanceof Doc ? doc.layout : doc.isTemplateForField ? doc : Doc.GetProto(doc)).
+                map(d => d.borderRounding = `${Math.max(0, dist < 3 ? 0 : dist)}px`);
+            return false;
+        }, (e) => this._resizeUndo?.end(), (e) => { });
     }
 
-    onRadiusMove = (e: PointerEvent, down: number[]): boolean => {
-        let dist = Math.sqrt((e.clientX - down[0]) * (e.clientX - down[0]) + (e.clientY - down[1]) * (e.clientY - down[1]));
-        dist = dist < 3 ? 0 : dist;
-        SelectionManager.Views().map(dv => dv.props.Document).map(doc => doc.layout instanceof Doc ? doc.layout : doc.isTemplateForField ? doc : Doc.GetProto(doc)).
-            map(d => d.borderRounding = `${Math.max(0, dist)}px`);
-        return false;
-    }
-
-    @undoBatch
     @action
     onRotateDown = (e: React.PointerEvent): void => {
         this._rotateUndo = UndoManager.StartBatch("rotatedown");
 
-        setupMoveUpEvents(this, e, this.onRotateMove, this.onRotateUp, (e) => { });
-        this._prevX = e.clientX;
+        setupMoveUpEvents(this, e, this.onRotateMove, () => this._rotateUndo?.end(), emptyFunction);
         this._prevY = e.clientY;
-        SelectionManager.Views().forEach(action((element: DocumentView) => {
-            const doc = Document(element.rootDoc);
-            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
-                const ink = Cast(doc.data, InkField)?.inkData;
-                if (ink) {
-                    const xs = ink.map(p => p.X);
-                    const ys = ink.map(p => p.Y);
-                    const left = Math.min(...xs);
-                    const top = Math.min(...ys);
-                    const right = Math.max(...xs);
-                    const bottom = Math.max(...ys);
-                    // this._centerPoints.push({ X: ((right - left) / 2) + left, Y: ((bottom - top) / 2) + bottom });
-                    this._centerPoints.push({ X: left, Y: top });
-                }
-            }
-        }));
-
+        this._inkCenterPts = SelectionManager.Views()
+            .filter(dv => dv.rootDoc.type === DocumentType.INK)
+            .map(dv => ({ ink: Cast(dv.rootDoc.data, InkField)?.inkData ?? [{ X: 0, Y: 0 }], doc: dv.rootDoc }))
+            .map(({ ink, doc }) => ({ doc, X: Math.min(...ink.map(p => p.X)), Y: Math.min(...ink.map(p => p.Y)) }));
     }
 
-    @undoBatch
     @action
     onRotateMove = (e: PointerEvent, down: number[]): boolean => {
-
-        // const distance = Math.sqrt((this._prevY - e.clientY) * (this._prevY - e.clientY) + (this._prevX - e.clientX) * (this._prevX - e.clientX));
         const distance = Math.abs(this._prevY - e.clientY);
-        var angle = 0;
-        //think of a better condition later...
-        // if ((down[0] < e.clientX && this._prevY < e.clientY) || (down[0] > e.clientX && this._prevY > e.clientY)) {
-        if (e.clientY > this._prevY) {
-            angle = distance * (Math.PI / 180);
-            // } else if ((down[0] < e.clientX && this._prevY > e.clientY) || (down[0] > e.clientX && this._prevY <= e.clientY)) {
-        } else if (e.clientY < this._prevY) {
-            angle = - distance * (Math.PI / 180);
-        }
-        this._prevX = e.clientX;
+        const angle = e.clientY > this._prevY ? distance * (Math.PI / 180) : e.clientY < this._prevY ? - distance * (Math.PI / 180) : 0;
         this._prevY = e.clientY;
-        var index = 0;
-        SelectionManager.Views().forEach(action((element: DocumentView) => {
-            const doc = Document(element.rootDoc);
-            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
-                doc.rotation = Number(doc.rotation) + Number(angle);
-                const inks = Cast(doc.data, InkField)?.inkData;
-                if (inks) {
-                    const newPoints: { X: number, Y: number }[] = [];
-                    for (const ink of inks) {
-                        const newX = Math.cos(angle) * (ink.X - this._centerPoints[index].X) - Math.sin(angle) * (ink.Y - this._centerPoints[index].Y) + this._centerPoints[index].X;
-                        const newY = Math.sin(angle) * (ink.X - this._centerPoints[index].X) + Math.cos(angle) * (ink.Y - this._centerPoints[index].Y) + this._centerPoints[index].Y;
-                        newPoints.push({ X: newX, Y: newY });
-                    }
-                    Doc.GetProto(doc).data = new InkField(newPoints);
-                    const xs = newPoints.map(p => p.X);
-                    const ys = newPoints.map(p => p.Y);
-                    const left = Math.min(...xs);
-                    const top = Math.min(...ys);
-                    const right = Math.max(...xs);
-                    const bottom = Math.max(...ys);
+        this._inkCenterPts.map(({ doc, X, Y }) => ({ doc, X, Y, inkData: Cast(doc.data, InkField)?.inkData }))
+            .forEach(pair => {
+                const newPoints = pair.inkData?.map(ink => ({
+                    X: Math.cos(angle) * (ink.X - pair.X) - Math.sin(angle) * (ink.Y - pair.Y) + pair.X,
+                    Y: Math.sin(angle) * (ink.X - pair.X) + Math.cos(angle) * (ink.Y - pair.Y) + pair.Y
+                })) || [];
+                Doc.SetInPlace(pair.doc, "data", new InkField(newPoints), true);
 
-                    // doc._height = (bottom - top) * element.props.ScreenToLocalTransform().Scale;
-                    // doc._width = (right - left) * element.props.ScreenToLocalTransform().Scale;
-                    doc._height = (bottom - top);
-                    doc._width = (right - left);
-                }
-                index++;
-            }
-        }));
+                pair.doc._width = ((xs) => (Math.max(...xs) - Math.min(...xs)))(newPoints.map(p => p.X) || [0]);
+                pair.doc._height = ((ys) => (Math.max(...ys) - Math.min(...ys)))(newPoints.map(p => p.Y) || [0]);
+                pair.doc.rotation = NumCast(pair.doc.rotation) + angle;
+            });
         return false;
     }
 
-    onRotateUp = (e: PointerEvent) => {
-        this._centerPoints = [];
-        this._rotateUndo?.end();
-        this._rotateUndo = undefined;
-    }
-
-    _dragHeights = new Map<Doc, { start: number, lowest: number }>();
-
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-
-        this._inkDocs = [];
-        SelectionManager.Views().forEach(action((element: DocumentView) => {
-            const doc = Document(element.rootDoc);
-            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height) {
-                this._inkDocs.push({ x: doc.x, y: doc.y, width: doc._width, height: doc._height });
+        DragManager.docsBeingDragged = SelectionManager.Views().map(dv => dv.rootDoc);
+        this._inkDragDocs = DragManager.docsBeingDragged
+            .filter(doc => doc.type === DocumentType.INK)
+            .map(doc => {
                 if (InkStrokeProperties.Instance?._lock) {
-                    Doc.SetNativeHeight(doc, doc._height);
-                    Doc.SetNativeWidth(doc, doc._width);
+                    Doc.SetNativeHeight(doc, NumCast(doc._height));
+                    Doc.SetNativeWidth(doc, NumCast(doc._width));
                 }
-            }
-        }));
+                return ({ doc, x: NumCast(doc.x), y: NumCast(doc.y), width: NumCast(doc._width), height: NumCast(doc._height) });
+            });
 
-        setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, (e) => { });
-        if (e.button === 0) {
-            this._resizeHdlId = e.currentTarget.className;
-            const bounds = e.currentTarget.getBoundingClientRect();
-            this._offX = this._resizeHdlId.toLowerCase().includes("left") ? bounds.right - e.clientX : bounds.left - e.clientX;
-            this._offY = this._resizeHdlId.toLowerCase().includes("top") ? bounds.bottom - e.clientY : bounds.top - e.clientY;
-            this.Interacting = true; // turns off pointer events on things like youtube videos and web pages so that dragging doesn't get "stuck" when cursor moves over them
-            this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
-        }
+        setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, emptyFunction);
+        this.Interacting = true; // turns off pointer events on things like youtube videos and web pages so that dragging doesn't get "stuck" when cursor moves over them
+        this._resizeHdlId = e.currentTarget.className;
+        const bounds = e.currentTarget.getBoundingClientRect();
+        this._offX = this._resizeHdlId.toLowerCase().includes("left") ? bounds.right - e.clientX : bounds.left - e.clientX;
+        this._offY = this._resizeHdlId.toLowerCase().includes("top") ? bounds.bottom - e.clientY : bounds.top - e.clientY;
+        this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
         this._snapX = e.pageX;
         this._snapY = e.pageY;
-        DragManager.docsBeingDragged = SelectionManager.Views().map(dv => dv.rootDoc);
-        SelectionManager.Views().map(dv =>
-            this._dragHeights.set(dv.layoutDoc, { start: NumCast(dv.layoutDoc._height), lowest: NumCast(dv.layoutDoc._height) }));
+        DragManager.docsBeingDragged.forEach(doc => this._dragHeights.set(doc, { start: NumCast(doc._height), lowest: NumCast(doc._height) }));
     }
 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
         const first = SelectionManager.Views()[0];
         let thisPt = { thisX: e.clientX - this._offX, thisY: e.clientY - this._offY };
         var fixedAspect = Doc.NativeAspect(first.layoutDoc);
-        SelectionManager.Views().forEach(action((element: DocumentView) => {
-            const doc = Document(element.rootDoc);
-            if (doc.type === DocumentType.INK && doc._width && doc._height && InkStrokeProperties.Instance?._lock) {
-                fixedAspect = Doc.NativeHeight(doc);
-            }
-        }));
-
+        InkStrokeProperties.Instance?._lock && SelectionManager.Views().filter(dv => dv.rootDoc.type === DocumentType.INK)
+            .forEach(dv => fixedAspect = Doc.NativeAspect(dv.rootDoc));
 
         if (fixedAspect && (this._resizeHdlId === "documentDecorations-bottomRightResizer" || this._resizeHdlId === "documentDecorations-topLeftResizer")) { // need to generalize for bl and tr drag handles
             const project = (p: number[], a: number[], b: number[]) => {
@@ -358,14 +254,8 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         move[1] = thisPt.thisY - this._snapY;
         this._snapX = thisPt.thisX;
         this._snapY = thisPt.thisY;
-        let dragBottom = false;
-        let dragRight = false;
+        let dragBottom = false, dragRight = false, dragBotRight = false;
         let dX = 0, dY = 0, dW = 0, dH = 0;
-        const unfreeze = () =>
-            SelectionManager.Views().forEach(action((element: DocumentView) =>
-                ((element.rootDoc.type === DocumentType.COMPARISON ||
-                    (element.rootDoc.type === DocumentType.WEB && Doc.LayoutField(element.rootDoc) instanceof HtmlField))
-                    && Doc.NativeHeight(element.layoutDoc)) && element.toggleNativeDimensions()));
         switch (this._resizeHdlId) {
             case "": break;
             case "documentDecorations-topLeftResizer":
@@ -380,7 +270,6 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 dH = -move[1];
                 break;
             case "documentDecorations-topResizer":
-                unfreeze();
                 dY = -1;
                 dH = -move[1];
                 break;
@@ -392,19 +281,17 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             case "documentDecorations-bottomRightResizer":
                 dW = move[0];
                 dH = move[1];
+                dragBotRight = true;
                 break;
             case "documentDecorations-bottomResizer":
-                unfreeze();
                 dH = move[1];
                 dragBottom = true;
                 break;
             case "documentDecorations-leftResizer":
-                unfreeze();
                 dX = -1;
                 dW = -move[0];
                 break;
             case "documentDecorations-rightResizer":
-                unfreeze();
                 dW = move[0];
                 dragRight = true;
                 break;
@@ -449,22 +336,23 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                             doc._nativeWidth = actualdW / (doc._width || 1) * Doc.NativeWidth(doc);
                         } else {
                             if (!doc._fitWidth) doc._height = nheight / nwidth * actualdW;
-                            else if (!e.ctrlKey) doc._height = actualdH;
+                            else if (!e.ctrlKey || dragBotRight) doc._height = actualdH;
                         }
                         doc._width = actualdW;
                     }
                     else {
                         if (dragBottom && (e.ctrlKey || docView.layoutDoc._fitWidth)) { // frozen web pages and others that fitWidth can't grow horizontally to match a vertical resize so the only choice is to change the nativeheight even if the ctrl key isn't used
                             doc._nativeHeight = actualdH / (doc._height || 1) * Doc.NativeHeight(doc);
+                            doc._autoHeight = false;
                         } else {
                             if (!doc._fitWidth) doc._width = nwidth / nheight * actualdH;
-                            else if (!e.ctrlKey) doc._width = actualdW;
+                            else if (!e.ctrlKey || dragBotRight) doc._width = actualdW;
                         }
                         doc._height = actualdH;
                     }
                 } else {
-                    dW && (doc._width = actualdW);
                     dH && (doc._height = actualdH);
+                    dW && (doc._width = actualdW);
                     dH && (doc._autoHeight = false);
                 }
             }
@@ -476,41 +364,26 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        SelectionManager.Views().map(dv => {
-            const hgts = this._dragHeights.get(dv.layoutDoc);
-            if (hgts && hgts.lowest < hgts.start && hgts.lowest <= 20) {
-                dv.effectiveNativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.ContentScale(), dv.props.PanelWidth(), dv.props.PanelHeight());
-                if (dv.layoutDoc._autoHeight) dv.layoutDoc._autoHeight = false;
-                setTimeout(() => dv.layoutDoc._autoHeight = true);
-            }
-        });
         this._resizeHdlId = "";
         this.Interacting = false;
-        (e.button === 0) && this._resizeUndo?.end();
-        this._resizeUndo = undefined;
+        this._resizeUndo?.end();
         SnappingManager.clearSnapLines();
 
-
+        // detect autoHeight gesture and apply
+        DragManager.docsBeingDragged.map(doc => ({ doc, hgts: this._dragHeights.get(doc) }))
+            .filter(pair => pair.hgts && pair.hgts.lowest < pair.hgts.start && pair.hgts.lowest <= 20)
+            .forEach(pair => pair.doc._autoHeight = true);
         //need to change points for resize, or else rotation/control points will fail.
-        SelectionManager.Views().forEach(action((element: DocumentView, index) => {
-            const doc = Document(element.rootDoc);
-            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._height && doc._width) {
-                const ink = Cast(doc.data, InkField)?.inkData;
-                if (ink) {
-                    const newPoints: { X: number, Y: number }[] = [];
-                    ink.forEach(i => {
-                        // (new x — oldx) + (oldxpoint * newWidt)/oldWidth 
-                        const newX = ((doc.x || 0) - this._inkDocs[index].x) + (i.X * (doc._width || 0)) / this._inkDocs[index].width;
-                        const newY = ((doc.y || 0) - this._inkDocs[index].y) + (i.Y * (doc._height || 0)) / this._inkDocs[index].height;
-                        newPoints.push({ X: newX, Y: newY });
-                    });
-                    Doc.GetProto(doc).data = new InkField(newPoints);
-
-                }
-                doc._nativeWidth = 0;
-                doc._nativeHeight = 0;
-            }
-        }));
+        this._inkDragDocs.map(oldbds => ({ oldbds, inkPts: Cast(oldbds.doc.data, InkField)?.inkData || [] }))
+            .forEach(({ oldbds: { doc, x, y, width, height }, inkPts }) => {
+                Doc.SetInPlace(doc, "data", new InkField(inkPts.map(ipt =>  // (new x — oldx) + newWidth * (oldxpoint /oldWidth)
+                    ({
+                        X: (NumCast(doc.x) - x) + NumCast(doc.width) * ipt.X / width,
+                        Y: (NumCast(doc.y) - y) + NumCast(doc.height) * ipt.Y / height
+                    }))), true);
+                Doc.SetNativeWidth(doc, undefined);
+                Doc.SetNativeHeight(doc, undefined);
+            });
     }
 
     @computed
@@ -524,58 +397,33 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 return Field.toString(selected.props.Document[this._titleControlString.substring(1)] as Field) || "-unset-";
             }
             return this._accumulatedTitle;
-        } else if (SelectionManager.Views().length > 1) {
-            return "-multiple-";
         }
-        return "-unset-";
-    }
-
-    TextBar: HTMLDivElement | undefined;
-    private setTextBar = (ele: HTMLDivElement) => {
-        if (ele) {
-            this.TextBar = ele;
-        }
-    }
-    public static DocumentIcon(layout: string) {
-        const button = layout.indexOf("PDFBox") !== -1 ? "file-pdf" :
-            layout.indexOf("ImageBox") !== -1 ? "image" :
-                layout.indexOf("Formatted") !== -1 ? "sticky-note" :
-                    layout.indexOf("Video") !== -1 ? "film" :
-                        layout.indexOf("Collection") !== -1 ? "object-group" :
-                            "caret-up";
-        return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
+        return SelectionManager.Views().length > 1 ? "-multiple-" : "-unset-";
     }
 
     render() {
-        const darkScheme = CurrentUserUtils.ActiveDashboard?.darkScheme ? "dimgray" : undefined;
         const bounds = this.Bounds;
-        const seldoc = SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
+        const seldoc = SelectionManager.Views().lastElement();
         if (SnappingManager.GetIsDragging() || bounds.r - bounds.x < 1 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
+        const canOpen = SelectionManager.Views().some(docView => !docView.props.Document._stayInCollection);
         const canDelete = SelectionManager.Views().some(docView => {
             const collectionAcl = docView.props.ContainingCollectionView ? GetEffectiveAcl(docView.props.ContainingCollectionDoc?.[DataSym]) : AclEdit;
-            const docAcl = GetEffectiveAcl(docView.props.Document);
-            return (!docView.props.Document._stayInCollection || docView.props.Document.isInkMask) &&
-                (collectionAcl === AclAdmin || collectionAcl === AclEdit || docAcl === AclAdmin);
+            return (!docView.rootDoc._stayInCollection || docView.rootDoc.isInkMask) &&
+                (collectionAcl === AclAdmin || collectionAcl === AclEdit || GetEffectiveAcl(docView.rootDoc) === AclAdmin);
         });
-        const canOpen = SelectionManager.Views().some(docView => !docView.props.Document._stayInCollection);
-        const closeIcon = !canDelete ? <div></div> : (
-            <Tooltip title={<div className="dash-tooltip">Close</div>} placement="top">
-                <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
-                    <FontAwesomeIcon className="documentdecorations-times" icon={"times"} size="lg" />
-                </div></Tooltip>);
-
-        const openIcon = !canOpen ? (null) :
-            <Tooltip key="open" title={<div className="dash-tooltip">Open in Tab (ctrl: as alias, shift: in new collection)</div>} placement="top">
-                <div className="documentDecorations-openInTab" onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} onPointerDown={this.onMaximizeDown}>
-                    <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" />
+        const topBtn = (key: string, icon: string, click: (e: any) => void, title: string) => (
+            <Tooltip key={key} title={<div className="dash-tooltip">{title}</div>} placement="top">
+                <div className={`documentDecorations-${key}Button`} onContextMenu={e => e.preventDefault()}
+                    onPointerDown={e => setupMoveUpEvents(this, e, returnFalse, click, emptyFunction)} >
+                    <FontAwesomeIcon icon={icon as any} />
                 </div>
-            </Tooltip>;
+            </Tooltip>);
 
         const titleArea = this._edtingTitle ?
             <input ref={this._keyinput} className="documentDecorations-title" style={{ width: `calc(100% - ${seldoc?.props.hideResizeHandles ? 0 : 20}px` }} type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
-                onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} /> :
+                onBlur={e => this.titleBlur()} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} /> :
             <div className="documentDecorations-title" style={{ width: `calc(100% - ${seldoc?.props.hideResizeHandles ? 0 : 20}px` }} key="title" onPointerDown={this.onTitleDown} >
                 <span className="documentDecorations-titleSpan">{`${this.selectionTitle}`}</span>
             </div>;
@@ -585,7 +433,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             if (node.className === "mainView-mainContent") inMainMenuPanel = true;
         }
         const leftBounds = inMainMenuPanel ? 0 : this.props.boundsLeft;
-        const topBounds = this.props.boundsTop;
+        const topBounds = LightboxView.LightboxDoc ? 0 : this.props.boundsTop;
         bounds.x = Math.max(leftBounds, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(topBounds, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
         const borderRadiusDraggerWidth = 15;
@@ -593,7 +441,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         bounds.b = Math.max(bounds.y, Math.max(topBounds, Math.min(window.innerHeight, bounds.b + this._resizeBorderWidth / 2 + this._linkBoxHeight) - this._resizeBorderWidth / 2 - this._linkBoxHeight));
         const useRotation = seldoc.rootDoc.type === DocumentType.INK;
 
-        return (<div className="documentDecorations" style={{ background: darkScheme }} >
+        return (<div className="documentDecorations" style={{ background: CurrentUserUtils.ActiveDashboard?.darkScheme ? "dimgray" : "" }} >
             <div className="documentDecorations-background" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
                 height: (bounds.b - bounds.y + this._resizeBorderWidth) + "px",
@@ -601,26 +449,21 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 top: bounds.y - this._resizeBorderWidth / 2,
                 pointerEvents: KeyManager.Instance.ShiftPressed || this.Interacting ? "none" : "all",
                 display: SelectionManager.Views().length <= 1 ? "none" : undefined
-            }} onPointerDown={this.onBackgroundDown} onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} >
-            </div>
+            }} onPointerDown={this.onBackgroundDown} onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} />
             {bounds.r - bounds.x < 15 && bounds.b - bounds.y < 15 ? (null) : <>
-                <div className="documentDecorations-container" key="container" ref={this.setTextBar} style={{
+                <div className="documentDecorations-container" key="container" style={{
                     width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
                     height: (bounds.b - bounds.y + this._resizeBorderWidth + this._titleHeight) + "px",
                     left: bounds.x - this._resizeBorderWidth / 2,
                     top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 }}>
-                    {closeIcon}
-                    {seldoc.props.Document.type === DocumentType.EQUATION ? (null) : titleArea}
+                    {!canDelete ? <div /> : topBtn("close", "times", this.onCloseClick, "Close")}
+                    {seldoc.props.hideDecorationTitle || seldoc.props.Document.type === DocumentType.EQUATION ? (null) : titleArea}
                     {seldoc.props.hideResizeHandles || seldoc.props.Document.type === DocumentType.EQUATION ? (null) :
                         <>
                             {SelectionManager.Views().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
-                                <Tooltip key="i" title={<div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div>} placement="top">
-                                    <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
-                                        <FontAwesomeIcon icon={seldoc.finalLayoutKey.includes("icon") ? "window-restore" : "window-minimize"} className="documentView-minimizedIcon" />
-                                    </div>
-                                </Tooltip>}
-                            {openIcon}
+                                topBtn("iconify", `window-${seldoc.finalLayoutKey.includes("icon") ? "restore" : "minimize"}`, this.onIconifyClick, `${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`)}
+                            {!canOpen ? (null) : topBtn("open", "external-link-alt", this.onMaximizeClick, "Open in Tab (ctrl: as alias, shift: in new collection)")}
                             <div key="tl" className="documentDecorations-topLeftResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
                             <div key="t" className="documentDecorations-topResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
                             <div key="tr" className="documentDecorations-topRightResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
@@ -632,11 +475,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                             <div key="br" className="documentDecorations-bottomRightResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
 
                             {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
-                                <Tooltip key="level" title={<div className="dash-tooltip">tap to select containing document</div>} placement="top">
-                                    <div className="documentDecorations-levelSelector"
-                                        onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
-                                        <FontAwesomeIcon className="documentdecorations-times" icon={"arrow-alt-circle-up"} size="lg" />
-                                    </div></Tooltip>}
+                                topBtn("selector", "arrow-alt-circle-up", this.onSelectorClick, "tap to select containing document")}
                         </>
                     }
                     <div key="rot" className={`documentDecorations-${useRotation ? "rotation" : "borderRadius"}`}

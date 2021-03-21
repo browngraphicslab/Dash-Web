@@ -8,28 +8,47 @@ import { documentSchema } from "../../../fields/documentSchemas";
 import { InkTool } from "../../../fields/InkField";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast } from "../../../fields/Types";
-import { VideoField } from "../../../fields/URLField";
+import { VideoField, AudioField } from "../../../fields/URLField";
 import { emptyFunction, returnFalse, returnOne, returnZero, Utils, OmitKeys } from "../../../Utils";
-import { Docs } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { ViewBoxBaseComponent } from "../DocComponent";
+import { ViewBoxBaseComponent, ViewBoxAnnotatableComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { Networking } from "../../Network";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { VideoBox } from "./VideoBox";
+import { Id } from "../../../fields/FieldSymbols";
+import { CollectionStackedTimeline } from "../collections/CollectionStackedTimeline";
+import { DateField } from "../../../fields/DateField";
 const path = require('path');
+declare class MediaRecorder {
+    constructor(e: any, options?: any);  // whatever MediaRecorder has
+}
+
 
 type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
 const ScreenshotDocument = makeInterface(documentSchema);
 
 @observer
-export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
+export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
     private _reactionDisposer?: IReactionDisposer;
     private _videoRef: HTMLVideoElement | null = null;
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ScreenshotBox, fieldKey); }
+    @computed get recordingStart() { return Cast(this.dataDoc[this.props.fieldKey + "-recordingStart"], DateField)?.date.getTime(); }
 
     public get player(): HTMLVideoElement | null {
         return this._videoRef;
+    }
+
+    getAnchor = () => {
+        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "_timecodeToShow" /* audioStart */, "_timecodeToHide" /* audioEnd */,
+            Cast(this.layoutDoc._currentTimecode, "number", null) ||
+            (this._vrecorder ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined))
+            || this.rootDoc;
     }
 
     videoLoad = () => {
@@ -87,7 +106,9 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
     }
 
     componentWillUnmount() {
-        this._reactionDisposer && this._reactionDisposer();
+        this._reactionDisposer?.();
+        const ind = DocUtils.ActiveRecordings.indexOf(this);
+        ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
     }
 
     @action
@@ -118,18 +139,13 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
             const url = field.url.href;
             const subitems: ContextMenuProps[] = [];
             subitems.push({ description: "Take Snapshot", event: () => this.Snapshot(), icon: "expand-arrows-alt" });
-            subitems.push({
-                description: "Screen Capture", event: (async () => {
-                    runInAction(() => this._screenCapture = !this._screenCapture);
-                    this._videoRef!.srcObject = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
-                }), icon: "expand-arrows-alt"
-            });
+            subitems.push({ description: "Screen Capture", event: this.toggleRecording, icon: "expand-arrows-alt" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: subitems, icon: "video" });
         }
     }
 
     @computed get content() {
-        const interactive = Doc.GetSelectedTool() !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
+        const interactive = CurrentUserUtils.SelectedTool !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + interactive;
         return <video className={`${style}`} key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}
             style={{ width: this._screenCapture ? "100%" : undefined, height: this._screenCapture ? "100%" : undefined }}
@@ -141,17 +157,56 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
             </video>;
     }
 
+    _vchunks: any;
+    _achunks: any;
+    _vrecorder: any;
+    _arecorder: any;
+
     toggleRecording = action(async () => {
         this._screenCapture = !this._screenCapture;
-        this._videoRef!.srcObject = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
+        if (this._screenCapture) {
+            this.dataDoc[this.props.fieldKey + "-recordingStart"] = new DateField(new Date());
+            this._arecorder = new MediaRecorder(await navigator.mediaDevices.getUserMedia({ audio: true }));
+            this._achunks = [];
+            this._arecorder.ondataavailable = (e: any) => this._achunks.push(e.data);
+            this._arecorder.onstop = async (e: any) => {
+                const [{ result }] = await Networking.UploadFilesToServer(this._achunks);
+                if (!(result instanceof Error)) {
+                    this.dataDoc[this.props.fieldKey + "-audio"] = new AudioField(Utils.prepend(result.accessPaths.agnostic.client));
+                }
+            };
+            const vstream = await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
+            this._videoRef!.srcObject = vstream;
+            this._vrecorder = new MediaRecorder(vstream);
+            this._vchunks = [];
+            this._vrecorder.ondataavailable = (e: any) => this._vchunks.push(e.data);
+            this._vrecorder.onstop = async (e: any) => {
+                const file = new File(this._vchunks, `${this.rootDoc[Id]}.mkv`, { type: this._vchunks[0].type, lastModified: Date.now() });
+                const [{ result }] = await Networking.UploadFilesToServer(file);
+                this.dataDoc[this.fieldKey + "-duration"] = (new Date().getTime() - this.recordingStart!) / 1000;
+                if (!(result instanceof Error)) {
+                    this.dataDoc.type = DocumentType.VID;
+                    this.layoutDoc.layout = VideoBox.LayoutString(this.fieldKey);
+                    this.dataDoc[this.props.fieldKey] = new VideoField(Utils.prepend(result.accessPaths.agnostic.client));
+                } else alert("video conversion failed");
+            };
+            this._arecorder.start();
+            this._vrecorder.start();
+            DocUtils.ActiveRecordings.push(this);
+        } else {
+            this._arecorder.stop();
+            this._vrecorder.stop();
+            const ind = DocUtils.ActiveRecordings.indexOf(this);
+            ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
+        }
     });
 
     private get uIButtons() {
         return (<div className="screenshotBox-uiButtons">
             <div className="screenshotBox-recorder" key="snap" onPointerDown={this.toggleRecording} >
                 <FontAwesomeIcon icon="file" size="lg" />
-            </div>,
-            <div className="screenshotBox-snapshot" key="snap" onPointerDown={this.onSnapshot} >
+            </div>
+            <div className="screenshotBox-snapshot" key="cam" onPointerDown={this.onSnapshot} >
                 <FontAwesomeIcon icon="camera" size="lg" />
             </div>
         </div>);
@@ -162,7 +217,6 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
         e.stopPropagation();
         e.preventDefault();
     }
-
 
     contentFunc = () => [this.content];
     render() {

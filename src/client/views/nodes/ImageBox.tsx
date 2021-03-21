@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, ObservableMap, untracked } from 'mobx';
 import { observer } from "mobx-react";
 import { Dictionary } from 'typescript-collections';
 import { DataSym, Doc, DocListCast, WidthSym } from '../../../fields/Doc';
@@ -50,10 +50,10 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     protected _multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ImageBox, fieldKey); }
     private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
-    private _curSuffix = "_m";
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _disposers: { [name: string]: IReactionDisposer } = {};
-    @observable uploadIcon = uploadIcons.idle;
+    @observable _curSuffix = "";
+    @observable _uploadIcon = uploadIcons.idle;
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer?.();
@@ -61,17 +61,25 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     }
 
     componentDidMount() {
+        this._disposers.sizer = reaction(() => (
+            {
+                forceFull: this.props.renderDepth < 1 || this.layoutDoc._showFullRes,
+                scrSize: this.props.ScreenToLocalTransform().inverse().transformDirection(this.nativeSize.nativeWidth, this.nativeSize.nativeHeight)[0],
+                selected: this.props.isSelected()
+            }),
+            ({ forceFull, scrSize, selected }) => this._curSuffix = forceFull ? "_o" : scrSize < 100 ? "_s" : scrSize < 400 ? "_m" : scrSize < 800 || !selected ? "_l" : "_o",
+            { fireImmediately: true, delay: 1000 });
         this._disposers.selection = reaction(() => this.props.isSelected(),
             selected => !selected && setTimeout(() => {
-                this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                Array.from(this._savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
                 this._savedAnnotations.clear();
             }));
         this._disposers.path = reaction(() => ({ nativeSize: this.nativeSize, width: this.layoutDoc[WidthSym]() }),
-            action(({ nativeSize, width }) => {
+            ({ nativeSize, width }) => {
                 if (!this.layoutDoc._height) {
                     this.layoutDoc._height = width * nativeSize.nativeHeight / nativeSize.nativeWidth;
                 }
-            }),
+            },
             { fireImmediately: true });
     }
 
@@ -176,30 +184,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         if (!/\.(png|jpg|jpeg|gif|webp)$/.test(lower)) return url.href;  //Why is this here
 
         const ext = path.extname(url.href);
-        const scrSize = this.props.ScreenToLocalTransform().inverse().transformDirection(this.nativeSize.nativeWidth, this.nativeSize.nativeHeight);
-        this._curSuffix = this.props.renderDepth < 1 || this.layoutDoc._showFullRes ? "_o" : scrSize[0] < 100 ? "_s" : scrSize[0] < 400 || !this.props.isSelected() ? "_m" : "_o";
         return url.href.replace(ext, this._curSuffix + ext);
-    }
-
-    @observable _smallRetryCount = 1;
-    @observable _mediumRetryCount = 1;
-    @observable _largeRetryCount = 1;
-    @action retryPath = () => {
-        if (this._curSuffix === "_s") this._smallRetryCount++;
-        if (this._curSuffix === "_m") this._mediumRetryCount++;
-        if (this._curSuffix === "_l") this._largeRetryCount++;
-    }
-
-    @action onError = (error: any) => {
-        const timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
-        if (timeout < 5) {
-            setTimeout(this.retryPath, 500);
-        } else {
-            const original = StrCast(this.dataDoc[this.fieldKey + "-originalUrl"]);
-            if (error.type === "error" && original) {
-                this.dataDoc[this.fieldKey] = new ImageField(original);
-            }
-        }
     }
 
     considerGooglePhotosLink = () => {
@@ -231,11 +216,11 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             <img
                 id={"upload-icon"} draggable={false}
                 style={{ transformOrigin: "bottom right" }}
-                src={`/assets/${this.uploadIcon}`}
+                src={`/assets/${this._uploadIcon}`}
                 onClick={async () => {
                     const { dataDoc } = this;
                     const { success, failure, idle, loading } = uploadIcons;
-                    runInAction(() => this.uploadIcon = loading);
+                    runInAction(() => this._uploadIcon = loading);
                     const [{ accessPaths }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [primary] });
                     dataDoc[this.props.fieldKey + "-originalUrl"] = primary;
                     let succeeded = true;
@@ -245,9 +230,9 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                     } catch {
                         succeeded = false;
                     }
-                    runInAction(() => this.uploadIcon = succeeded ? success : failure);
+                    runInAction(() => this._uploadIcon = succeeded ? success : failure);
                     setTimeout(action(() => {
-                        this.uploadIcon = idle;
+                        this._uploadIcon = idle;
                         if (data) {
                             dataDoc[this.fieldKey] = data;
                         }
@@ -265,11 +250,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         return { nativeWidth, nativeHeight, nativeOrientation };
     }
 
-    // this._curSuffix = "";
-    // if (w > 20) {
-    // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
-    // else if (w < 600 && this._mediumRetryCount < 10) this._curSuffix = "_m";
-    // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
     @computed get paths() {
         const field = Cast(this.dataDoc[this.fieldKey], ImageField, null); // retrieve the primary image URL that is being rendered from the data doc
         const alts = DocListCast(this.dataDoc[this.fieldKey + "-alternates"]); // retrieve alternate documents that may be rendered as alternate images
@@ -300,20 +280,16 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
         return <div className="imageBox-cont" key={this.layoutDoc[Id]} ref={this.createDropTarget} onPointerDown={this.marqueeDown}>
             <div className="imageBox-fader" >
-                <img key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
+                <img key="paths" ref={this._imgRef}
                     src={srcpath}
                     style={{ transform, transformOrigin }} draggable={false}
-                    width={nativeWidth}
-                    ref={this._imgRef}
-                    onError={this.onError} />
+                    width={nativeWidth} />
                 {fadepath === srcpath ? (null) : <div className="imageBox-fadeBlocker">
-                    <img className="imageBox-fadeaway"
-                        key={"fadeaway" + this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
+                    <img className="imageBox-fadeaway" key={"fadeaway"} ref={this._imgRef}
                         src={fadepath}
                         style={{ transform, transformOrigin }} draggable={false}
-                        width={nativeWidth}
-                        ref={this._imgRef}
-                        onError={this.onError} /></div>}
+                        width={nativeWidth} />
+                </div>}
             </div>
             {this.considerDownloadIcon}
             {this.considerGooglePhotosLink()}
@@ -337,7 +313,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     @observable _marqueeing: number[] | undefined;
-    @observable _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
+    @observable _savedAnnotations = new ObservableMap<number, HTMLDivElement[]>();
     @computed get annotationLayer() {
         return <div className="imageBox-annotationLayer" style={{ height: this.props.PanelHeight() }} ref={this._annotationLayer} />;
     }
@@ -388,7 +364,17 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             </CollectionFreeFormView>
             {this.annotationLayer}
             {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
-                <MarqueeAnnotator rootDoc={this.rootDoc} scrollTop={0} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocument} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
+                <MarqueeAnnotator rootDoc={this.rootDoc}
+                    scrollTop={0} down={this._marqueeing}
+                    scaling={this.props.scaling}
+                    docView={this.props.docViewPath().lastElement()}
+                    addDocument={this.addDocument}
+                    finishMarquee={this.finishMarquee}
+                    savedAnnotations={this._savedAnnotations}
+                    annotationLayer={this._annotationLayer.current}
+                    mainCont={this._mainCont.current}
+                />}
         </div >);
     }
+
 }

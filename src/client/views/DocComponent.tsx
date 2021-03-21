@@ -8,6 +8,8 @@ import { List } from '../../fields/List';
 import { DateField } from '../../fields/DateField';
 import { ScriptField } from '../../fields/ScriptField';
 import { GetEffectiveAcl, SharingPermissions, distributeAcls, denormalizeEmail } from '../../fields/util';
+import { CurrentUserUtils } from '../util/CurrentUserUtils';
+import { DocUtils } from '../documents/Documents';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
@@ -82,7 +84,7 @@ export interface ViewBoxAnnotatableProps {
 }
 export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
-        _annotationKey: string = "annotations";
+        @observable _annotationKey: string = "annotations";
 
         @observable _isChildActive = false;
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
@@ -123,19 +125,18 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
         protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
-        public get annotationKey() { return this.fieldKey + "-" + this._annotationKey; }
+        @computed public get annotationKey() { return this.fieldKey + "-" + this._annotationKey; }
 
         @action.bound
-        removeDocument(doc: Doc | Doc[], annotationKey?: string): boolean {
+        removeDocument(doc: Doc | Doc[], annotationKey?: string, leavePushpin?: boolean): boolean {
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
             const indocs = doc instanceof Doc ? [doc] : doc;
             const docs = indocs.filter(doc => effectiveAcl === AclEdit || effectiveAcl === AclAdmin || GetEffectiveAcl(doc) === AclAdmin);
             if (docs.length) {
-                const docs = doc instanceof Doc ? [doc] : doc;
-                docs.map(doc => {
+                setTimeout(() => docs.map(doc => { // this allows 'addDocument' to see the annotationOn field in order to create a pushin
                     Doc.SetInPlace(doc, "isPushpin", undefined, true);
-                    Doc.SetInPlace(doc, "annotationOn", undefined, true);
-                });
+                    doc.annotationOn === this.props.Document && Doc.SetInPlace(doc, "annotationOn", undefined, true);
+                }));
                 const targetDataDoc = this.dataDoc;
                 const value = DocListCast(targetDataDoc[annotationKey ?? this.annotationKey]);
                 const toRemove = value.filter(v => docs.includes(v));
@@ -143,7 +144,9 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                 if (toRemove.length !== 0) {
                     const recent = Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc) as Doc;
                     toRemove.forEach(doc => {
+                        leavePushpin && DocUtils.LeavePushpin(doc);
                         Doc.RemoveDocFromList(targetDataDoc, annotationKey ?? this.annotationKey, doc);
+                        doc.context = undefined;
                         recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                     });
                     this.props.select(false);
@@ -157,7 +160,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         // otherwise, if the document can be removed from where it was, it will then be added to this document's overlay collection. 
         @action.bound
         moveDocument(doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean, annotationKey?: string): boolean {
-            return Doc.AreProtosEqual(this.props.Document, targetCollection) ? true : this.removeDocument(doc, annotationKey) ? addDocument(doc) : false;
+            return Doc.AreProtosEqual(this.props.Document, targetCollection) ? true : this.removeDocument(doc, annotationKey, true) ? addDocument(doc) : false;
         }
         @action.bound
         addDocument(doc: Doc | Doc[], annotationKey?: string): boolean {
@@ -188,7 +191,9 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     }
                     else {
                         added.map(doc => doc.context = this.props.Document);
-                        (targetDataDoc[annotationKey ?? this.annotationKey] as List<Doc>).push(...added);
+                        const annoDocs = targetDataDoc[annotationKey ?? this.annotationKey] as List<Doc>;
+                        if (annoDocs) annoDocs.push(...added);
+                        else targetDataDoc[annotationKey ?? this.annotationKey] = new List<Doc>(added);
                         targetDataDoc[(annotationKey ?? this.annotationKey) + "-lastModified"] = new DateField(new Date(Date.now()));
                     }
                 }
@@ -197,9 +202,11 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         }
 
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
-        active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.props.Document._) &&
-            (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0 || BoolCast((this.layoutDoc as any).forceActive)) ? true : false)
-        annotationsActive = (outsideReaction?: boolean) => (Doc.GetSelectedTool() !== InkTool.None || (this.props.layerProvider?.(this.props.Document) === false && this.props.active()) ||
+        active = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool === InkTool.None &&
+            (this.props.rootSelected(outsideReaction) ||
+                this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
+        annotationsActive = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool !== InkTool.None ||
+            (this.props.layerProvider?.(this.props.Document) === false && this.props.active()) ||
             (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
     }
     return Component;

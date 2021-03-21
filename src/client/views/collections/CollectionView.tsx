@@ -3,15 +3,16 @@ import { observer } from "mobx-react";
 import * as React from 'react';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast } from '../../../fields/Doc';
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast, DocListCastAsync, Field } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
 import { ScriptField } from '../../../fields/ScriptField';
-import { Cast, ScriptCast, StrCast } from '../../../fields/Types';
+import { Cast, ScriptCast, StrCast, DateCast } from '../../../fields/Types';
 import { denormalizeEmail, distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
 import { returnFalse } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
+import { BranchTask, BranchCreate } from '../../documents/Gitlike';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
@@ -70,7 +71,10 @@ export interface CollectionViewProps extends FieldViewProps {
     // property overrides for child documents
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     childDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explicit list (see LinkBox)
+    childFitWidth?: () => boolean;
     childOpacity?: () => number;
+    childHideTitle?: () => boolean; // whether to hide the documentdecorations title for children
+    childHideDecorationTitle?: () => boolean;
     childLayoutTemplate?: () => (Doc | undefined);// specify a layout Doc template to use for children of the collection
     childLayoutString?: string;
     childFreezeDimensions?: boolean; // used by TimeView to coerce documents to treat their width height as their native width/height
@@ -101,13 +105,15 @@ export class CollectionView extends Touchable<CollectionViewProps> {
         return viewField as any as CollectionViewType;
     }
 
-    active = (outsideReaction?: boolean) => (this.props.isSelected(outsideReaction) ||
-        this.props.rootSelected(outsideReaction) ||
-        (this.props.layerProvider?.(this.props.Document) !== false && (this.props.Document.forceActive || this.props.Document._isGroup)) ||
-        this._isChildActive ||
-        this.props.renderDepth === 0) ?
-        true :
-        false
+    active = (outsideReaction?: boolean) => {
+        return this.props.renderDepth === 0 ||
+            this.props.isSelected(outsideReaction) ||
+            this.props.rootSelected(outsideReaction) ||
+            (this.props.layerProvider?.(this.props.Document) !== false && (this.props.Document.forceActive || this.props.Document._isGroup)) ||
+            this._isChildActive ?
+            true :
+            false;
+    }
 
     whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
 
@@ -149,19 +155,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                 }
                 else {
                     added.filter(doc => [AclAdmin, AclEdit].includes(GetEffectiveAcl(doc))).map(doc => {  // only make a pushpin if we have acl's to edit the document
-                        const context = Cast(doc.context, Doc, null);
-                        const hasContextAnchor = DocListCast(doc.links).some(l => (l.anchor2 === doc && Cast(l.anchor1, Doc, null)?.annotationOn === context) || (l.anchor1 === doc && Cast(l.anchor2, Doc, null)?.annotationOn === context));
-                        if (context && !hasContextAnchor && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
-                            const pushpin = Docs.Create.FontIconDocument({
-                                title: "pushpin", label: "", annotationOn: Cast(doc.annotationOn, Doc, null), isPushpin: true,
-                                icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
-                                _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, _timecodeToShow: Cast(doc._timecodeToShow, "number", null)
-                            });
-                            Doc.SetInPlace(doc, "annotationOn", undefined, true);
-                            Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
-                            const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
-                            doc._timecodeToShow = undefined;
-                        }
+                        DocUtils.LeavePushpin(doc);
                         doc._stayInCollection = undefined;
                         doc.context = this.props.Document;
                     });
@@ -297,6 +291,16 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                 optionItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "add:right"), icon: "project-diagram" });
             }
             !Doc.UserDoc().noviceMode && optionItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
+
+            optionItems.push({
+                description: "Create Branch", event: async () => this.props.addDocTab(await BranchCreate(this.props.Document), "add:right"), icon: "project-diagram"
+            });
+            optionItems.push({
+                description: "Pull Master", event: () => BranchTask(this.props.Document, "pull"), icon: "project-diagram"
+            });
+            optionItems.push({
+                description: "Merge Branches", event: () => BranchTask(this.props.Document, "merge"), icon: "project-diagram"
+            });
 
             !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "hand-point-right" });
 

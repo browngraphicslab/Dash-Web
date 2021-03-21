@@ -14,17 +14,17 @@ import React = require("react");
 
 @observer
 export class CollectionPileView extends CollectionSubView(doc => doc) {
-    _originalChrome: string = "";
+    _originalChrome: any = "";
 
     componentDidMount() {
         if (this.layoutEngine() !== "pass" && this.layoutEngine() !== "starburst") {
             this.Document._pileLayoutEngine = "pass";
         }
-        this._originalChrome = StrCast(this.layoutDoc._chromeStatus);
-        this.layoutDoc._chromeStatus = "disabled";
+        this._originalChrome = this.layoutDoc._chromeHidden;
+        this.layoutDoc._chromeHidden = true;
     }
     componentWillUnmount() {
-        this.layoutDoc._chromeStatus = this._originalChrome;
+        this.layoutDoc._chromeHidden = this._originalChrome;
     }
 
     layoutEngine = () => StrCast(this.Document._pileLayoutEngine);
@@ -119,7 +119,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
 
     render() {
         return <div className={`collectionPileView`} onClick={this.onClick} onPointerDown={this.pointerDown}
-            style={{ width: this.props.PanelWidth(), height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
+            style={{ width: this.props.PanelWidth(), height: "100%" }}>
             {this.contents}
         </div>;
     }

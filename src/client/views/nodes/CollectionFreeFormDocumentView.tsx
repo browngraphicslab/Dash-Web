@@ -135,7 +135,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 this.props.removeDocument?.(topDoc);
                 this.props.addDocTab(topDoc, "inParent");
             } else {
-                const spt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+                const spt = this.screenToLocalTransform().inverse().transformPoint(0, 0);
                 const fpt = screenXf.transformPoint(spt[0], spt[1]);
                 topDoc.z = 1;
                 topDoc.x = fpt[0];
@@ -144,7 +144,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             setTimeout(() => SelectionManager.SelectView(DocumentManager.Instance.getDocumentView(topDoc, container)!, false), 0);
         }
     }
-
 
     nudge = (x: number, y: number) => {
         this.props.Document.x = NumCast(this.props.Document.x) + x;

@@ -15,6 +15,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
     static Instance: AnchorMenu;
 
+    private _disposer: IReactionDisposer | undefined;
     private _commentCont = React.createRef<HTMLButtonElement>();
     private _palette = [
         "rgba(208, 2, 27, 0.8)",
@@ -42,6 +43,7 @@ export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
     @observable public Highlighting: boolean = false;
     @observable public Status: "marquee" | "annotation" | "" = "";
 
+    public OnClick: (e: PointerEvent) => void = unimplementedFunction;
     public StartDrag: (e: PointerEvent, ele: HTMLElement) => void = unimplementedFunction;
     public Highlight: (color: string, isPushpin: boolean) => Opt<Doc> = (color: string, isPushpin: boolean) => undefined;
     public Delete: () => void = unimplementedFunction;
@@ -49,7 +51,6 @@ export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
     public PinToPres: () => void = unimplementedFunction;
     public MakePushpin: () => void = unimplementedFunction;
     public IsPushpin: () => boolean = returnFalse;
-    public Marquee: { left: number; top: number; width: number; height: number; } | undefined;
     public get Active() { return this._left > 0; }
 
     constructor(props: Readonly<{}>) {
@@ -59,19 +60,16 @@ export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
         AnchorMenu.Instance._canFade = false;
     }
 
-    _disposer: IReactionDisposer | undefined;
     componentDidMount() {
         this._disposer = reaction(() => SelectionManager.Views(),
-            selected => {
-                AnchorMenu.Instance.fadeOut(true);
-            });
+            selected => AnchorMenu.Instance.fadeOut(true));
     }
 
     pointerDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, (e: PointerEvent) => {
             this.StartDrag(e, this._commentCont.current!);
             return true;
-        }, returnFalse, returnFalse);
+        }, returnFalse, e => this.OnClick?.(e));
     }
 
     @action

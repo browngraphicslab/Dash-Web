@@ -13,7 +13,6 @@ import { CollectionDockingView } from "../client/views/collections/CollectionDoc
 import { intersectRect, Utils } from "../Utils";
 import { DateField } from "./DateField";
 import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
-import { InkTool } from "./InkField";
 import { List } from "./List";
 import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
@@ -25,7 +24,6 @@ import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { AudioField, ImageField, PdfField, VideoField, WebField } from "./URLField";
 import { deleteProperty, GetEffectiveAcl, getField, getter, makeEditable, makeReadOnly, normalizeEmail, setter, SharingPermissions, updateFunction } from "./util";
 import JSZip = require("jszip");
-import { prefix } from "@fortawesome/free-regular-svg-icons";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -94,6 +92,7 @@ export const AclAddonly = Symbol("AclAddonly");
 export const AclEdit = Symbol("AclEdit");
 export const AclAdmin = Symbol("AclAdmin");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
+export const Initializing = Symbol("Initializing");
 export const ForceServerWrite = Symbol("ForceServerWrite");
 export const CachedUpdates = Symbol("Cached updates");
 
@@ -189,6 +188,7 @@ export class Doc extends RefField {
 
     private [UpdatingFromServer]: boolean = false;
     private [ForceServerWrite]: boolean = false;
+    public [Initializing]: boolean = false;
 
     private [Update] = (diff: any) => {
         (!this[UpdatingFromServer] || this[ForceServerWrite]) && DocServer.UpdateField(this[Id], diff);
@@ -371,7 +371,8 @@ export namespace Doc {
      * @param fields the fields to project onto the target. Its type signature defines a mapping from some string key
      * to a potentially undefined field, where each entry in this mapping is optional. 
      */
-    export function assign<K extends string>(doc: Doc, fields: Partial<Record<K, Opt<Field>>>, skipUndefineds: boolean = false) {
+    export function assign<K extends string>(doc: Doc, fields: Partial<Record<K, Opt<Field>>>, skipUndefineds: boolean = false, isInitializing = false) {
+        isInitializing && (doc[Initializing] = true);
         for (const key in fields) {
             if (fields.hasOwnProperty(key)) {
                 const value = fields[key];
@@ -380,6 +381,7 @@ export namespace Doc {
                 }
             }
         }
+        isInitializing && (doc[Initializing] = false);
         return doc;
     }
 
@@ -503,28 +505,28 @@ export namespace Doc {
         return alias;
     }
 
-    export async function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[], exclusions: string[], dontCreate: boolean): Promise<Doc> {
+    export async function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[], exclusions: string[], dontCreate: boolean, asBranch: boolean): Promise<Doc> {
         if (Doc.IsBaseProto(doc)) return doc;
         if (cloneMap.get(doc[Id])) return cloneMap.get(doc[Id])!;
-        const copy = dontCreate ? doc : new Doc(undefined, true);
+        const copy = dontCreate ? asBranch ? (Cast(doc.branchMaster, Doc, null) || doc) : doc : new Doc(undefined, true);
         cloneMap.set(doc[Id], copy);
         if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
-        const filter = Cast(doc.cloneFieldFilter, listSpec("string"), exclusions);
-        await Promise.all(Object.keys(doc).map(async key => {
+        const filter = [...exclusions, ...Cast(doc.cloneFieldFilter, listSpec("string"), [])];
+        await Promise.all([...Object.keys(doc), "links"].map(async key => {
             if (filter.includes(key)) return;
             const assignKey = (val: any) => !dontCreate && (copy[key] = val);
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
-            const field = ProxyField.WithoutProxy(() => doc[key]);
+            const field = key === "links" && Doc.IsPrototype(doc) ? doc[key] : ProxyField.WithoutProxy(() => doc[key]);
             const copyObjectField = async (field: ObjectField) => {
                 const list = Cast(doc[key], listSpec(Doc));
                 const docs = list && (await DocListCastAsync(list))?.filter(d => d instanceof Doc);
                 if (docs !== undefined && docs.length) {
-                    const clones = await Promise.all(docs.map(async d => Doc.makeClone(d, cloneMap, rtfs, exclusions, dontCreate)));
+                    const clones = await Promise.all(docs.map(async d => Doc.makeClone(d, cloneMap, rtfs, exclusions, dontCreate, asBranch)));
                     !dontCreate && assignKey(new List<Doc>(clones));
                 } else if (doc[key] instanceof Doc) {
-                    assignKey(key.includes("layout[") ? undefined : key.startsWith("layout") ? doc[key] as Doc : await Doc.makeClone(doc[key] as Doc, cloneMap, rtfs, exclusions, dontCreate)); // reference documents except copy documents that are expanded teplate fields 
+                    assignKey(key.includes("layout[") ? undefined : key.startsWith("layout") ? doc[key] as Doc : await Doc.makeClone(doc[key] as Doc, cloneMap, rtfs, exclusions, dontCreate, asBranch)); // reference documents except copy documents that are expanded teplate fields 
                 } else {
-                    assignKey(ObjectField.MakeCopy(field));
+                    !dontCreate && assignKey(ObjectField.MakeCopy(field));
                     if (field instanceof RichTextField) {
                         if (field.Data.includes('"docid":') || field.Data.includes('"targetId":') || field.Data.includes('"linkId":')) {
                             rtfs.push({ copy, key, field });
@@ -534,7 +536,7 @@ export namespace Doc {
             };
             if (key === "proto") {
                 if (doc[key] instanceof Doc) {
-                    assignKey(await Doc.makeClone(doc[key]!, cloneMap, rtfs, exclusions, dontCreate));
+                    assignKey(await Doc.makeClone(doc[key]!, cloneMap, rtfs, exclusions, dontCreate, asBranch));
                 }
             } else {
                 if (field instanceof RefField) {
@@ -552,16 +554,19 @@ export namespace Doc {
             }
         }));
         if (!dontCreate) {
-            Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
-            copy.cloneOf = doc;
+            Doc.SetInPlace(copy, "title", (asBranch ? "BRANCH: " : "CLONE: ") + doc.title, true);
+            asBranch ? (copy.branchOf = doc) : (copy.cloneOf = doc);
+            if (!Doc.IsPrototype(copy)) {
+                Doc.AddDocToList(doc, "branches", Doc.GetProto(copy));
+            }
             cloneMap.set(doc[Id], copy);
         }
         return copy;
     }
-    export async function MakeClone(doc: Doc, dontCreate: boolean = false) {
+    export async function MakeClone(doc: Doc, dontCreate: boolean = false, asBranch = false) {
         const cloneMap = new Map<string, Doc>();
         const rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
-        const copy = await Doc.makeClone(doc, cloneMap, rtfMap, ["context", "annotationOn", "cloneOf"], dontCreate);
+        const copy = await Doc.makeClone(doc, cloneMap, rtfMap, ["context", "annotationOn", "cloneOf", "branches", "branchOf"], dontCreate, asBranch);
         rtfMap.map(({ copy, key, field }) => {
             const replacer = (match: any, attr: string, id: string, offset: any, string: any) => {
                 const mapped = cloneMap.get(id);
@@ -586,7 +591,7 @@ export namespace Doc {
         // a.click();
         const { clone, map } = await Doc.MakeClone(doc, true);
         function replacer(key: any, value: any) {
-            if (["cloneOf", "context", "cursors"].includes(key)) return undefined;
+            if (["branchOf", "cloneOf", "context", "cursors"].includes(key)) return undefined;
             else if (value instanceof Doc) {
                 if (key !== "field" && Number.isNaN(Number(key))) {
                     const __fields = value[FieldsSym]();
@@ -776,10 +781,12 @@ export namespace Doc {
     export function MakeDelegate(doc: Opt<Doc>, id?: string, title?: string): Opt<Doc> {
         if (doc) {
             const delegate = new Doc(id, true);
+            delegate[Initializing] = true;
             delegate.proto = doc;
             delegate.author = Doc.CurrentUserEmail;
             if (!Doc.IsSystem(doc)) Doc.AddDocToList(doc[DataSym], "aliases", delegate);
             title && (delegate.title = title);
+            delegate[Initializing] = false;
             return delegate;
         }
         return undefined;
@@ -902,9 +909,6 @@ export namespace Doc {
     export function UserDoc(): Doc { return manager._user_doc; }
     export function SharingDoc(): Doc { return Cast(Doc.UserDoc().mySharedDocs, Doc, null); }
     export function LinkDBDoc(): Doc { return Cast(Doc.UserDoc().myLinkDatabase, Doc, null); }
-
-    export function SetSelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
-    export function GetSelectedTool(): InkTool { return StrCast(Doc.UserDoc().activeInkTool, InkTool.None) as InkTool; }
     export function SetUserDoc(doc: Doc) { return (manager._user_doc = doc); }
 
     const isSearchMatchCache = computedFn(function IsSearchMatch(doc: Doc) {
@@ -1063,26 +1067,29 @@ export namespace Doc {
     // filters document in a container collection:
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
-    export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
+    export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers: "remove" | "match" | "check" | "x", toggle?: boolean, fieldPrefix?: string, append: boolean = true) {
         const container = target ?? CollectionDockingView.Instance.props.Document;
-        const docFilters = Cast(container._docFilters, listSpec("string"), []);
+        const filterField = "_" + (fieldPrefix ? fieldPrefix + "-" : "") + "docFilters";
+        const docFilters = Cast(container[filterField], listSpec("string"), []);
         runInAction(() => {
             for (let i = 0; i < docFilters.length; i++) {
                 const fields = docFilters[i].split(":"); // split key:value:modifier
                 if (fields[0] === key && (fields[1] === value || modifiers === "match" || modifiers === "remove")) {
-                    if (fields[2] === modifiers && modifiers && fields[1] === value) return;
+                    if (fields[2] === modifiers && modifiers && fields[1] === value) {
+                        if (toggle) modifiers = "remove";
+                        else return;
+                    }
                     docFilters.splice(i, 1);
-                    container._docFilters = new List<string>(docFilters);
+                    container[filterField] = new List<string>(docFilters);
                     break;
                 }
             }
-            if (typeof modifiers === "string") {
-                if (!docFilters.length && modifiers === "match" && value === undefined) {
-                    container._docFilters = undefined;
-                } else if (modifiers !== "remove") {
-                    docFilters.push(key + ":" + value + ":" + modifiers);
-                    container._docFilters = new List<string>(docFilters);
-                }
+            if (!docFilters.length && modifiers === "match" && value === undefined) {
+                container[filterField] = undefined;
+            } else if (modifiers !== "remove") {
+                !append && (docFilters.length = 0);
+                docFilters.push(key + ":" + value + ":" + modifiers);
+                container[filterField] = new List<string>(docFilters);
             }
         });
     }
@@ -1155,7 +1162,6 @@ export namespace Doc {
             case DocumentType.PRES: return "tv";
             case DocumentType.SCRIPTING: return "terminal";
             case DocumentType.IMPORT: return "cloud-upload-alt";
-            case DocumentType.DOCHOLDER: return "expand";
             case DocumentType.VID: return "video";
             case DocumentType.INK: return "pen-nib";
             case DocumentType.PDF: return "file-pdf";
@@ -1330,9 +1336,9 @@ Scripting.addGlobal(function activePresentationItem() {
 });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
     const docs = SelectionManager.Views().map(dv => dv.props.Document).
-        filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCHOLDER && d.type !== DocumentType.KVP &&
+        filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.KVP &&
             (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });
-Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: "match" | "check" | "x" | undefined) { Doc.setDocFilter(container, key, value, modifiers); });
+Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers: "match" | "check" | "x" | "remove") { Doc.setDocFilter(container, key, value, modifiers); });
 Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number[]) { Doc.setDocFilterRange(container, key, range); });

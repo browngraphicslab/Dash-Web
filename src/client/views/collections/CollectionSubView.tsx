@@ -66,9 +66,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         @computed get dataField() {
             // sets the dataDoc's data field to an empty list if the data field is undefined - prevents issues with addonly
             // setTimeout changes it outside of the @computed section
-            setTimeout(() => {
-                if (!this.dataDoc[this.props.fieldKey]) this.dataDoc[this.props.fieldKey] = new List<Doc>();
-            }, 1000);
+            !this.dataDoc[this.props.fieldKey] && setTimeout(() => !this.dataDoc[this.props.fieldKey] && (this.dataDoc[this.props.fieldKey] = new List<Doc>()));
             return this.dataDoc[this.props.fieldKey];
         }
 
@@ -76,7 +74,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const { Document, DataDoc } = this.props;
             const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, !this.props.isAnnotationOverlay ? DataDoc : undefined, doc)).
                 filter(pair => {  // filter out any documents that have a proto that we don't have permissions to (which we determine by not having any keys
-                    return pair.layout && (!pair.layout.proto || (pair.layout.proto instanceof Doc && GetEffectiveAcl(pair.layout.proto) !== AclPrivate));// Object.keys(pair.layout.proto).length));
+                    return pair.layout && !pair.layout.hidden && (!pair.layout.proto || (pair.layout.proto instanceof Doc && GetEffectiveAcl(pair.layout.proto) !== AclPrivate));// Object.keys(pair.layout.proto).length));
                 });
             return validPairs.map(({ data, layout }) => ({ data: data as Doc, layout: layout! })); // this mapping is a bit of a hack to coerce types
         }
@@ -329,7 +327,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                     const y = NumCast(srcWeb._scrollTop) + ((rects && Array.from(rects).reduce((y: any, r: DOMRect) => y === undefined || r.y < y ? r.y : y, undefined as any)) || 0);
                                     const r = (rects && Array.from(rects).reduce((x: any, r: DOMRect) => x === undefined || r.x + r.width > x ? r.x + r.width : x, undefined as any)) || 0;
                                     const b = NumCast(srcWeb._scrollTop) + ((rects && Array.from(rects).reduce((y: any, r: DOMRect) => y === undefined || r.y + r.height > y ? r.y + r.height : y, undefined as any)) || 0);
-                                    const anchor = Docs.Create.FreeformDocument([], { _backgroundColor: "transparent", _width: r - x, _height: b - y, x, y, annotationOn: srcWeb });
+                                    const anchor = Docs.Create.FreeformDocument([], { backgroundColor: "transparent", _width: r - x, _height: b - y, x, y, annotationOn: srcWeb });
                                     anchor.context = srcWeb;
                                     const key = Doc.LayoutFieldKey(srcWeb);
                                     Doc.AddDocToList(srcWeb, key + "-annotations", anchor);
@@ -375,16 +373,17 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
             if (uriList) {
                 console.log("Web URI = ", uriList);
-                const existingWebDoc = await Hypothesis.findWebDoc(uriList);
-                if (existingWebDoc) {
-                    const alias = Doc.MakeAlias(existingWebDoc);
-                    alias.x = options.x;
-                    alias.y = options.y;
-                    alias._nativeWidth = 850;
-                    alias._height = 512;
-                    alias._width = 400;
-                    addDocument(alias);
-                } else {
+                // const existingWebDoc = await Hypothesis.findWebDoc(uriList);
+                // if (existingWebDoc) {
+                //     const alias = Doc.MakeAlias(existingWebDoc);
+                //     alias.x = options.x;
+                //     alias.y = options.y;
+                //     alias._nativeWidth = 850;
+                //     alias._height = 512;
+                //     alias._width = 400;
+                //     addDocument(alias);
+                // } else 
+                {
                     console.log("Adding ...");
                     const newDoc = Docs.Create.WebDocument(uriList.split("#annotations:")[0], {// clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
                         ...options,
@@ -480,7 +479,6 @@ import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTex
 import { CollectionView, CollectionViewType, CollectionViewProps } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
-import { setTimeout } from "timers";
 import { Hypothesis } from "../../util/HypothesisUtils";
 import { GetEffectiveAcl } from "../../../fields/util";
 

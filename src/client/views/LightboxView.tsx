@@ -30,15 +30,16 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     @observable private static _docTarget: Opt<Doc>;
     @observable private static _docFilters: string[] = []; // filters
     @observable private static _tourMap: Opt<Doc[]> = [];   // list of all tours available from the current target
-    private static _savedState: Opt<{ panX: Opt<number>, panY: Opt<number>, scale: Opt<number> }>;
+    private static _savedState: Opt<{ panX: Opt<number>, panY: Opt<number>, scale: Opt<number>, scrollTop: Opt<number> }>;
     private static _history: Opt<{ doc: Doc, target?: Doc }[]> = [];
     private static _future: Opt<Doc[]> = [];
     private static _docView: Opt<DocumentView>;
-    static path: { doc: Opt<Doc>, target: Opt<Doc>, history: Opt<{ doc: Doc, target?: Doc }[]>, future: Opt<Doc[]>, saved: Opt<{ panX: Opt<number>, panY: Opt<number>, scale: Opt<number> }> }[] = [];
+    static path: { doc: Opt<Doc>, target: Opt<Doc>, history: Opt<{ doc: Doc, target?: Doc }[]>, future: Opt<Doc[]>, saved: Opt<{ panX: Opt<number>, panY: Opt<number>, scale: Opt<number>, scrollTop: Opt<number> }> }[] = [];
     @action public static SetLightboxDoc(doc: Opt<Doc>, target?: Doc, future?: Doc[]) {
         if (this.LightboxDoc && this.LightboxDoc !== doc && this._savedState) {
             this.LightboxDoc._panX = this._savedState.panX;
             this.LightboxDoc._panY = this._savedState.panY;
+            this.LightboxDoc._scrollTop = this._savedState.scrollTop;
             this.LightboxDoc._viewScale = this._savedState.scale;
             this.LightboxDoc._viewTransition = undefined;
         }
@@ -53,6 +54,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                     panX: Cast(doc._panX, "number", null),
                     panY: Cast(doc._panY, "number", null),
                     scale: Cast(doc._viewScale, "number", null),
+                    scrollTop: Cast(doc._scrollTop, "number", null),
                 };
             }
         }
@@ -123,6 +125,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                     LightboxView.LightboxDoc._panX = saved.panX;
                     LightboxView.LightboxDoc._panY = saved.panY;
                     LightboxView.LightboxDoc._viewScale = saved.scale;
+                    LightboxView.LightboxDoc._scrollTop = saved.scrollTop;
                     LightboxView.LightboxDoc._viewTransition = undefined;
                 }
                 const pop = LightboxView.path.pop();
