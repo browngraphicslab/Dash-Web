@@ -18,7 +18,15 @@ import { ViewBoxBaseComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { Networking } from "../../Network";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { VideoBox } from "./VideoBox";
+import { Id } from "../../../fields/FieldSymbols";
 const path = require('path');
+declare class MediaRecorder {
+    constructor(e: any, options?: any);  // whatever MediaRecorder has
+}
+
 
 type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
 const ScreenshotDocument = makeInterface(documentSchema);
@@ -119,12 +127,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
             const url = field.url.href;
             const subitems: ContextMenuProps[] = [];
             subitems.push({ description: "Take Snapshot", event: () => this.Snapshot(), icon: "expand-arrows-alt" });
-            subitems.push({
-                description: "Screen Capture", event: (async () => {
-                    runInAction(() => this._screenCapture = !this._screenCapture);
-                    this._videoRef!.srcObject = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
-                }), icon: "expand-arrows-alt"
-            });
+            subitems.push({ description: "Screen Capture", event: this.toggleRecording, icon: "expand-arrows-alt" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: subitems, icon: "video" });
         }
     }
@@ -142,16 +145,42 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
             </video>;
     }
 
+    _chunks: any;
+    _recorder: any;
+
     toggleRecording = action(async () => {
         this._screenCapture = !this._screenCapture;
-        this._videoRef!.srcObject = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
+        if (this._screenCapture) {
+            const stream = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
+            this._videoRef!.srcObject = stream;
+            this._recorder = new MediaRecorder(stream, {
+                audioBitsPerSecond: 128000,
+                videoBitsPerSecond: 2500000,
+                mimeType: 'video/webm'
+            });
+            this._chunks = [];
+            this._recorder.ondataavailable = (e: any) => this._chunks.push(e.data);
+            this._recorder.onstop = async (e: any) => {
+                const file = new File([this._chunks], `${this.rootDoc[Id]}.mkv`, { type: this._chunks[0].type, lastModified: Date.now() });
+                const [{ result }] = await Networking.UploadFilesToServer(file);
+                if (!(result instanceof Error)) {
+                    this.dataDoc.type = DocumentType.VID;
+                    this.layoutDoc.layout = VideoBox.LayoutString(this.fieldKey);
+                    this.props.Document[this.props.fieldKey] = new VideoField(Utils.prepend(result.accessPaths.agnostic.client));
+                    console.log(this.props.Document[this.props.fieldKey]);
+                } else alert("video conversion failed")
+            };
+            this._recorder.start();
+        } else {
+            this._recorder.stop();
+        }
     });
 
     private get uIButtons() {
         return (<div className="screenshotBox-uiButtons">
             <div className="screenshotBox-recorder" key="snap" onPointerDown={this.toggleRecording} >
                 <FontAwesomeIcon icon="file" size="lg" />
-            </div>,
+            </div>
             <div className="screenshotBox-snapshot" key="snap" onPointerDown={this.onSnapshot} >
                 <FontAwesomeIcon icon="camera" size="lg" />
             </div>
@@ -163,7 +192,6 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
         e.stopPropagation();
         e.preventDefault();
     }
-
 
     contentFunc = () => [this.content];
     render() {

@@ -62,7 +62,7 @@ export namespace DashUploadUtils {
 
         const category = types[0];
         let format = `.${types[1]}`;
-        console.log(green(`Processing upload of file (${name}) with upload type (${type}) in category (${category}).`));
+        console.log(green(`Processing upload of file (${name}) and form (${format}) with upload type (${type}) in category (${category}).`));
 
         switch (category) {
             case "image":

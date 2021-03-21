@@ -8,7 +8,7 @@ export namespace AcceptableMedia {
     export const webps = [".webp"];
     export const tiffs = [".tiff"];
     export const imageFormats = [...pngs, ...jpgs, ...gifs, ...webps, ...tiffs];
-    export const videoFormats = [".mov", ".mp4", ".quicktime"];
+    export const videoFormats = [".mov", ".mp4", ".quicktime", ".x-matroska;codecs=avc1"];
     export const applicationFormats = [".pdf"];
     export const audioFormats = [".wav", ".mp3", ".mpeg", ".flac", ".au", ".aiff", ".m4a", ".webm"];
 }

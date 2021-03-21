@@ -23,7 +23,6 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import "./AudioBox.scss";
 import { FieldView, FieldViewProps } from './FieldView';
-import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "./LinkDocPreview";
 declare class MediaRecorder {
     constructor(e: any);  // whatever MediaRecorder has
