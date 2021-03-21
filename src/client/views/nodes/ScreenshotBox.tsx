@@ -166,7 +166,6 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
                     this.dataDoc.type = DocumentType.VID;
                     this.layoutDoc.layout = VideoBox.LayoutString(this.fieldKey);
                     this.dataDoc[this.props.fieldKey] = new VideoField(Utils.prepend(result.accessPaths.agnostic.client));
-                    console.log(this.props.Document[this.props.fieldKey]);
                 } else alert("video conversion failed");
             };
             this._recorder.start();

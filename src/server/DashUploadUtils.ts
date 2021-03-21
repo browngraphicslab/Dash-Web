@@ -63,7 +63,7 @@ export namespace DashUploadUtils {
 
         const category = types[0];
         let format = `.${types[1]}`;
-        console.log(green(`Processing upload of file (${name}) and form (${format}) with upload type (${type}) in category (${category}).`));
+        console.log(green(`Processing upload of file (${name}) and format (${format}) with upload type (${type}) in category (${category}).`));
 
         switch (category) {
             case "image":
@@ -72,13 +72,14 @@ export namespace DashUploadUtils {
                     return { source: file, result };
                 }
             case "video":
+                if (format.includes("x-matroska")) {
+                    await new Promise(res => ffmpeg(file.path)
+                        .videoCodec("copy") // this will copy the data instead of reencode it
+                        .save(file.path.replace(".mkv", ".mp4")).on('end', () => res()));
+                    file.path = file.path.replace(".mkv", ".mp4");
+                    format = ".mp4";
+                }
                 if (videoFormats.includes(format)) {
-                    if (format.includes("x-matroska")) {
-                        await new Promise(res => ffmpeg(file.path)
-                            .videoCodec("copy") // this will copy the data instead or reencode it
-                            .save(file.path.replace(".mkv", ".mp4")).on('end', () => res()));
-                        file.path = file.path.replace(".mkv", ".mp4");
-                    }
                     return MoveParsedFile(file, Directory.videos);
                 }
             case "application":
