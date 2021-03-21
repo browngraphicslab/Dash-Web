@@ -8,7 +8,7 @@ import { documentSchema } from "../../../fields/documentSchemas";
 import { InkTool } from "../../../fields/InkField";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast } from "../../../fields/Types";
-import { VideoField } from "../../../fields/URLField";
+import { VideoField, AudioField } from "../../../fields/URLField";
 import { emptyFunction, returnFalse, returnOne, returnZero, Utils, OmitKeys } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -47,7 +47,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
     getAnchor = () => {
         return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "_timecodeToShow" /* audioStart */, "_timecodeToHide" /* audioEnd */,
             Cast(this.layoutDoc._currentTimecode, "number", null) ||
-            (this._recorder ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined))
+            (this._vrecorder ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined))
             || this.rootDoc;
     }
 
@@ -157,34 +157,45 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
             </video>;
     }
 
-    _chunks: any;
-    _recorder: any;
+    _vchunks: any;
+    _achunks: any;
+    _vrecorder: any;
+    _arecorder: any;
 
     toggleRecording = action(async () => {
         this._screenCapture = !this._screenCapture;
         if (this._screenCapture) {
-            const stream = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
-            this._videoRef!.srcObject = stream;
-            this._recorder = new MediaRecorder(stream);
             this.dataDoc[this.props.fieldKey + "-recordingStart"] = new DateField(new Date());
-            this._chunks = [];
-            this._recorder.ondataavailable = (e: any) => this._chunks.push(e.data);
-            this._recorder.onstop = async (e: any) => {
-                const file = new File(this._chunks, `${this.rootDoc[Id]}.mkv`, { type: this._chunks[0].type, lastModified: Date.now() });
-                const completeBlob = new Blob(this._chunks, { type: this._chunks[0].type });
-                (completeBlob as any).lastModifiedDate = new Date();
-                (completeBlob as any).name = `${this.rootDoc[Id]}.mkv`;
-                const [{ result }] = await Networking.UploadFilesToServer(file);//completeBlob as File);
+            this._arecorder = new MediaRecorder(await navigator.mediaDevices.getUserMedia({ audio: true }));
+            this._achunks = [];
+            this._arecorder.ondataavailable = (e: any) => this._achunks.push(e.data);
+            this._arecorder.onstop = async (e: any) => {
+                const [{ result }] = await Networking.UploadFilesToServer(this._achunks);
+                if (!(result instanceof Error)) {
+                    this.dataDoc[this.props.fieldKey + "-audio"] = new AudioField(Utils.prepend(result.accessPaths.agnostic.client));
+                }
+            };
+            const vstream = await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
+            this._videoRef!.srcObject = vstream;
+            this._vrecorder = new MediaRecorder(vstream);
+            this._vchunks = [];
+            this._vrecorder.ondataavailable = (e: any) => this._vchunks.push(e.data);
+            this._vrecorder.onstop = async (e: any) => {
+                const file = new File(this._vchunks, `${this.rootDoc[Id]}.mkv`, { type: this._vchunks[0].type, lastModified: Date.now() });
+                const [{ result }] = await Networking.UploadFilesToServer(file);
+                this.dataDoc[this.fieldKey + "-duration"] = (new Date().getTime() - this.recordingStart!) / 1000;
                 if (!(result instanceof Error)) {
                     this.dataDoc.type = DocumentType.VID;
                     this.layoutDoc.layout = VideoBox.LayoutString(this.fieldKey);
                     this.dataDoc[this.props.fieldKey] = new VideoField(Utils.prepend(result.accessPaths.agnostic.client));
                 } else alert("video conversion failed");
             };
-            this._recorder.start();
+            this._arecorder.start();
+            this._vrecorder.start();
             DocUtils.ActiveRecordings.push(this);
         } else {
-            this._recorder.stop();
+            this._arecorder.stop();
+            this._vrecorder.stop();
             const ind = DocUtils.ActiveRecordings.indexOf(this);
             ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
         }
@@ -195,7 +206,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
             <div className="screenshotBox-recorder" key="snap" onPointerDown={this.toggleRecording} >
                 <FontAwesomeIcon icon="file" size="lg" />
             </div>
-            <div className="screenshotBox-snapshot" key="snap" onPointerDown={this.onSnapshot} >
+            <div className="screenshotBox-snapshot" key="cam" onPointerDown={this.onSnapshot} >
                 <FontAwesomeIcon icon="camera" size="lg" />
             </div>
         </div>);

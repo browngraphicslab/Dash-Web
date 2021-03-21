@@ -9,7 +9,7 @@ import { documentSchema } from "../../../fields/documentSchemas";
 import { InkTool } from "../../../fields/InkField";
 import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { VideoField } from "../../../fields/URLField";
+import { VideoField, AudioField, nullAudio } from "../../../fields/URLField";
 import { emptyFunction, formatTime, OmitKeys, returnOne, setupMoveUpEvents, Utils } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
@@ -72,8 +72,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     getAnchor = () => {
         const timecode = Cast(this.layoutDoc._currentTimecode, "number", null);
-        const anchor = CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "_timecodeToShow"/* videoStart */, "_timecodeToHide" /* videoEnd */, timecode ? timecode : undefined) || this.rootDoc;
-        return anchor;
+        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "_timecodeToShow"/* videoStart */, "_timecodeToHide" /* videoEnd */, timecode ? timecode : undefined) || this.rootDoc;
     }
 
     choosePath(url: string) {
@@ -92,6 +91,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         this._playing = true;
         try {
             update && this.player?.play();
+            update && this._audioPlayer?.play();
             update && this._youtubePlayer?.playVideo();
             this._youtubePlayer && !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 5));
         } catch (e) {
@@ -107,12 +107,14 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             console.log("Video Seek Exception:", e);
         }
         this.player && (this.player.currentTime = time);
+        this._audioPlayer && (this._audioPlayer.currentTime = time);
     }
 
     @action public Pause = (update: boolean = true) => {
         this._playing = false;
         try {
             update && this.player?.pause();
+            update && this._audioPlayer?.pause();
             update && this._youtubePlayer?.pauseVideo();
             this._youtubePlayer && this._playTimer && clearInterval(this._playTimer);
             this._youtubePlayer?.seekTo(this._youtubePlayer?.getCurrentTime(), true);
@@ -292,6 +294,15 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         }
     }
 
+    // returns the path of the audio file
+    @computed get audiopath() {
+        const field = Cast(this.props.Document[this.props.fieldKey + '-audio'], AudioField);
+        const path = (field instanceof AudioField) ? field.url.href : "";
+        return path === nullAudio ? "" : path;
+    }
+    // ref for updating time
+    _audioPlayer: HTMLAudioElement | null = null;
+    setAudioRef = (e: HTMLAudioElement | null) => this._audioPlayer = e;
     @computed get content() {
         const field = Cast(this.dataDoc[this.fieldKey], VideoField);
         const interactive = CurrentUserUtils.SelectedTool !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
@@ -310,6 +321,10 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                         <source src={field.url.href} type="video/mp4" />
                     Not supported.
                     </video>
+                    <audio ref={this.setAudioRef} className={`audiobox-control${this.active() ? "-interactive" : ""}`}>
+                        <source src={this.audiopath} type="audio/mpeg" />
+                        Not supported.
+                    </audio>;
                 </div>
             </div>;
     }
@@ -461,7 +476,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 }
             } else if (seekTimeInSeconds <= this.player.duration) {
                 this.player.currentTime = seekTimeInSeconds;
+                this._audioPlayer && (this._audioPlayer.currentTime = seekTimeInSeconds);
                 this.player.play();
+                this._audioPlayer?.play();
                 runInAction(() => this._playing = true);
                 if (endTime !== this.duration) {
                     this._playRegionTimer = setTimeout(() => this.Pause(), (this._playRegionDuration) * 1000); // use setTimeout to play a specific duration
