@@ -759,8 +759,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.props.contentsActive?.(this.active);
         this._cachedLinks = DocListCast(this.Document.links);
         this._disposers.autoHeight = reaction(() => this.autoHeight, autoHeight => autoHeight && this.tryUpdateScrollHeight());
-        this._disposers.autoHeight = reaction(() => ({ scrollHeight: this.scrollHeight, width: NumCast(this.layoutDoc._width) }),
-            ({ width, scrollHeight }) => width && this.autoHeight && this.resetNativeHeight(scrollHeight)
+        this._disposers.scrollHeight = reaction(() => ({ scrollHeight: this.scrollHeight, autoHeight: this.autoHeight, width: NumCast(this.layoutDoc._width) }),
+            ({ width, scrollHeight, autoHeight }) => width && autoHeight && this.resetNativeHeight(scrollHeight)
         );
         this._disposers.componentHeights = reaction(  // set the document height when one of the component heights changes and autoHeight is on
             () => ({ sidebarHeight: this.sidebarHeight, textHeight: this.textHeight, autoHeight: this.autoHeight }),
@@ -1393,14 +1393,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
     tryUpdateScrollHeight() {
         if (!LightboxView.LightboxDoc || LightboxView.IsLightboxDocView(this.props.docViewPath())) {
-            const proseHeight = this.ProseRef?.scrollHeight || 0;
-            const scrollHeight = this.ProseRef && Math.min(NumCast(this.layoutDoc.docMaxAutoHeight, proseHeight), proseHeight);
-            if (scrollHeight && this.props.renderDepth && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
-                const setScrollHeight = () => this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight;
-                if (this.rootDoc === this.layoutDoc.doc || this.layoutDoc.resolvedDataDoc) {
-                    setScrollHeight();
-                } else setTimeout(setScrollHeight, 10); // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
-            }
+            setTimeout(() => { // bcz: don't know why this is needed, but without it, the size of the textbox is too big as it includes the size of the title header.  after the timeout, the size seems to get computed correctly.
+                const proseHeight = this.ProseRef?.scrollHeight || 0;
+                const scrollHeight = this.ProseRef && Math.min(NumCast(this.layoutDoc.docMaxAutoHeight, proseHeight), proseHeight);
+                if (scrollHeight && this.props.renderDepth && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
+                    const setScrollHeight = () => this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight;
+                    if (this.rootDoc === this.layoutDoc.doc || this.layoutDoc.resolvedDataDoc) {
+                        setScrollHeight();
+                    } else setTimeout(setScrollHeight, 10); // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
+                }
+            });
         }
     }
     fitToBox = () => this.props.Document._fitToBox;
