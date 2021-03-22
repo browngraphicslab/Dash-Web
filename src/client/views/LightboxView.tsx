@@ -116,6 +116,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
         const target = LightboxView._docTarget = LightboxView._future?.pop();
         const docView = target && DocumentManager.Instance.getLightboxDocumentView(target);
         if (docView && target) {
+            DocUtils.MakeLinkToActiveAudio(target);
             docView.focus(target, { originalTarget: target, willZoom: true, scale: 0.9 });
             if (LightboxView._history?.lastElement().target !== target) LightboxView._history?.push({ doc, target });
         } else {

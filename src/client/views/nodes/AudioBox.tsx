@@ -106,8 +106,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
         this.audioState = this.path ? "paused" : undefined;
 
-        //this._disposers.scrubbing = reaction(() => AudioBox._scrubTime, (time) => this.layoutDoc.playOnSelect && this.playFromTime(AudioBox._scrubTime));
-
         this._disposers.triggerAudio = reaction(
             () => !LinkDocPreview.LinkInfo && this.props.renderDepth !== -1 ? NumCast(this.Document._triggerAudio, null) : undefined,
             start => start !== undefined && setTimeout(() => {
@@ -216,8 +214,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.layoutDoc.hideAnchors ? "Don't hide" : "Hide") + " anchors", event: () => this.layoutDoc.hideAnchors = !this.layoutDoc.hideAnchors, icon: "expand-arrows-alt" });
-        funcs.push({ description: (this.layoutDoc.playOnSelect ? "Don't play" : "Play") + " when link is selected", event: () => this.layoutDoc.playOnSelect = !this.layoutDoc.playOnSelect, icon: "expand-arrows-alt" });
-        funcs.push({ description: (this.layoutDoc.autoPlay ? "Don't auto play" : "Auto play") + " anchors onClick", event: () => this.layoutDoc.autoPlay = !this.layoutDoc.autoPlay, icon: "expand-arrows-alt" });
+        funcs.push({ description: (this.layoutDoc.dontAutoPlayFollowedLinks ? "" : "Don't") + " play when link is selected", event: () => this.layoutDoc.dontAutoPlayFollowedLinks = !this.layoutDoc.dontAutoPlayFollowedLinks, icon: "expand-arrows-alt" });
+        funcs.push({ description: (this.layoutDoc.autoPlayAnchors ? "Don't auto play" : "Auto play") + " anchors onClick", event: () => this.layoutDoc.autoPlayAnchors = !this.layoutDoc.autoPlayAnchors, icon: "expand-arrows-alt" });
         ContextMenu.Instance?.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
@@ -330,7 +328,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     playLink = (link: Doc) => {
         const stack = this._stackedTimeline.current;
         if (link.annotationOn === this.rootDoc) {
-            if (this.layoutDoc.playOnSelect) this.playFrom(stack?.anchorStart(link) || 0, stack?.anchorEnd(link));
+            if (!this.layoutDoc.dontAutoPlayFollowedLinks) this.playFrom(stack?.anchorStart(link) || 0, stack?.anchorEnd(link));
             else this._ele!.currentTime = this.layoutDoc._currentTimecode = (stack?.anchorStart(link) || 0);
         }
         else {
@@ -339,7 +337,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 const startTime = stack?.anchorStart(la1) || stack?.anchorStart(la2);
                 const endTime = stack?.anchorEnd(la1) || stack?.anchorEnd(la2);
                 if (startTime !== undefined) {
-                    if (this.layoutDoc.playOnSelect) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);
+                    if (!this.layoutDoc.dontAutoPlayFollowedLinks) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);
                     else this._ele!.currentTime = this.layoutDoc._currentTimecode = startTime;
                 }
             });
@@ -387,7 +385,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             {!this.path ?
                 <div className="audiobox-buttons">
                     <div className="audiobox-dictation" onClick={this.onFile}>
-                        <FontAwesomeIcon style={{ width: "30px", background: this.layoutDoc.playOnSelect ? "yellow" : "rgba(0,0,0,0)" }} icon="file-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
+                        <FontAwesomeIcon style={{ width: "30px", background: !this.layoutDoc.dontAutoPlayFollowedLinks ? "yellow" : "rgba(0,0,0,0)" }} icon="file-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
                     </div>
                     {this.audioState === "recording" || this.audioState === "paused" ?
                         <div className="recording" onClick={e => e.stopPropagation()}>

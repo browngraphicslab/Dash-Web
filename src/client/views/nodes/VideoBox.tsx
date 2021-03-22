@@ -84,12 +84,15 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         Doc.SetNativeWidth(this.dataDoc, this.player!.videoWidth);
         Doc.SetNativeHeight(this.dataDoc, this.player!.videoHeight);
         this.layoutDoc._height = (this.layoutDoc._width || 0) / aspect;
-        this.dataDoc[this.fieldKey + "-duration"] = this.player!.duration;
+        if (Number.isFinite(this.player!.duration)) {
+            this.dataDoc[this.fieldKey + "-duration"] = this.player!.duration;
+        }
     }
 
     @action public Play = (update: boolean = true) => {
         this._playing = true;
         try {
+            this._audioPlayer && this.player && (this._audioPlayer.currentTime = this.player?.currentTime);
             update && this.player?.play();
             update && this._audioPlayer?.play();
             update && this._youtubePlayer?.playVideo();
@@ -288,8 +291,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     this._videoRef!.srcObject = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
                 }), icon: "expand-arrows-alt"
             });
-            subitems.push({ description: (this.layoutDoc.playOnSelect ? "Don't play" : "Play") + " when link is selected", event: () => this.layoutDoc.playOnSelect = !this.layoutDoc.playOnSelect, icon: "expand-arrows-alt" });
-            subitems.push({ description: (this.layoutDoc.autoPlay ? "Don't auto play" : "Auto play") + " anchors onClick", event: () => this.layoutDoc.autoPlay = !this.layoutDoc.autoPlay, icon: "expand-arrows-alt" });
+            subitems.push({ description: (this.layoutDoc.dontAutoPlayFollowedLinks ? "" : "Don't") + " play when link is selected", event: () => this.layoutDoc.dontAutoPlayFollowedLinks = !this.layoutDoc.dontAutoPlayFollowedLinks, icon: "expand-arrows-alt" });
+            subitems.push({ description: (this.layoutDoc.autoPlayAnchors ? "Don't auto play" : "Auto play") + " anchors onClick", event: () => this.layoutDoc.autoPlayAnchors = !this.layoutDoc.autoPlayAnchors, icon: "expand-arrows-alt" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: subitems, icon: "video" });
         }
     }
@@ -493,7 +496,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const startTime = this._stackedTimeline.current?.anchorStart(doc) || 0;
         const endTime = this._stackedTimeline.current?.anchorEnd(doc);
         if (startTime !== undefined) {
-            if (this.layoutDoc.playOnSelect) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);
+            if (!this.layoutDoc.dontAutoPlayFollowedLinks) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);
             else this.Seek(startTime);
         }
     }

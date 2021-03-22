@@ -164,6 +164,8 @@ export class DocumentOptions {
     version?: string; // version identifier for a document
     label?: string;
     hidden?: boolean;
+    autoPlayAnchors?: boolean; // whether to play audio/video when an anchor is clicked in a stackedTimeline.
+    dontPlayLinkOnSelect?: boolean;  // whether an audio/video should start playing when a link is followed to it.
     toolTip?: string; // tooltip to display on hover
     dontUndo?: boolean; // whether button clicks should be undoable (this is set to true for Undo/Redo/and sidebar buttons that open the siebar panel)
     description?: string; // added for links
