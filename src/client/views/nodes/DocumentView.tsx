@@ -948,7 +948,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     }
     render() {
         const highlightIndex = this.props.LayoutTemplateString ? (Doc.IsHighlighted(this.props.Document) ? 6 : 0) : Doc.isBrushedHighlightedDegree(this.props.Document); // bcz: Argh!! need to identify a tree view doc better than a LayoutTemlatString
-        const highlightColor = (CurrentUserUtils.ActiveDashboard?.darkScheme ?
+        const highlightColor = (Doc.UserDoc().darkScheme ?
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
             ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"])[highlightIndex];
         const highlightStyle = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"][highlightIndex];

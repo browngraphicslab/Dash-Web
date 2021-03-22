@@ -516,13 +516,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const myDashboards = DocListCast(CurrentUserUtils.MyDashboards.data);
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
-                <div className="searchBox-bar" style={{ background: SearchBox.Instance._undoBackground }}>
+                <div className="searchBox-bar" style={{ background: Doc.UserDoc().darkScheme ? "#276B86" : "#BDDBE8" }}>
                     <div className="searchBox-lozenges" >
                         <div className="searchBox-lozenge-user">
                             {`${Doc.CurrentUserEmail}`}
                             <div className="searchBox-logoff" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
                                 Logoff
-                        </div>
+                            </div>
                         </div>
                         {/* <div className="searchBox-lozenge" onClick={() => DocServer.UPDATE_SERVER_CACHE()}>
                             {`UI project`}

@@ -40,7 +40,7 @@ export enum StyleProp {
     ShowTitle = "showTitle",              // whether to display a title on a Document (optional :hover suffix)
 }
 
-function darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
+function darkScheme() { return BoolCast(Doc.UserDoc().darkScheme); }
 
 function toggleBackground(doc: Doc) {
     UndoManager.RunInBatch(() => runInAction(() => {

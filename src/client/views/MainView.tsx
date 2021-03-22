@@ -79,7 +79,7 @@ export class MainView extends React.Component {
     @computed private get topOffset() { return Number(SEARCH_PANEL_HEIGHT.replace("px", "")); } //TODO remove
     @computed private get leftOffset() { return this.menuPanelWidth() - 2; }
     @computed private get userDoc() { return Doc.UserDoc(); }
-    @computed private get darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
+    @computed private get darkScheme() { return BoolCast(Doc.UserDoc().darkScheme); }
     @computed private get mainContainer() { return this.userDoc ? CurrentUserUtils.ActiveDashboard : CurrentUserUtils.GuestDashboard; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
 
@@ -274,6 +274,7 @@ export class MainView extends React.Component {
     @computed get dockingContent() {
         return <div key="docking" className={`mainContent-div${this._flyoutWidth ? "-flyout" : ""}`} onDrop={e => { e.stopPropagation(); e.preventDefault(); }}
             // style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `calc(100% - ${this._flyoutWidth + this.propertiesWidth()}px)` }}>
+            // FIXME update with property panel width
             style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `100%` }}>
             {!this.mainContainer ? (null) : this.mainDocView}
         </div>;

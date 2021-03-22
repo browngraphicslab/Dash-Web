@@ -133,10 +133,12 @@ export abstract class AntimodeMenu<T extends AntimodeMenuProps> extends React.Co
         return <div className="antimodeMenu-dragger" key="dragger" onPointerDown={this.dragStart} style={{ width: "20px" }} />;
     }
 
+
     protected getElement(buttons: JSX.Element[]) {
         return (
             <div className="antimodeMenu-cont" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
                 style={{
+                    // backgroundColor: Doc.UserDoc().darkScheme ? "#0C3140" : "#92ADB9";
                     left: this._left, top: this._top, opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay,
                     position: this.Pinned ? "unset" : undefined
                 }}>

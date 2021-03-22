@@ -141,6 +141,11 @@ export class SettingsManager extends React.Component<{}> {
                     checked={BoolCast(Doc.UserDoc()._raiseWhenDragged)} />
                 <div className="preferences-check">Raise on drag</div>
             </div>
+            <div>
+                <input type="checkbox" onChange={e => Doc.UserDoc()._showLabel = !Doc.UserDoc()._showLabel}
+                    checked={BoolCast(Doc.UserDoc()._showLabel)} />
+                <div className="preferences-check">Show button labels</div>
+            </div>
         </div>;
     }
 

@@ -134,8 +134,8 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                             style={{
                                 pointerEvents: "all",
                                 minWidth: 30,
-                                width: nested ? pair.layout[WidthSym]() : this.dimension(),
-                                height: nested && pair.layout.linearViewIsExpanded ? pair.layout[HeightSym]() : this.dimension(),
+                                width: nested ? pair.layout[WidthSym]() : NumCast(pair.layout._width),
+                                height: nested ? pair.layout[HeightSym]() : NumCast(pair.layout._height),
                             }}  >
                             <DocumentView
                                 Document={pair.layout}

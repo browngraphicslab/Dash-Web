@@ -483,6 +483,7 @@ export class CurrentUserUtils {
             icon,
             title,
             toolTip,
+            btnType: ButtonType.ClickButton,
             ignoreClick,
             _dropAction: "alias",
             onDragStart: drag ? ScriptField.MakeFunction(drag) : undefined,
@@ -866,31 +867,93 @@ export class CurrentUserUtils {
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupDockedButtons(doc: Doc) {
         if (doc["dockedBtn-undo"] === undefined) {
-            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
+            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), btnType: ButtonType.ClickButton, dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
         }
         if (doc["dockedBtn-redo"] === undefined) {
-            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
+            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), btnType: ButtonType.ClickButton, dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
         }
-        if (doc.contextMenuBtns === undefined) {
-            doc.contextMenuBtns = CurrentUserUtils.blist({ title: "menu buttons", ignoreClick: true, linearViewExpandable: false, _height: 35 }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc]);
+        if (doc.dockedBtns === undefined) {
+            doc.dockedBtns = CurrentUserUtils.blist({ title: "docked buttons", ignoreClick: true, linearViewExpandable: true, _height: 42 }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc]);
         }
         (doc["dockedBtn-undo"] as Doc).dontUndo = true;
         (doc["dockedBtn-redo"] as Doc).dontUndo = true;
     }
 
+    static async contextMenuBtnDescriptions(doc: Doc) {
+        return [
+            { title: "Perspective", tooltip: "Change document's perspective", type: "btn", btnType: ButtonType.DropdownButton, icon: "desktop", click: 'selectMainMenu(self)' },
+            { title: "Toggle Overlay Layer", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ClickButton, target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
+            { title: "Undo", icon: 'undo-alt', btnType: ButtonType.ClickButton, click: 'undo()' },
+            { title: "Redo", icon: 'redo-alt', btnType: ButtonType.ClickButton, click: 'redo()' },
+            { title: "Text Tools", type: "LinearMenu", icon: "font" },
+            { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib" },
+            { title: "GFX Tools", type: "LinearMenu", icon: "shapes" },
+            { title: "Drag Alias", btnType: ButtonType.ClickButton, icon: "copy" },
+        ];
+    }
 
-    static setupContextMenuButtons(doc: Doc) {
-        if (doc["dockedBtn-undo"] === undefined) {
-            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
-        }
-        if (doc["dockedBtn-redo"] === undefined) {
-            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
-        }
+    static async inkBtnDescriptions(doc: Doc) {
+        return [
+            { title: "Perspective", tooltip: "Change document's perspective", type: "btn", btnType: ButtonType.DropdownButton, icon: "desktop", click: 'selectMainMenu(self)' },
+            { title: "Toggle Overlay Layer", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ClickButton, target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
+            { title: "Undo", icon: 'undo-alt', btnType: ButtonType.ClickButton, click: 'undo()' },
+            { title: "Redo", icon: 'redo-alt', btnType: ButtonType.ClickButton, click: 'redo()' },
+            { title: "Text Tools", type: "LinearMenu", icon: "font" },
+            { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib" },
+            { title: "GFX Tools", type: "LinearMenu", icon: "shapes" },
+            { title: "Drag Alias", btnType: ButtonType.ClickButton, icon: "copy" },
+        ];
+    }
+
+    static async textBtnDescriptions(doc: Doc) {
+        return [
+            // { title: "Perspective", tooltip: "Change document's perspective", type: "btn", btnType: ButtonType.DropdownButton, icon: "desktop", click: 'selectMainMenu(self)' },
+            { title: "Toggle Overlay Layer", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ClickButton, target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
+            { title: "Undo", icon: 'undo-alt', btnType: ButtonType.ClickButton, click: 'undo()' },
+            { title: "Redo", icon: 'redo-alt', btnType: ButtonType.ClickButton, click: 'redo()' },
+            { title: "Text Tools", type: "LinearMenu", icon: "font" },
+            { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib" },
+            { title: "GFX Tools", type: "LinearMenu", icon: "shapes" },
+            { title: "Drag Alias", btnType: ButtonType.ClickButton, icon: "copy" },
+        ];
+    }
+
+
+    // Default context menu buttons
+    static async setupContextMenuButtons(doc: Doc) {
+        let docList: Doc[] = [];
+
+        const contextMenuBtns = (await CurrentUserUtils.contextMenuBtnDescriptions(doc)).map(({ title, tooltip, icon, type, btnType, click }) => {
+            if (type == "LinearMenu") {
+                docList.push(CurrentUserUtils.blist({ linearViewExpandable: true, _height: 30, backgroundColor: "#E3E3E3" }, []));
+            } else {
+                docList.push(Docs.Create.FontIconDocument({
+                    _nativeWidth: 30, _nativeHeight: 30, _width: btnType === ButtonType.ClickButton ? 30 : 40, _height: 30,
+                    icon,
+                    btnType: btnType,
+                    _stayInCollection: true,
+                    _hideContextMenu: true,
+                    system: true,
+                    dontUndo: true,
+                    title,
+                    backgroundColor: "#E3E3E3",
+                    _dropAction: "alias",
+                    _removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
+                    onClick: click ? ScriptField.MakeScript(click, { scriptContext: "any" }) : undefined
+                }));
+            }
+        });
+
+
+        // if (doc["dockedBtn-undo"] === undefined) {
+        //     doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), btnType: ButtonType.ClickButton, dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
+        // }
+        // if (doc["dockedBtn-redo"] === undefined) {
+        //     doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), btnType: ButtonType.ClickButton, dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
+        // }
         if (doc.contextMenuBtns === undefined) {
-            doc.contextMenuBtns = CurrentUserUtils.blist({ title: "menu buttons", ignoreClick: true, linearViewExpandable: false, _height: 35 }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc]);
+            doc.contextMenuBtns = CurrentUserUtils.blist({ title: "menu buttons", ignoreClick: true, linearViewExpandable: false, _height: 35 }, docList);
         }
-        (doc["dockedBtn-undo"] as Doc).dontUndo = true;
-        (doc["dockedBtn-redo"] as Doc).dontUndo = true;
     }
 
     // sets up the default set of documents to be shown in the Overlay layer
@@ -1012,6 +1075,7 @@ export class CurrentUserUtils {
         doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
         doc._raiseWhenDragged = true;
+        doc._showLabel = true;
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");
         doc.activeInkWidth = StrCast(doc.activeInkWidth, "1");
         doc.activeInkBezier = StrCast(doc.activeInkBezier, "0");
@@ -1201,7 +1265,7 @@ export class CurrentUserUtils {
         const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600 }], { title: `Dashboard ${dashboardCount}` }, id, "row");
         Doc.AddDocToList(myPresentations, "data", presentation);
         userDoc.activePresentation = presentation;
-        const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
+        const toggleTheme = ScriptField.MakeScript(`Doc.UserDoc().darkScheme = !Doc.UserDoc().darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
         const snapshotDashboard = ScriptField.MakeScript(`snapshotDashboard()`);
         const createDashboard = ScriptField.MakeScript(`createNewDashboard()`);

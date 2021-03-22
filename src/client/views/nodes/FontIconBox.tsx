@@ -58,7 +58,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
 
     render() {
         /**
-         * Menu Panel Button: mainBtn
+         * Menu Panel Button: menuBtn
          * Dropdown Button: dropDownBtn
          * doubleBtn
         **/
@@ -74,16 +74,16 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         const presTrailsIcon = <img src={`/assets/${"presTrails.png"}`}
             style={{ width: presSize, height: presSize, filter: `invert(${color === "white" ? "100%" : "0%"})`, marginBottom: "5px" }} />;
 
-
-        const button = <button className={`menuButton${type ? "-" + type : ""}`} onContextMenu={this.specificContextMenu}
+        // TODO: Add label off button type
+        const button = <div className={`menuButton-${type}`} onContextMenu={this.specificContextMenu}
             style={{ backgroundColor: backgroundColor, }}>
             <div className="menuButton-wrap">
                 {icon === 'pres-trail' ? presTrailsIcon : <FontAwesomeIcon className={`menuButton-icon-${type}`} icon={icon} color={color}
                     size={"sm"} />}
-                {!label ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
+                {!label || !Doc.UserDoc()._showLabel ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
                 <FontIconBadge collection={Cast(this.rootDoc.watchedDocuments, Doc, null)} />
             </div>
-        </button>;
+        </div>;
 
         return !this.layoutDoc.toolTip ? button :
             <Tooltip title={<div className="dash-tooltip">{StrCast(this.layoutDoc.toolTip)}</div>}>

@@ -377,10 +377,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         this._inkDragDocs.map(oldbds => ({ oldbds, inkPts: Cast(oldbds.doc.data, InkField)?.inkData || [] }))
             .forEach(({ oldbds: { doc, x, y, width, height }, inkPts }) => {
                 Doc.SetInPlace(doc, "data", new InkField(inkPts.map(ipt =>  // (new x — oldx) + newWidth * (oldxpoint /oldWidth)
-                    ({
-                        X: (NumCast(doc.x) - x) + NumCast(doc.width) * ipt.X / width,
-                        Y: (NumCast(doc.y) - y) + NumCast(doc.height) * ipt.Y / height
-                    }))), true);
+                ({
+                    X: (NumCast(doc.x) - x) + NumCast(doc.width) * ipt.X / width,
+                    Y: (NumCast(doc.y) - y) + NumCast(doc.height) * ipt.Y / height
+                }))), true);
                 Doc.SetNativeWidth(doc, undefined);
                 Doc.SetNativeHeight(doc, undefined);
             });
@@ -441,7 +441,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         bounds.b = Math.max(bounds.y, Math.max(topBounds, Math.min(window.innerHeight, bounds.b + this._resizeBorderWidth / 2 + this._linkBoxHeight) - this._resizeBorderWidth / 2 - this._linkBoxHeight));
         const useRotation = seldoc.rootDoc.type === DocumentType.INK;
 
-        return (<div className="documentDecorations" style={{ background: CurrentUserUtils.ActiveDashboard?.darkScheme ? "dimgray" : "" }} >
+        return (<div className="documentDecorations" style={{ background: Doc.UserDoc().darkScheme ? "dimgray" : "" }} >
             <div className="documentDecorations-background" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
                 height: (bounds.b - bounds.y + this._resizeBorderWidth) + "px",

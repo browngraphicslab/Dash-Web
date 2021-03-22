@@ -126,6 +126,7 @@ export class DocumentOptions {
     _forceActive?: boolean; // flag to handle pointer events when not selected (or otherwise active)
     _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     _raiseWhenDragged?: boolean; // whether a document is brought to front when dragged.
+    _showLabel?: boolean; //TODO fill this out
     _hideContextMenu?: boolean; // whether the context menu can be shown
     _viewType?: string; // sub type of a collection
     _gridGap?: number; // gap between items in masonry view
