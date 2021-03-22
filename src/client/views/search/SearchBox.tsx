@@ -517,30 +517,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div className="searchBox-bar" style={{ background: Doc.UserDoc().darkScheme ? "#276B86" : "#BDDBE8" }}>
-                    <div className="searchBox-lozenges" >
-                        <div className="searchBox-lozenge-user">
-                            {`${Doc.CurrentUserEmail}`}
-                            <div className="searchBox-logoff" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
-                                Logoff
-                            </div>
-                        </div>
-                        {/* <div className="searchBox-lozenge" onClick={() => DocServer.UPDATE_SERVER_CACHE()}>
-                            {`UI project`}
-                        </div> */}
-                        <div className="searchBox-lozenge-dashboard"  >
-                            <select className="searchBox-dashSelect" onChange={e => CurrentUserUtils.openDashboard(Doc.UserDoc(), myDashboards[Number(e.target.value)])}
-                                value={myDashboards.indexOf(CurrentUserUtils.ActiveDashboard)}>
-                                {myDashboards.map((dash, i) => <option key={dash[Id]} value={i}> {StrCast(dash.title)} </option>)}
-                            </select>
-                            <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}>
-                                New
-                        </div>
-                            <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.snapshotDashboard(Doc.UserDoc()))}>
-                                Snapshot
-                        </div>
-                        </div>
-                    </div>
-                    <div className="searchBox-query" >
+                    <div className="searchBox-left" >
                         <input defaultValue={""} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this._inputRef}
                             className="searchBox-barChild searchBox-input" onKeyPress={this.enter}
                             style={{ padding: 1, paddingLeft: 20, paddingRight: 60, color: "black", height: 20, width: 250 }} />
@@ -567,6 +544,29 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             {this.scopeButtons}
                         </div>
                     </div >
+                    <div className="searchBox-center" >
+                        <div className="searchBox-lozenge-dashboard"  >
+                            <select className="searchBox-dashSelect" onChange={e => CurrentUserUtils.openDashboard(Doc.UserDoc(), myDashboards[Number(e.target.value)])}
+                                value={myDashboards.indexOf(CurrentUserUtils.ActiveDashboard)}>
+                                {myDashboards.map((dash, i) => <option key={dash[Id]} value={i}> {StrCast(dash.title)} </option>)}
+                            </select>
+                            <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}>
+                                New
+                        </div>
+                            <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.snapshotDashboard(Doc.UserDoc()))}>
+                                Snapshot
+                        </div>
+                        </div>
+                    </div>
+                    <div className="searchBox-right" >
+                        <div className="searchBox-lozenge-user">
+                            {`${Doc.CurrentUserEmail}`}
+                            <div className="searchBox-logoff" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
+                                Logoff
+                            </div>
+                        </div>
+                    </div>
+
                 </div >
                 {!this._searchbarOpen ? (null) :
                     <div style={{ zIndex: 20000, color: "black" }} ref={(r) => r?.focus()}>

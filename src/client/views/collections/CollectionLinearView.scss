@@ -104,12 +104,13 @@
             display: flex;
             opacity: 1;
             position: relative;
+            justify-content: center;
+            align-items: center;
             margin-top: auto;
 
             .collectionLinearView-docBtn,
             .collectionLinearView-docBtn-scalable {
                 position: relative;
-                margin: auto;
                 margin-left: 3px;
                 transform-origin: center 80%;
             }

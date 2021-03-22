@@ -71,18 +71,27 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         // const shape = StrCast(this.layoutDoc.iconShape, label ? "round" : "circle");
         const icon = StrCast(this.dataDoc.icon, "user") as any;
         const presSize = type === ButtonType.MenuButton ? 30 : 25;
+        const dropdown: boolean = BoolCast(this.rootDoc.dropDownOpen);
         const presTrailsIcon = <img src={`/assets/${"presTrails.png"}`}
             style={{ width: presSize, height: presSize, filter: `invert(${color === "white" ? "100%" : "0%"})`, marginBottom: "5px" }} />;
 
         // TODO: Add label off button type
         const button = <div className={`menuButton-${type}`} onContextMenu={this.specificContextMenu}
-            style={{ backgroundColor: backgroundColor, }}>
+            style={{ backgroundColor: backgroundColor, borderBottomLeftRadius: dropdown ? 0 : undefined }}>
             <div className="menuButton-wrap">
                 {icon === 'pres-trail' ? presTrailsIcon : <FontAwesomeIcon className={`menuButton-icon-${type}`} icon={icon} color={color}
                     size={"sm"} />}
                 {!label || !Doc.UserDoc()._showLabel ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
                 <FontIconBadge collection={Cast(this.rootDoc.watchedDocuments, Doc, null)} />
             </div>
+            {type === ButtonType.DropdownButton ? <div className="menuButton-dropDown"
+                style={{ borderBottomRightRadius: dropdown ? 0 : undefined }}
+                onClick={() => this.rootDoc.dropDownOpen = !this.rootDoc.dropDownOpen}>
+                <FontAwesomeIcon icon={'caret-down'} color={color} size="sm" />
+            </div> : (null)}
+            {this.rootDoc.dropDownOpen ? <div className="menuButton-dropDownBox">
+
+            </div> : null}
         </div>;
 
         return !this.layoutDoc.toolTip ? button :

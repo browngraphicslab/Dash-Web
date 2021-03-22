@@ -1014,19 +1014,19 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.transitionDropdown}
                         </div> : null}
                     </div>}
-                    {/* {!selectedItem || type === DocumentType.VID || type === DocumentType.AUDIO ? (null) : <div className="propertiesView-presTrails">
+                    {!selectedItem || (type !== DocumentType.COL || viewType !== CollectionViewType.Tree) ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => this.openPresProgressivize = !this.openPresProgressivize)}
                             style={{ backgroundColor: this.openPresProgressivize ? "black" : "" }}>
-                            &nbsp; <FontAwesomeIcon style={{ alignSelf: "center" }} icon={"tasks"} /> &nbsp; Progressivize
+                            &nbsp; <FontAwesomeIcon style={{ alignSelf: "center" }} icon={"tasks"} /> &nbsp; Slide Options
                         <div className="propertiesView-presTrails-title-icon">
                                 <FontAwesomeIcon icon={this.openPresProgressivize ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
                         {this.openPresProgressivize ? <div className="propertiesView-presTrails-content">
-                            {PresBox.Instance.progressivizeDropdown}
+                            {PresBox.Instance.slideDropdown}
                         </div> : null}
-                    </div>} */}
+                    </div>}
                     {!selectedItem || (type !== DocumentType.VID && type !== DocumentType.AUDIO) ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => { this.openSlideOptions = !this.openSlideOptions; })}

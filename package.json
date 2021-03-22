@@ -160,6 +160,7 @@
         "express-session": "^1.17.0",
         "express-validator": "^5.3.1",
         "expressjs": "^1.0.1",
+        "ffmpeg": "0.0.4",
         "file-saver": "^2.0.2",
         "find-in-files": "^0.5.0",
         "fit-curve": "^0.1.7",

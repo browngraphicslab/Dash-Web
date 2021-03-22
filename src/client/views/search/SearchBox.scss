@@ -17,18 +17,40 @@
 
     .searchBox-bar {
         height: $searchpanel-height;
-        display: flex;
+        display: grid;
+        grid-auto-columns: auto auto auto;
         justify-content: center;
         align-items: center;
         background-color: black;
 
-        .searchBox-lozenges {
+        .searchBox-center {
+            grid-column: 2;
+            .searchBox-lozenge-dashboard {
+                .searchBox-dashboards {
+                    border-radius: 3px;
+                    background: olivedrab;
+                    color: white;
+                    display: none;
+                    margin-left: 5px;
+                    padding: 1px 2px 1px 2px;
+                    cursor: pointer;
+                }
+            }
+
+            .searchBox-lozenge-dashboard:hover {
+                .searchBox-dashboards {
+                    display:inline-block;
+                }
+            }
+        }
+
+        .searchBox-right {
+            grid-column: 3;
             position: absolute;
             left: 15;
             display: flex;
 
             .searchBox-lozenge-user,
-            .searchBox-lozenge-dashboard,
             .searchBox-lozenge {
                 height: 18px;
                 padding: 4px;
@@ -36,8 +58,7 @@
                 display: flex;
                 align-items: center;
                 border: grey 1px solid;
-                .searchBox-logoff,
-                .searchBox-dashboards {
+                .searchBox-logoff {
                     border-radius: 3px;
                     background: olivedrab;
                     color: white;
@@ -64,13 +85,10 @@
                     display:inline-block;
                 }
             }
-            .searchBox-lozenge-dashboard:hover {
-                .searchBox-dashboards {
-                    display:inline-block;
-                }
-            }
+            
         }
-        .searchBox-query {
+        .searchBox-left {
+            grid-column: 1;
             position: relative;
             display: flex;
             width: 450;

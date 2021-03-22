@@ -80,6 +80,22 @@
     border-color: #69a5db;
 }
 
+.slideProgressivizeButton {
+    position: absolute;
+    display: flex;
+    transform: translate(-90%, 15%);
+    align-items: center;
+    border: black solid 1px;
+    border-radius: 3px;
+    justify-content: center;
+    width: 15;
+    z-index: 30000;
+    height: 15;
+    overflow: hidden;
+    background-color: #d5dce2;
+    transition: all 1s;
+}
+
 .progressivizeButton {
     position: absolute;
     display: grid;

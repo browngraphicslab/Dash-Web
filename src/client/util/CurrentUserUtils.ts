@@ -881,14 +881,15 @@ export class CurrentUserUtils {
 
     static async contextMenuBtnDescriptions(doc: Doc) {
         return [
-            { title: "Perspective", tooltip: "Change document's perspective", type: "btn", btnType: ButtonType.DropdownButton, icon: "desktop", click: 'selectMainMenu(self)' },
-            { title: "Toggle Overlay Layer", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ClickButton, target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
+            { title: "Perspective", tooltip: "Change document's perspective", type: "btn", btnType: ButtonType.DropdownButton, ignoreClick: true, icon: "desktop", click: '' },
+            { title: "Background", tooltip: "Change document's background color", type: "btn", btnType: ButtonType.DropdownButton, ignoreClick: true, icon: "fill-drip", click: '' },
+            { title: "Overlay", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ClickButton, icon: "layer-group", click: '' },
             { title: "Undo", icon: 'undo-alt', btnType: ButtonType.ClickButton, click: 'undo()' },
             { title: "Redo", icon: 'redo-alt', btnType: ButtonType.ClickButton, click: 'redo()' },
             { title: "Text Tools", type: "LinearMenu", icon: "font" },
             { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib" },
             { title: "GFX Tools", type: "LinearMenu", icon: "shapes" },
-            { title: "Drag Alias", btnType: ButtonType.ClickButton, icon: "copy" },
+            { title: "Alias", btnType: ButtonType.ClickButton, icon: "copy" },
         ];
     }
 
@@ -911,10 +912,10 @@ export class CurrentUserUtils {
             { title: "Toggle Overlay Layer", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ClickButton, target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
             { title: "Undo", icon: 'undo-alt', btnType: ButtonType.ClickButton, click: 'undo()' },
             { title: "Redo", icon: 'redo-alt', btnType: ButtonType.ClickButton, click: 'redo()' },
-            { title: "Text Tools", type: "LinearMenu", icon: "font" },
-            { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib" },
-            { title: "GFX Tools", type: "LinearMenu", icon: "shapes" },
-            { title: "Drag Alias", btnType: ButtonType.ClickButton, icon: "copy" },
+            { title: "Text Tools", type: "LinearMenu", icon: "font", click: '' },
+            { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib", click: '' },
+            { title: "GFX Tools", type: "LinearMenu", icon: "shapes", click: '' },
+            { title: "Drag Alias", btnType: ButtonType.ClickButton, icon: "copy", click: '' },
         ];
     }
 
@@ -923,14 +924,15 @@ export class CurrentUserUtils {
     static async setupContextMenuButtons(doc: Doc) {
         let docList: Doc[] = [];
 
-        const contextMenuBtns = (await CurrentUserUtils.contextMenuBtnDescriptions(doc)).map(({ title, tooltip, icon, type, btnType, click }) => {
+        const contextMenuBtns = (await CurrentUserUtils.contextMenuBtnDescriptions(doc)).map(({ title, tooltip, ignoreClick, icon, type, btnType, click }) => {
             if (type == "LinearMenu") {
-                docList.push(CurrentUserUtils.blist({ linearViewExpandable: true, _height: 30, backgroundColor: "#E3E3E3" }, []));
+                docList.push(CurrentUserUtils.blist({ flexDirection: 'column-reverse', linearViewExpandable: true, _height: 30, backgroundColor: "#E3E3E3" }, []));
             } else {
                 docList.push(Docs.Create.FontIconDocument({
-                    _nativeWidth: 30, _nativeHeight: 30, _width: btnType === ButtonType.ClickButton ? 30 : 40, _height: 30,
+                    _nativeWidth: btnType === ButtonType.ClickButton ? 30 : 40, _nativeHeight: 30, _width: btnType === ButtonType.ClickButton ? 30 : 40, _height: 30,
                     icon,
                     btnType: btnType,
+                    ignoreClick: ignoreClick,
                     _stayInCollection: true,
                     _hideContextMenu: true,
                     system: true,

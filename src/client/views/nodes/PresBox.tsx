@@ -1870,6 +1870,43 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @observable private openActiveColorPicker: boolean = false;
     @observable private openViewedColorPicker: boolean = false;
 
+    @computed get slideDropdown() {
+        const activeItem: Doc = this.activeItem;
+        const targetDoc: Doc = this.targetDoc;
+        if (activeItem && targetDoc) {
+            const activeFontColor = targetDoc["pres-text-color"] ? StrCast(targetDoc["pres-text-color"]) : "Black";
+            const viewedFontColor = targetDoc["pres-text-viewed-color"] ? StrCast(targetDoc["pres-text-viewed-color"]) : "Black";
+            return (
+                <div>
+                    <div className={`presBox-ribbon`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+                        <div className="ribbon-final-box">
+                            Bullet Animations
+                            {/* <div className="ribbon-doubleButton">
+                                <div className="ribbon-frameSelector">
+                                    <div key="back" title="back frame" className="backKeyframe" onClick={e => { e.stopPropagation(); this.prevKeyframe(targetDoc, activeItem); }}>
+                                        <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
+                                    </div>
+                                    <div key="num" title="toggle view all" className="numKeyframe" style={{ color: targetDoc.keyFrameEditing ? "white" : "black", backgroundColor: targetDoc.keyFrameEditing ? PresColor.DarkBlue : PresColor.LightBlue }}
+                                        onClick={action(() => targetDoc.keyFrameEditing = !targetDoc.keyFrameEditing)} >
+                                        {NumCast(targetDoc._currentFrame)}
+                                    </div>
+                                    <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={e => { e.stopPropagation(); this.nextKeyframe(targetDoc, activeItem); }}>
+                                        <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
+                                    </div>
+                                </div>
+                                <Tooltip title={<><div className="dash-tooltip">{"Last frame"}</div></>}><div className="ribbon-property">{NumCast(targetDoc.lastFrame)}</div></Tooltip>
+                            </div> */}
+                            <div className="ribbon-frameList">
+                                {this.frameListHeader}
+                                {this.frameList}
+                            </div>
+                            <div className="ribbon-toggle" style={{ height: 20, backgroundColor: PresColor.LightBlue }} onClick={() => console.log(" TODO: play frames")}>Play</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+    }
 
 
     @computed get progressivizeDropdown() {
@@ -1907,29 +1944,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className="ribbon-toggle" style={{ backgroundColor: activeItem.scrollProgressivize ? PresColor.LightBlue : "" }} onClick={this.progressivizeScroll}>Scroll</div>
                                 <div className="ribbon-toggle" style={{ opacity: activeItem.scrollProgressivize ? 1 : 0.4, backgroundColor: targetDoc.editScrollProgressivize ? PresColor.LightBlue : "" }} onClick={this.editScrollProgressivize}>Edit</div>
                             </div>
-                        </div>
-                        <div className="ribbon-final-box">
-                            Frames
-                            <div className="ribbon-doubleButton">
-                                <div className="ribbon-frameSelector">
-                                    <div key="back" title="back frame" className="backKeyframe" onClick={e => { e.stopPropagation(); this.prevKeyframe(targetDoc, activeItem); }}>
-                                        <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
-                                    </div>
-                                    <div key="num" title="toggle view all" className="numKeyframe" style={{ color: targetDoc.keyFrameEditing ? "white" : "black", backgroundColor: targetDoc.keyFrameEditing ? PresColor.DarkBlue : PresColor.LightBlue }}
-                                        onClick={action(() => targetDoc.keyFrameEditing = !targetDoc.keyFrameEditing)} >
-                                        {NumCast(targetDoc._currentFrame)}
-                                    </div>
-                                    <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={e => { e.stopPropagation(); this.nextKeyframe(targetDoc, activeItem); }}>
-                                        <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
-                                    </div>
-                                </div>
-                                <Tooltip title={<><div className="dash-tooltip">{"Last frame"}</div></>}><div className="ribbon-property">{NumCast(targetDoc.lastFrame)}</div></Tooltip>
-                            </div>
-                            <div className="ribbon-frameList">
-                                {this.frameListHeader}
-                                {this.frameList}
-                            </div>
-                            <div className="ribbon-toggle" style={{ height: 20, backgroundColor: PresColor.LightBlue }} onClick={() => console.log(" TODO: play frames")}>Play</div>
                         </div>
                     </div>
                 </div>
@@ -2342,14 +2356,16 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
+    // for SLIDES
     @computed get frameListHeader() {
+        const activeItem: Doc = this.activeItem;
+        const targetDoc: Doc = this.targetDoc;
         return (<div className="frameList-header">
-            &nbsp; Frames {this.panable ? <i>Panable</i> : this.scrollable ? <i>Scrollable</i> : (null)}
+            &nbsp; Animations {this.panable ? <i>Panable</i> : this.scrollable ? <i>Scrollable</i> : (null)}
             <div className={"frameList-headerButtons"}>
-                <Tooltip title={<><div className="dash-tooltip">{"Add frame by example"}</div></>}><div className={"headerButton"} onClick={e => { e.stopPropagation(); this.newFrame(); }}>
-                    <FontAwesomeIcon icon={"plus"} onPointerDown={e => e.stopPropagation()} />
-                </div></Tooltip>
-                <Tooltip title={<><div className="dash-tooltip">{"Edit in collection"}</div></>}><div className={"headerButton"} onClick={e => { e.stopPropagation(); console.log('New frame'); }}>
+                <Tooltip title={<><div className="dash-tooltip">{"Edit in collection"}</div></>}><div className={"headerButton"}
+                    style={{ backgroundColor: targetDoc.editBulletOrder ? "#d5dce2" : "black", color: targetDoc.editBulletOrder ? "black" : "white" }}
+                    onClick={e => targetDoc.editBulletOrder = !targetDoc.editBulletOrder}>
                     <FontAwesomeIcon icon={"edit"} onPointerDown={e => e.stopPropagation()} />
                 </div></Tooltip>
             </div>
@@ -2359,15 +2375,16 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get frameList() {
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
-        const frameList: List<number> = this.getList(activeItem.frameList);
-        if (frameList) {
-            const frameItems = frameList.map((value) =>
+        const childDocs: Doc[] = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
+        console.log(this.targetDoc.title, "childDocs:" + childDocs);
+        // const frameList: List<number> = this.getList(activeItem.dataDoc);
+        if (childDocs) {
+            const frameItems = childDocs.map((doc, index) =>
                 <div className="framList-item">
-
+                    {index + 1} | {doc.title}
                 </div>
             );
             return (
-
                 <div className="frameList-container">
                     {frameItems}
                 </div>

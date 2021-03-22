@@ -164,6 +164,8 @@ export class TreeView extends React.Component<TreeViewProps> {
             TreeView._openTitleScript = ScriptField.MakeScript("scriptContext.setEditTitle(documentView)", { scriptContext: "any", documentView: "any" });
             TreeView._openLevelScript = ScriptField.MakeScript(`scriptContext.openLevel(documentView)`, { scriptContext: "any", documentView: "any" });
         }
+        if (this.props.containingCollection.title) this.layoutDoc.editBullerOrder = true;
+
         this._openScript = Doc.IsSystem(this.props.document) ? undefined : () => TreeView._openLevelScript!;
         this._editTitleScript = Doc.IsSystem(this.props.document) ? () => TreeView._openLevelScript! : () => TreeView._openTitleScript!;
     }
@@ -633,8 +635,15 @@ export class TreeView extends React.Component<TreeViewProps> {
         </>;
     }
 
+    // <div className="progressivizeButton-prev"><FontAwesomeIcon icon={"caret-left"} size={"lg"} /* onClick={e => { e.stopPropagation(); this.prevAppearFrame(doc, index); }} */ /></div>
+    // <div className="progressivizeButton-next"><FontAwesomeIcon icon={"caret-right"} size={"lg"} /* onClick={e => { e.stopPropagation(); this.nextAppearFrame(doc, index); }} */ /></div>
     renderBulletHeader = (contents: JSX.Element) => {
         return <>
+            {!this.props.containingCollection.editBulletOrder ? (null) : <div>
+                <div className="slideProgressivizeButton" /*onPointerLeave={() => { if (NumCast(targetDoc._currentFrame) < NumCast(doc.appearFrame)) doc.opacity = 0; }} onPointerOver={() => { if (NumCast(targetDoc._currentFrame) < NumCast(doc.appearFrame)) doc.opacity = 0.5; }} onClick={e => { this.toggleDisplayMovement(doc); e.stopPropagation(); }} style={{ backgroundColor: doc.displayMovement ? PresColor.LightBlue : "#c8c8c8", top: NumCast(doc.y), left: NumCast(doc.x) }}*/ >
+                    <div className="progressivizeButton-frame">1</div>
+                </div>
+            </div>}
             <div className={`treeView-header` + (this._editMaxWidth ? "-editing" : "")} key="titleheader"
                 ref={this._header}
                 style={{ maxWidth: this._editMaxWidth }}
@@ -726,6 +735,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         else this._editMaxWidth = "";
 
         const hideTitle = this.doc.treeViewHideHeader || this.props.treeView.outlineMode;
+        if (this.props.containingCollection.title) this.layoutDoc.editBullerOrder = true;
         return <div className={`treeView-container${this._dref?.contentsActive() ? "-active" : ""}`}
             ref={this.createTreeDropTarget}
             onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}
