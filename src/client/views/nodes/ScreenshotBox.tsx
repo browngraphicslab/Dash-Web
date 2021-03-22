@@ -45,9 +45,9 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
     }
 
     getAnchor = () => {
+        const startTime = Cast(this.layoutDoc._currentTimecode, "number", null) || (this._vrecorder ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined);
         return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "_timecodeToShow" /* audioStart */, "_timecodeToHide" /* audioEnd */,
-            Cast(this.layoutDoc._currentTimecode, "number", null) ||
-            (this._vrecorder ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined))
+            startTime, startTime === undefined ? undefined : startTime + 3)
             || this.rootDoc;
     }
 
@@ -165,7 +165,6 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
     toggleRecording = action(async () => {
         this._screenCapture = !this._screenCapture;
         if (this._screenCapture) {
-            this.dataDoc[this.props.fieldKey + "-recordingStart"] = new DateField(new Date());
             this._arecorder = new MediaRecorder(await navigator.mediaDevices.getUserMedia({ audio: true }));
             this._achunks = [];
             this._arecorder.ondataavailable = (e: any) => this._achunks.push(e.data);
@@ -179,6 +178,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
             this._videoRef!.srcObject = vstream;
             this._vrecorder = new MediaRecorder(vstream);
             this._vchunks = [];
+            this._vrecorder.onstart = action(() => this.dataDoc[this.props.fieldKey + "-recordingStart"] = new DateField(new Date()));
             this._vrecorder.ondataavailable = (e: any) => this._vchunks.push(e.data);
             this._vrecorder.onstop = async (e: any) => {
                 const file = new File(this._vchunks, `${this.rootDoc[Id]}.mkv`, { type: this._vchunks[0].type, lastModified: Date.now() });
