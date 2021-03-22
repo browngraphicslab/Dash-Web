@@ -26,6 +26,7 @@ import "./SearchBox.scss";
 import { undoBatch } from "../../util/UndoManager";
 import { DocServer } from "../../DocServer";
 import { MainView } from "../MainView";
+import { SettingsManager } from "../../util/SettingsManager";
 
 export const searchSchema = createSchema({ Document: Doc });
 
@@ -564,6 +565,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             <div className="searchBox-logoff" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
                                 Logoff
                             </div>
+                        </div>
+                        <div className="searchBar-icon" onClick={() => SettingsManager.Instance.open()}>
+                            <FontAwesomeIcon icon="cog"></FontAwesomeIcon>
+                        </div>
+                        <div className="searchBar-icon">
+                            <FontAwesomeIcon icon="question-circle"></FontAwesomeIcon>
                         </div>
                     </div>
 
