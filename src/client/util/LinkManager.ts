@@ -100,7 +100,7 @@ export class LinkManager {
     // follows a link - if the target is on screen, it highlights/pans to it.
     // if the target isn't onscreen, then it will open up the target in a tab, on the right, or in place
     // depending on the followLinkLocation property of the source (or the link itself as a fallback);
-    public static FollowLink = (linkDoc: Opt<Doc>, sourceDoc: Doc, docViewProps: DocumentViewSharedProps, altKey: boolean) => {
+    public static FollowLink = (linkDoc: Opt<Doc>, sourceDoc: Doc, docViewProps: DocumentViewSharedProps, altKey: boolean, zoom: boolean = false) => {
         const batch = UndoManager.StartBatch("follow link click");
         // open up target if it's not already in view ...
         const createViewFunc = (doc: Doc, followLoc: string, finished?: Opt<() => void>) => {
@@ -131,7 +131,7 @@ export class LinkManager {
                 docViewProps.focus(sourceDoc, { willZoom: BoolCast(sourceDoc.followLinkZoom, true), scale: 1, afterFocus: createTabForTarget });
             }
         };
-        LinkManager.traverseLink(linkDoc, sourceDoc, createViewFunc, BoolCast(sourceDoc.followLinkZoom, false), docViewProps.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
+        LinkManager.traverseLink(linkDoc, sourceDoc, createViewFunc, BoolCast(sourceDoc.followLinkZoom, zoom), docViewProps.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
     }
 
     public static traverseLink(link: Opt<Doc>, sourceDoc: Doc, createViewFunc: CreateViewFunc, zoom = false, currentContext?: Doc, finished?: () => void, traverseBacklink?: boolean) {

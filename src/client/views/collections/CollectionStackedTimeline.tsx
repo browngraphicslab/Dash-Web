@@ -1,7 +1,6 @@
 import React = require("react");
-import { action, computed, IReactionDisposer, observable, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, runInAction, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { computedFn } from "mobx-utils";
 import { Doc, Opt, DocListCast } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
@@ -14,11 +13,12 @@ import { Scripting } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionSubView } from "../collections/CollectionSubView";
-import { DocumentView, DocAfterFocusFunc } from "../nodes/DocumentView";
+import { DocumentView, DocAfterFocusFunc, DocFocusFunc, DocumentViewProps } from "../nodes/DocumentView";
 import { LabelBox } from "../nodes/LabelBox";
 import "./CollectionStackedTimeline.scss";
 import { Transform } from "../../util/Transform";
 import { LinkManager } from "../../util/LinkManager";
+import { computedFn } from "mobx-utils";
 
 type PanZoomDocument = makeInterface<[]>;
 const PanZoomDocument = makeInterface();
@@ -209,28 +209,6 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     }
 
 
-    // starting the drag event for anchor resizing
-    onAnchorDown = (e: React.PointerEvent, anchor: Doc, left: boolean): void => {
-        this._timeline?.setPointerCapture(e.pointerId);
-        const newTime = (e: PointerEvent) => {
-            const rect = (e.target as any).getBoundingClientRect();
-            return this.toTimeline(e.clientX - rect.x, rect.width);
-        };
-        const changeAnchor = (anchor: Doc, left: boolean, time: number) => {
-            const timelineOnly = Cast(anchor[this.props.startTag], "number", null) !== undefined;
-            if (timelineOnly) Doc.SetInPlace(anchor, left ? this.props.startTag : this.props.endTag, time, true);
-            else left ? anchor._timecodeToShow = time : anchor._timecodeToHide = time;
-            return false;
-        };
-        setupMoveUpEvents(this, e,
-            (e) => changeAnchor(anchor, left, newTime(e)),
-            (e) => {
-                this.props.setTime(newTime(e));
-                this._timeline?.releasePointerCapture(e.pointerId);
-            },
-            emptyFunction);
-    }
-
     // makes sure no anchors overlaps each other by setting the correct position and width
     getLevel = (m: Doc, placed: { anchorStartTime: number, anchorEndTime: number, level: number }[]) => {
         const timelineContentWidth = this.props.PanelWidth();
@@ -252,8 +230,116 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         placed.push({ anchorStartTime: x1, anchorEndTime: x2, level });
         return level;
     }
+    currentTimecode = () => this.currentTime;
+    render() {
+        const timelineContentWidth = this.props.PanelWidth();
+        const timelineContentHeight = this.props.PanelHeight();
+        const overlaps: { anchorStartTime: number, anchorEndTime: number, level: number }[] = [];
+        const drawAnchors = this.childDocs.map(anchor => ({ level: this.getLevel(anchor, overlaps), anchor }));
+        const maxLevel = overlaps.reduce((m, o) => Math.max(m, o.level), 0) + 2;
+        const isActive = this.props.isChildActive() || this.props.isSelected(false);
+        return <div className="collectionStackedTimeline" ref={(timeline: HTMLDivElement | null) => this._timeline = timeline}
+            onClick={e => isActive && StopEvent(e)} onPointerDown={e => isActive && this.onPointerDownTimeline(e)}>
+            {drawAnchors.map(d => {
+                const start = this.anchorStart(d.anchor);
+                const end = this.anchorEnd(d.anchor, start + 10 / timelineContentWidth * this.duration);
+                const left = start / this.duration * timelineContentWidth;
+                const top = d.level / maxLevel * timelineContentHeight;
+                const timespan = end - start;
+                return this.props.Document.hideAnchors ? (null) :
+                    <div className={"collectionStackedTimeline-marker-timeline"} key={d.anchor[Id]}
+                        style={{ left, top, width: `${timespan / this.duration * timelineContentWidth}px`, height: `${timelineContentHeight / maxLevel}px` }}
+                        onClick={e => { this.props.playFrom(start, this.anchorEnd(d.anchor)); e.stopPropagation(); }} >
+                        <StackedTimelineAnchor {...this.props}
+                            mark={d.anchor}
+                            rangeClickScript={this.rangeClickScript}
+                            rangePlayScript={this.rangePlayScript}
+                            left={left}
+                            top={top}
+                            width={timelineContentWidth * timespan / this.duration}
+                            height={timelineContentHeight / maxLevel}
+                            toTimeline={this.toTimeline}
+                            layoutDoc={this.layoutDoc}
+                            currentTimecode={this.currentTimecode}
+                            _timeline={this._timeline}
+                            stackedTimeline={this}
+                        />
+                    </div>;
+            })}
+            {this.selectionContainer}
+            <div className="collectionStackedTimeline-current" style={{ left: `${this.currentTime / this.duration * 100}%` }} />
+        </div>;
+    }
+}
 
-    renderInner = computedFn(function (this: CollectionStackedTimeline, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
+interface StackedTinelineAnchorProps {
+    mark: Doc;
+    rangeClickScript: () => ScriptField;
+    rangePlayScript: () => ScriptField;
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    toTimeline: (screen_delta: number, width: number) => number;
+    playLink: (linkDoc: Doc) => void;
+    setTime: (time: number) => void;
+    isChildActive: () => boolean;
+    startTag: string;
+    endTag: string;
+    renderDepth: number;
+    layoutDoc: Doc;
+    ScreenToLocalTransform: () => Transform;
+    _timeline: HTMLDivElement | null;
+    focus: DocFocusFunc;
+    currentTimecode: () => number;
+    isSelected: (outsideReaction?: boolean) => boolean;
+    stackedTimeline: CollectionStackedTimeline;
+}
+@observer
+class StackedTimelineAnchor extends React.Component<StackedTinelineAnchorProps> {
+    _lastTimecode: number;
+    _disposer: IReactionDisposer | undefined;
+    constructor(props: any) {
+        super(props);
+        this._lastTimecode = this.props.currentTimecode();
+    }
+    componentDidMount() {
+        this._disposer = reaction(() => this.props.currentTimecode(),
+            (time) => {
+                if (DocListCast(this.props.mark.links).length &&
+                    time > NumCast(this.props.mark[this.props.startTag]) &&
+                    time < NumCast(this.props.mark[this.props.endTag]) &&
+                    this._lastTimecode < NumCast(this.props.mark[this.props.startTag])) {
+                    LinkManager.FollowLink(undefined, this.props.mark, this.props as any as DocumentViewProps, false, true);
+                }
+                this._lastTimecode = time;
+            });
+    }
+    componentWillUnmount() {
+        this._disposer?.();
+    }
+    // starting the drag event for anchor resizing
+    onAnchorDown = (e: React.PointerEvent, anchor: Doc, left: boolean): void => {
+        this.props._timeline?.setPointerCapture(e.pointerId);
+        const newTime = (e: PointerEvent) => {
+            const rect = (e.target as any).getBoundingClientRect();
+            return this.props.toTimeline(e.clientX - rect.x, rect.width);
+        };
+        const changeAnchor = (anchor: Doc, left: boolean, time: number) => {
+            const timelineOnly = Cast(anchor[this.props.startTag], "number", null) !== undefined;
+            if (timelineOnly) Doc.SetInPlace(anchor, left ? this.props.startTag : this.props.endTag, time, true);
+            else left ? anchor._timecodeToShow = time : anchor._timecodeToHide = time;
+            return false;
+        };
+        setupMoveUpEvents(this, e,
+            (e) => changeAnchor(anchor, left, newTime(e)),
+            (e) => {
+                this.props.setTime(newTime(e));
+                this.props._timeline?.releasePointerCapture(e.pointerId);
+            },
+            emptyFunction);
+    }
+    renderInner = computedFn(function (this: StackedTimelineAnchor, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
         const anchor = observable({ view: undefined as any });
         const focusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) => {
             this.props.playLink(mark);
@@ -274,54 +360,23 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                 parentActive={out => this.props.isSelected(out) || this.props.isChildActive()}
                 rootSelected={returnFalse}
                 onClick={script}
-                onDoubleClick={this.layoutDoc.autoPlayAnchors ? undefined : doublescript}
+                onDoubleClick={this.props.layoutDoc.autoPlayAnchors ? undefined : doublescript}
                 ignoreAutoHeight={false}
                 hideResizeHandles={true}
                 bringToFront={emptyFunction}
-                scriptContext={this} />
+                scriptContext={this.props.stackedTimeline} />
         };
     });
-    renderAnchor = computedFn(function (this: CollectionStackedTimeline, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
-        const inner = this.renderInner(mark, script, doublescript, x, y, width, height);
+    render() {
+        const inner = this.renderInner(this.props.mark, this.props.rangeClickScript, this.props.rangePlayScript, this.props.left, this.props.top, this.props.width, this.props.height);
         return <>
             {inner.view}
             {!inner.anchor.view || !SelectionManager.IsSelected(inner.anchor.view) ? (null) :
                 <>
-                    <div key="left" className="collectionStackedTimeline-left-resizer" onPointerDown={e => this.onAnchorDown(e, mark, true)} />
-                    <div key="right" className="collectionStackedTimeline-resizer" onPointerDown={e => this.onAnchorDown(e, mark, false)} />
+                    <div key="left" className="collectionStackedTimeline-left-resizer" onPointerDown={e => this.onAnchorDown(e, this.props.mark, true)} />
+                    <div key="right" className="collectionStackedTimeline-resizer" onPointerDown={e => this.onAnchorDown(e, this.props.mark, false)} />
                 </>}
         </>;
-    });
-
-    render() {
-        const timelineContentWidth = this.props.PanelWidth();
-        const timelineContentHeight = this.props.PanelHeight();
-        const overlaps: { anchorStartTime: number, anchorEndTime: number, level: number }[] = [];
-        const drawAnchors = this.childDocs.map(anchor => ({ level: this.getLevel(anchor, overlaps), anchor }));
-        const maxLevel = overlaps.reduce((m, o) => Math.max(m, o.level), 0) + 2;
-        const isActive = this.props.isChildActive() || this.props.isSelected(false);
-        return <div className="collectionStackedTimeline" ref={(timeline: HTMLDivElement | null) => this._timeline = timeline}
-            onClick={e => isActive && StopEvent(e)} onPointerDown={e => isActive && this.onPointerDownTimeline(e)}>
-            {drawAnchors.map(d => {
-                const start = this.anchorStart(d.anchor);
-                const end = this.anchorEnd(d.anchor, start + 10 / timelineContentWidth * this.duration);
-                const left = start / this.duration * timelineContentWidth;
-                const top = d.level / maxLevel * timelineContentHeight;
-                const timespan = end - start;
-                return this.props.Document.hideAnchors ? (null) :
-                    <div className={"collectionStackedTimeline-marker-timeline"} key={d.anchor[Id]}
-                        style={{ left, top, width: `${timespan / this.duration * timelineContentWidth}px`, height: `${timelineContentHeight / maxLevel}px` }}
-                        onClick={e => { this.props.playFrom(start, this.anchorEnd(d.anchor)); e.stopPropagation(); }} >
-                        {this.renderAnchor(d.anchor, this.rangeClickScript, this.rangePlayScript,
-                            left,
-                            top,
-                            timelineContentWidth * timespan / this.duration,
-                            timelineContentHeight / maxLevel)}
-                    </div>;
-            })}
-            {this.selectionContainer}
-            <div className="collectionStackedTimeline-current" style={{ left: `${this.currentTime / this.duration * 100}%` }} />
-        </div>;
     }
 }
 Scripting.addGlobal(function formatToTime(time: number): any { return formatTime(time); });
