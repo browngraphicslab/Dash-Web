@@ -35,6 +35,7 @@ import { UndoManager } from "./UndoManager";
 import { SnappingManager } from "./SnappingManager";
 import { InkTool } from "../../fields/InkField";
 import { computedFn } from "mobx-utils";
+import { ButtonType } from "../views/nodes/FontIconBox";
 
 
 export let resolvedPorts: { server: number, socket: number };
@@ -538,8 +539,7 @@ export class CurrentUserUtils {
             const menuBtns = (await CurrentUserUtils.menuBtnDescriptions(doc)).map(({ title, target, icon, click, watchedDocuments }) =>
                 Docs.Create.FontIconDocument({
                     icon,
-                    btnType: ButtonType.MainMenu,
-                    iconShape: "square",
+                    btnType: ButtonType.MenuButton,
                     _stayInCollection: true,
                     _hideContextMenu: true,
                     system: true,
@@ -878,6 +878,20 @@ export class CurrentUserUtils {
         (doc["dockedBtn-redo"] as Doc).dontUndo = true;
     }
 
+
+    static setupContextMenuButtons(doc: Doc) {
+        if (doc["dockedBtn-undo"] === undefined) {
+            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
+        }
+        if (doc["dockedBtn-redo"] === undefined) {
+            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
+        }
+        if (doc.contextMenuBtns === undefined) {
+            doc.contextMenuBtns = CurrentUserUtils.blist({ title: "menu buttons", ignoreClick: true, linearViewExpandable: false, _height: 35 }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc]);
+        }
+        (doc["dockedBtn-undo"] as Doc).dontUndo = true;
+        (doc["dockedBtn-redo"] as Doc).dontUndo = true;
+    }
 
     // sets up the default set of documents to be shown in the Overlay layer
     static setupOverlays(doc: Doc) {

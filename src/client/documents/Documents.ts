@@ -211,6 +211,7 @@ export class DocumentOptions {
     annotationOn?: Doc;
     isPushpin?: boolean;
     _removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
+    btnType?: string // type of button
     iconShape?: string; // shapes of the fonticon border
     layout_linkView?: Doc; // view template for a link document
     layout_keyValue?: string; // view tempalte for key value docs

@@ -76,7 +76,7 @@ export class MainView extends React.Component {
     @observable private _sidebarContent: any = this.userDoc?.sidebar;
     @observable private _flyoutWidth: number = 0;
 
-    @computed private get topOffset() { return (CollectionMenu.Instance?.Pinned ? 35 : 0) + Number(SEARCH_PANEL_HEIGHT.replace("px", "")); }
+    @computed private get topOffset() { return Number(SEARCH_PANEL_HEIGHT.replace("px", "")); } //TODO remove
     @computed private get leftOffset() { return this.menuPanelWidth() - 2; }
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
@@ -239,8 +239,9 @@ export class MainView extends React.Component {
     }
 
     getPWidth = () => this._panelWidth - this.propertiesWidth();
-    getPHeight = () => this._panelHeight;
+    getPHeight = () => this._panelHeight - (CollectionMenu.Instance?.Pinned ? 35 : 0);
     getContentsHeight = () => this._panelHeight;
+    getMenuPanelHeight = () => this._panelHeight + (CollectionMenu.Instance?.Pinned ? 35 : 0);
 
     @computed get mainDocView() {
         return <DocumentView key="main"
@@ -272,7 +273,8 @@ export class MainView extends React.Component {
 
     @computed get dockingContent() {
         return <div key="docking" className={`mainContent-div${this._flyoutWidth ? "-flyout" : ""}`} onDrop={e => { e.stopPropagation(); e.preventDefault(); }}
-            style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)` }}>
+            // style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `calc(100% - ${this._flyoutWidth + this.propertiesWidth()}px)` }}>
+            style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `100%` }}>
             {!this.mainContainer ? (null) : this.mainDocView}
         </div>;
     }
@@ -377,7 +379,7 @@ export class MainView extends React.Component {
                 removeDocument={returnFalse}
                 ScreenToLocalTransform={this.sidebarScreenToLocal}
                 PanelWidth={this.menuPanelWidth}
-                PanelHeight={this.getContentsHeight}
+                PanelHeight={this.getMenuPanelHeight}
                 renderDepth={0}
                 docViewPath={returnEmptyDoclist}
                 focus={DocUtils.DefaultFocus}
@@ -424,16 +426,19 @@ export class MainView extends React.Component {
             {this.menuPanel}
             <div key="inner" className={`mainView-innerContent${this.darkScheme ? "-dark" : ""}`}>
                 {this.flyout}
-                <div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, }} onPointerDown={this.onFlyoutPointerDown} >
+                <div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, left: this._flyoutWidth ? (this._flyoutWidth + this.menuPanelWidth() - 10) : -10 }} onPointerDown={this.onFlyoutPointerDown} >
                     <FontAwesomeIcon icon="chevron-left" color={this.darkScheme ? "white" : "black"} style={{ opacity: "50%" }} size="sm" />
                 </div>
+                <div className="mainView-innerContainer">
+                    <CollectionMenu />
 
-                {this.dockingContent}
+                    {this.dockingContent}
 
-                <div className="mainView-propertiesDragger" key="props" onPointerDown={this.onPropertiesPointerDown} style={{ right: this.propertiesWidth() - 1 }}>
-                    <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color={this.darkScheme ? "white" : "black"} size="sm" />
+                    <div className="mainView-propertiesDragger" key="props" onPointerDown={this.onPropertiesPointerDown} style={{ right: this.propertiesWidth() - 1 }}>
+                        <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color={this.darkScheme ? "white" : "black"} size="sm" />
+                    </div>
+                    {this.propertiesWidth() < 10 ? (null) : <PropertiesView styleProvider={DefaultStyleProvider} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
                 </div>
-                {this.propertiesWidth() < 10 ? (null) : <PropertiesView styleProvider={DefaultStyleProvider} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
             </div>
         </>;
     }
@@ -626,7 +631,6 @@ export class MainView extends React.Component {
             <GoogleAuthenticationManager />
             <DocumentDecorations boundsLeft={this.leftOffset} boundsTop={this.topOffset} />
             {this.search}
-            <CollectionMenu />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.LinkEditorDocView ? <LinkMenu docView={DocumentLinksButton.LinkEditorDocView} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview {...LinkDocPreview.LinkInfo} /> : (null)}

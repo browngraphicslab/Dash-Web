@@ -19,7 +19,7 @@ const FontIconSchema = createSchema({
 });
 
 export enum ButtonType {
-    MainMenu = "mainBtn",
+    MenuButton = "menuBtn",
     DropdownButton = "drpDownBtn",
     ClickButton = "clickBtn",
     DoubleButton = "dblBtn"
@@ -58,8 +58,8 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
 
     render() {
         /**
-         * mainBtn
-         * dropDownBtn
+         * Menu Panel Button: mainBtn
+         * Dropdown Button: dropDownBtn
          * doubleBtn
         **/
         const type = StrCast(this.rootDoc.btnType);
@@ -68,15 +68,17 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         const label = StrCast(this.rootDoc.label, StrCast(this.rootDoc.title));
         const color = this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.Color);
         const backgroundColor = this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.BackgroundColor);
-        const shape = StrCast(this.layoutDoc.iconShape, label ? "round" : "circle");
+        // const shape = StrCast(this.layoutDoc.iconShape, label ? "round" : "circle");
         const icon = StrCast(this.dataDoc.icon, "user") as any;
-        const presSize = shape === 'round' ? 25 : 30;
+        const presSize = type === ButtonType.MenuButton ? 30 : 25;
         const presTrailsIcon = <img src={`/assets/${"presTrails.png"}`}
             style={{ width: presSize, height: presSize, filter: `invert(${color === "white" ? "100%" : "0%"})`, marginBottom: "5px" }} />;
-        const button = <button className={`menuButton-${shape}`} onContextMenu={this.specificContextMenu}
+
+
+        const button = <button className={`menuButton${type ? "-" + type : ""}`} onContextMenu={this.specificContextMenu}
             style={{ backgroundColor: backgroundColor, }}>
             <div className="menuButton-wrap">
-                {icon === 'pres-trail' ? presTrailsIcon : <FontAwesomeIcon className={`menuButton-icon-${shape}`} icon={icon} color={color}
+                {icon === 'pres-trail' ? presTrailsIcon : <FontAwesomeIcon className={`menuButton-icon-${type}`} icon={icon} color={color}
                     size={"sm"} />}
                 {!label ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
                 <FontIconBadge collection={Cast(this.rootDoc.watchedDocuments, Doc, null)} />

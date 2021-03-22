@@ -22,9 +22,10 @@
     height: 100%;
 }
 
-.mainContent-div-flyout {
-    left: calc(-1 * var(--flyoutHandleWidth));
-}
+// TODO
+// .mainContent-div-flyout {
+//     left: calc(-1 * var(--flyoutHandleWidth));
+// }
 
 // add nodes menu. Note that the + button is actually an input label, not an actual button.
 .mainView-docButtons {
@@ -141,6 +142,11 @@
     border-left: solid 1px;
     z-index: 100000;
     cursor: auto;
+}
+
+.mainView-innerContainer,
+.mainView-innterContainer-dark {
+    display: grid;
 }
 
 .mainView-innerContent,
@@ -332,6 +338,7 @@
 .mainView-libraryFlyout-out,
 .mainView-libraryFlyout {
     height: 100%;
+    top: 0px;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -368,9 +375,8 @@
     width: var(--flyoutHandleWidth);
     height: 55px;
     top: 50%;
-    left: -10px;
     border-radius: 8px;
-    position: relative;
+    position: absolute;
     z-index: 41; // lm_maximised has a z-index of 40 and this needs to be above that
     touch-action: none;
     cursor: grab;
