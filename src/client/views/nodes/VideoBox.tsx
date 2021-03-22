@@ -493,7 +493,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     playLink = (doc: Doc) => {
-        const startTime = this._stackedTimeline.current?.anchorStart(doc) || 0;
+        const startTime = Math.max(0, (this._stackedTimeline.current?.anchorStart(doc) || 0) - .25);
         const endTime = this._stackedTimeline.current?.anchorEnd(doc);
         if (startTime !== undefined) {
             if (!this.layoutDoc.dontAutoPlayFollowedLinks) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);

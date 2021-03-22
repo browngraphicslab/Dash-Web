@@ -1,6 +1,6 @@
 import { computed } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, DocListCast, StrListCast } from "../../fields/Doc";
+import { Doc, DocListCast, StrListCast, Opt } from "../../fields/Doc";
 import { Id } from '../../fields/FieldSymbols';
 import { List } from '../../fields/List';
 import { NumCast, StrCast } from '../../fields/Types';
@@ -15,6 +15,7 @@ import { SearchBox } from './search/SearchBox';
 import "./SidebarAnnos.scss";
 import { StyleProp } from './StyleProvider';
 import React = require("react");
+import { DocumentViewProps } from './nodes/DocumentView';
 
 interface ExtraProps {
     fieldKey: string;
@@ -71,6 +72,10 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
     removeDocument = (doc: Doc | Doc[]) => this.props.removeDocument(doc, this.sidebarKey());
     docFilters = () => [...StrListCast(this.props.layoutDoc._docFilters), ...StrListCast(this.props.layoutDoc[this.filtersKey])];
 
+    sidebarStyleProvider = (doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) => {
+        if (property === StyleProp.ShowTitle) return "title";
+        return this.props.styleProvider?.(doc, props, property)
+    }
     render() {
         const renderTag = (tag: string) => {
             const active = StrListCast(this.props.rootDoc[this.filtersKey]).includes(`${tag}:${tag}:check`);
@@ -94,6 +99,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
                         PanelWidth={this.panelWidth}
                         xMargin={0}
                         yMargin={0}
+                        styleProvider={this.sidebarStyleProvider}
                         docFilters={this.docFilters}
                         scaleField={this.sidebarKey() + "-scale"}
                         isAnnotationOverlay={false}

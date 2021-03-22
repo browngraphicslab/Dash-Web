@@ -170,7 +170,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
 
     @action
     playOnClick = (anchorDoc: Doc, clientX: number) => {
-        const seekTimeInSeconds = this.anchorStart(anchorDoc);
+        const seekTimeInSeconds = this.anchorStart(anchorDoc) - 0.25;
         const endTime = this.anchorEnd(anchorDoc);
         if (this.layoutDoc.autoPlayAnchors) {
             if (this.props.playing()) this.props.Pause();
@@ -192,7 +192,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     @action
     clickAnchor = (anchorDoc: Doc, clientX: number) => {
         if (anchorDoc.isLinkButton) LinkManager.FollowLink(undefined, anchorDoc, this.props, false);
-        const seekTimeInSeconds = this.anchorStart(anchorDoc);
+        const seekTimeInSeconds = this.anchorStart(anchorDoc) - 0.25;
         const endTime = this.anchorEnd(anchorDoc);
         if (seekTimeInSeconds < NumCast(this.layoutDoc._currentTimecode) + 1e-4 && endTime > NumCast(this.layoutDoc._currentTimecode) - 1e-4) {
             if (this.props.playing()) this.props.Pause();

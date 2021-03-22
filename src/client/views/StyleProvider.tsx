@@ -69,6 +69,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
     const isBackground = () => StrListCast(doc?._layerTags).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
+    const showTitle = () => props?.styleProvider?.(doc, props, StyleProp.ShowTitle);
 
     switch (property.split(":")[0]) {
         case StyleProp.DocContents: return undefined;
@@ -88,7 +89,8 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
         case StyleProp.Hidden: return BoolCast(doc?._hidden);
         case StyleProp.BorderRounding: return StrCast(doc?._borderRounding);
         case StyleProp.TitleHeight: return 15;
-        case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) || doc?.type === DocumentType.RTF) && doc?._showTitle && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
+        case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) ||
+            doc?.type === DocumentType.RTF) && showTitle() && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
         case StyleProp.BackgroundColor: {
             if (isAnchor && docProps) return "transparent";
             if (isCaption) return "rgba(0,0,0 ,0.4)";
