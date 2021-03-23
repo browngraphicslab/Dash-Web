@@ -61,7 +61,6 @@ import { RichTextRules } from "./RichTextRules";
 import { schema } from "./schema_rts";
 import { SummaryView } from "./SummaryView";
 import applyDevTools = require("prosemirror-dev-tools");
-
 import React = require("react");
 const translateGoogleApi = require("translate-google-api");
 
@@ -636,6 +635,17 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this._downX = this._downY = Number.NaN;
     }
 
+    breakupDictation = () => {
+        if (this._editorView) {
+            this.stopDictation(true);
+            this._break = true;
+            const state = this._editorView.state;
+            const to = state.selection.to;
+            const updated = TextSelection.create(state.doc, to, to);
+            this._editorView!.dispatch(this._editorView!.state.tr.setSelection(updated).insertText("\n", to));
+            if (this._recording) setTimeout(() => this.recordDictation(), 500);
+        }
+    }
     recordDictation = () => {
         DictationManager.Controls.listen({
             interimHandler: this.setDictationContent,
@@ -654,7 +664,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             if (this._recordingStart) {
                 let from = this._editorView.state.selection.from;
                 if (this._break) {
-                    const l = DocUtils.MakeLinkToActiveAudio(this.rootDoc);
+                    const l = DocUtils.MakeLinkToActiveAudio(this.rootDoc, false);
                     if (!l) return;
                     const anchor = (l.anchor1 as Doc).annotationOn ? l.anchor1 as Doc : (l.anchor2 as Doc).annotationOn ? (l.anchor2 as Doc) : undefined;
                     if (!anchor) return;
@@ -758,6 +768,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
         this.props.contentsActive?.(this.active);
         this._cachedLinks = DocListCast(this.Document.links);
+        this._disposers.breakupDictation = reaction(() => DocumentManager.Instance.RecordingEvent, () => this.breakupDictation());
         this._disposers.autoHeight = reaction(() => this.autoHeight, autoHeight => autoHeight && this.tryUpdateScrollHeight());
         this._disposers.scrollHeight = reaction(() => ({ scrollHeight: this.scrollHeight, autoHeight: this.autoHeight, width: NumCast(this.layoutDoc._width) }),
             ({ width, scrollHeight, autoHeight }) => width && autoHeight && this.resetNativeHeight(scrollHeight)
@@ -842,7 +853,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                             setTimeout(() => this.recordDictation(), 500);
                         }), 500);
                     } else setTimeout(() => this.stopDictation(true), 0);
-                }
+                },
+                { fireImmediately: true }
             );
         }
         var quickScroll: string | undefined = "";
@@ -1122,21 +1134,22 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             DocServer.GetRefField(audioid).then(anchor => {
                 if (anchor instanceof Doc) {
                     const audiodoc = anchor.annotationOn as Doc;
-                    audiodoc._triggerAudio = Number(time);
-                    !DocumentManager.Instance.getDocumentView(audiodoc) && this.props.addDocTab(audiodoc, "add:bottom");
+                    const func = () => {
+                        const docView = DocumentManager.Instance.getDocumentView(audiodoc);
+                        if (!docView) {
+                            this.props.addDocTab(audiodoc, "add:bottom");
+                            setTimeout(() => func());
+                        }
+                        else docView.ComponentView?.playFrom?.(Number(time), Number(time) + 3); // bcz: would be nice to find the next audio tag in the doc and play until that
+                    }
+                    func();
                 }
             });
         }
         if (this._recording && !e.ctrlKey && e.button === 0) {
-            this.stopDictation(true);
-            this._break = true;
-            const state = this._editorView!.state;
-            const to = state.selection.to;
-            const updated = TextSelection.create(state.doc, to, to);
-            this._editorView!.dispatch(this._editorView!.state.tr.setSelection(updated).insertText("\n", to));
+            this.breakupDictation();
             e.preventDefault();
             e.stopPropagation();
-            if (this._recording) setTimeout(() => this.recordDictation(), 500);
         }
         this._downX = e.clientX;
         this._downY = e.clientY;

@@ -1048,12 +1048,10 @@ export namespace DocUtils {
 
     export let ActiveRecordings: { props: FieldViewProps, getAnchor: () => Doc }[] = [];
 
-    export function MakeLinkToActiveAudio(doc: Doc) {
-        let lastLink: Doc | undefined;
-        DocUtils.ActiveRecordings.map(audio => {
-            lastLink = DocUtils.MakeLink({ doc: doc }, { doc: audio.getAnchor() || audio.props.Document }, "recording link", "recording timeline");
-        });
-        return lastLink;
+    export function MakeLinkToActiveAudio(doc: Doc, broadcastEvent = true) {
+        broadcastEvent && runInAction(() => DocumentManager.Instance.RecordingEvent = DocumentManager.Instance.RecordingEvent + 1);
+        return DocUtils.ActiveRecordings.map(audio =>
+            DocUtils.MakeLink({ doc: doc }, { doc: audio.getAnchor() || audio.props.Document }, "recording link", "recording timeline")).lastElement();
     }
 
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string, allowParCollectionLink?: boolean, showPopup?: number[]) {

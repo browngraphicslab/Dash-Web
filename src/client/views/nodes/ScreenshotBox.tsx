@@ -24,6 +24,9 @@ import { VideoBox } from "./VideoBox";
 import { Id } from "../../../fields/FieldSymbols";
 import { CollectionStackedTimeline } from "../collections/CollectionStackedTimeline";
 import { DateField } from "../../../fields/DateField";
+import { ComputedField } from "../../../fields/ScriptField";
+import { DocumentManager } from "../../util/DocumentManager";
+import { DocumentView } from "./DocumentView";
 const path = require('path');
 declare class MediaRecorder {
     constructor(e: any, options?: any);  // whatever MediaRecorder has
@@ -161,6 +164,8 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
     _achunks: any;
     _vrecorder: any;
     _arecorder: any;
+    _dictation: Doc | undefined;
+    _dictationView: DocumentView | undefined;
 
     toggleRecording = action(async () => {
         this._screenCapture = !this._screenCapture;
@@ -190,16 +195,32 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
                     this.dataDoc[this.props.fieldKey] = new VideoField(Utils.prepend(result.accessPaths.agnostic.client));
                 } else alert("video conversion failed");
             };
+            this._dictation = this.setupDictation();
+            setTimeout(() => this._dictationView = DocumentManager.Instance.getDocumentView(this._dictation!));
             this._arecorder.start();
             this._vrecorder.start();
+            this.dataDoc.audioState = "recording";
             DocUtils.ActiveRecordings.push(this);
         } else {
             this._arecorder.stop();
             this._vrecorder.stop();
+            this.dataDoc.audioState = "paused";
             const ind = DocUtils.ActiveRecordings.indexOf(this);
             ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
         }
     });
+
+    setupDictation = () => {
+        const dictationText = CurrentUserUtils.GetNewTextDoc("",
+            NumCast(this.rootDoc.x), NumCast(this.rootDoc.y) + NumCast(this.layoutDoc._height) + 10,
+            NumCast(this.layoutDoc._width), 2 * NumCast(this.layoutDoc._height));
+        const dictationTextProto = Doc.GetProto(dictationText);
+        dictationTextProto.recordingSource = this.dataDoc;
+        dictationTextProto.recordingStart = ComputedField.MakeFunction(`self.recordingSource["${this.props.fieldKey}-recordingStart"]`);
+        dictationTextProto.audioState = ComputedField.MakeFunction("self.recordingSource.audioState");
+        this.props.addDocument?.(dictationText);
+        return dictationText;
+    }
 
     private get uIButtons() {
         return (<div className="screenshotBox-uiButtons">

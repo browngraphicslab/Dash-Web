@@ -85,6 +85,7 @@ export interface DocComponentView {
     menuControls?: () => JSX.Element; // controls to display in the top menu bar when the document is selected.
     getKeyFrameEditing?: () => boolean; // whether the document is in keyframe editing mode (if it is, then all hidden documents that are not active at the keyframe time will still be shown)
     setKeyFrameEditing?: (set: boolean) => void; // whether the document is in keyframe editing mode (if it is, then all hidden documents that are not active at the keyframe time will still be shown)
+    playFrom?: (time: number, endTime?: number) => void;
 }
 export interface DocumentViewSharedProps {
     renderDepth: number;
