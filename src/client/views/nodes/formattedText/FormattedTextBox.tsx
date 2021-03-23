@@ -1129,18 +1129,17 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if ((e.target as any).tagName === "AUDIOTAG") {
             e.preventDefault();
             e.stopPropagation();
-            const time = (e.target as any)?.dataset?.timecode || 0;
-            const audioid = (e.target as any)?.dataset?.audioid || 0;
-            DocServer.GetRefField(audioid).then(anchor => {
+            DocServer.GetRefField((e.target as any)?.dataset?.audioid || 0).then(anchor => {
                 if (anchor instanceof Doc) {
+                    const timecode = NumCast(anchor.timecodeToShow, 0);
                     const audiodoc = anchor.annotationOn as Doc;
                     const func = () => {
                         const docView = DocumentManager.Instance.getDocumentView(audiodoc);
                         if (!docView) {
                             this.props.addDocTab(audiodoc, "add:bottom");
-                            setTimeout(() => func());
+                            setTimeout(func);
                         }
-                        else docView.ComponentView?.playFrom?.(Number(time), Number(time) + 3); // bcz: would be nice to find the next audio tag in the doc and play until that
+                        else docView.ComponentView?.playFrom?.(timecode, Cast(anchor.timecodeToHide, "number", null)); // bcz: would be nice to find the next audio tag in the doc and play until that
                     }
                     func();
                 }
