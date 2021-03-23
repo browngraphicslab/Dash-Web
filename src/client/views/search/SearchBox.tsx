@@ -515,13 +515,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     render() {
         const myDashboards = DocListCast(CurrentUserUtils.MyDashboards.data);
+        const dashIcon = <img src="/assets/dashBlue.png" style={{ marginLeft: 5, width: 25, userSelect: "none" }} />;
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div className="searchBox-bar" style={{ background: Doc.UserDoc().darkScheme ? "#276B86" : "#BDDBE8" }}>
                     <div className="searchBox-left" >
+                        {dashIcon}
                         <input defaultValue={""} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this._inputRef}
                             className="searchBox-barChild searchBox-input" onKeyPress={this.enter}
-                            style={{ padding: 1, paddingLeft: 20, paddingRight: 60, color: "black", height: 20, width: 250 }} />
+                            style={{ padding: 1, paddingLeft: 20, paddingRight: 60, color: "black", height: 23, width: 250 }} />
                         <div style={{ display: "flex", alignItems: "center" }}>
                             <div style={{ position: "absolute", left: 10 }}>
                                 <Tooltip title={<div className="dash-tooltip" >drag search results as collection</div>}>
@@ -566,11 +568,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 Logoff
                             </div>
                         </div>
-                        <div className="searchBar-icon" onClick={() => SettingsManager.Instance.open()}>
-                            <FontAwesomeIcon icon="cog"></FontAwesomeIcon>
-                        </div>
                         <div className="searchBar-icon">
                             <FontAwesomeIcon icon="question-circle"></FontAwesomeIcon>
+                        </div>
+                        <div className="searchBar-icon" onClick={() => SettingsManager.Instance.open()}>
+                            <FontAwesomeIcon icon="cog"></FontAwesomeIcon>
                         </div>
                     </div>
 

@@ -63,9 +63,23 @@
 
             .searchBar-icon {
                 color: black;
+                cursor: pointer;
                 font-size: 20px;
+                height: 25;
+                width: 25;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin-right: 5px;
                 justify-self: center;
                 align-self: center;
+                border-radius: 100%;
+                transition: linear 0.1s;
+                background-color: #92adb900;
+            }
+
+            .searchBar-icon:hover {
+                background-color: #92adb9;
             }
 
             .searchBox-lozenge-user,
@@ -76,7 +90,7 @@
                 font-family: 'Roboto';
                 font-weight: 400;
                 padding: 4px;
-                margin-right: 5px;
+                margin-right: 7px;
                 display: flex;
                 align-items: center;
                 border: black 1px solid;
@@ -131,15 +145,15 @@
             }
 
             &.searchBox-input {
-                margin:5px;
-                border-radius:20px;
-                border:black;    
-                display: block;
-                width: 130px;
-                -webkit-transition: width 0.4s;
-                transition: width 0.4s;
-                align-self: stretch;
-                outline:none;
+                   /* margin: 5px; */
+                    border-radius: 20px;
+                    border: black;
+                    display: block;
+                    width: 130px;
+                    -webkit-transition: width 0.4s;
+                    transition: width 0.4s;
+                    /* align-self: stretch; */
+                    outline: none;
                 &:focus {
                     width: 500px;
                     outline:none;
