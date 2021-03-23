@@ -37,6 +37,11 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
         DocListCast(this.props.rootDoc[this.sidebarKey()]).forEach(doc => SearchBox.documentKeys(doc).forEach(key => keys.add(key)));
         return Array.from(keys.keys()).filter(key => key[0]).filter(key => !key.startsWith("_") && (key[0] === "#" || key[0] === key[0].toUpperCase())).sort();
     }
+    @computed get allUsers() {
+        const keys = new Set<string>();
+        DocListCast(this.props.rootDoc[this.sidebarKey()]).forEach(doc => keys.add(StrCast(doc.author)));
+        return Array.from(keys.keys()).sort();
+    }
     get filtersKey() { return "_" + this.sidebarKey() + "-docFilters"; }
 
     anchorMenuClick = (anchor: Doc) => {
@@ -73,7 +78,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
     docFilters = () => [...StrListCast(this.props.layoutDoc._docFilters), ...StrListCast(this.props.layoutDoc[this.filtersKey])];
 
     sidebarStyleProvider = (doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) => {
-        if (property === StyleProp.ShowTitle) return "title";
+        if (property === StyleProp.ShowTitle) return StrCast(this.props.layoutDoc["sidebar-childShowTitle"], "title");
         return this.props.styleProvider?.(doc, props, property)
     }
     render() {
@@ -82,6 +87,13 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
             return <div key={tag} className={`sidebarAnnos-filterTag${active ? "-active" : ""}`}
                 onClick={e => Doc.setDocFilter(this.props.rootDoc, tag, tag, "check", true, this.sidebarKey(), e.shiftKey)}>
                 {tag}
+            </div>;
+        };
+        const renderUsers = (user: string) => {
+            const active = StrListCast(this.props.rootDoc[this.filtersKey]).includes(`author:${user}:check`);
+            return <div key={user} className={`sidebarAnnos-filterUser${active ? "-active" : ""}`}
+                onClick={e => Doc.setDocFilter(this.props.rootDoc, "author", user, "check", true, this.sidebarKey(), e.shiftKey)}>
+                {user}
             </div>;
         };
         return !this.props.layoutDoc._showSidebar ? (null) :
@@ -120,6 +132,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
                     />
                 </div>
                 <div className="sidebarAnnos-tagList" style={{ height: this.filtersHeight(), width: this.panelWidth() }}>
+                    {this.allUsers.map(renderUsers)}
                     {this.allHashtags.map(renderTag)}
                 </div>
             </div>;
