@@ -795,7 +795,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allLinkEndpoints}
             {this.hideLinkButton ? (null) :
-                <DocumentLinksButton View={this.props.DocumentView()} links={this.allLinks} Offset={[this.topMost ? 0 : -15, undefined, undefined, this.topMost ? 10 : -20]} />}
+                <DocumentLinksButton View={this.props.DocumentView()} Offset={[this.topMost ? 0 : -15, undefined, undefined, this.topMost ? 10 : -20]} />}
 
             {audioView}
         </div>;
@@ -814,7 +814,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         TraceMobx();
         if (this.props.LayoutTemplateString?.includes(LinkAnchorBox.name)) return null;
         if (this.layoutDoc.presBox || this.rootDoc.type === DocumentType.LINK || this.props.dontRegisterView) return (null);
-
         // need to use allLinks for RTF since embedded linked text anchors are not rendered with DocumentViews.  All other documents render their anchors with nested DocumentViews so we just need to render the directLinks here
         const filtered = DocUtils.FilterDocs(this.rootDoc.type === DocumentType.RTF ? this.allLinks : this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden);
         return filtered.map((link, i) =>

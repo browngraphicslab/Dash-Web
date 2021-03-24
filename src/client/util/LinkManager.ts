@@ -1,21 +1,21 @@
 import { computedFn } from "mobx-utils";
-import { Doc, DocListCast, Opt } from "../../fields/Doc";
-import { BoolCast, Cast, StrCast } from "../../fields/Types";
+import { Doc, DocListCast, Opt, DirectLinksSym, Field } from "../../fields/Doc";
+import { BoolCast, Cast, StrCast, PromiseValue } from "../../fields/Types";
 import { LightboxView } from "../views/LightboxView";
 import { DocumentViewSharedProps, ViewAdjustment } from "../views/nodes/DocumentView";
 import { DocumentManager } from "./DocumentManager";
 import { SharingManager } from "./SharingManager";
 import { UndoManager } from "./UndoManager";
+import { observe, observable, reaction } from "mobx";
+import { listSpec } from "../../fields/Schema";
+import { List } from "../../fields/List";
+import { ProxyField } from "../../fields/Proxy";
 
 type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 /* 
  * link doc: 
- * - anchor1: doc
- * - anchor1page: number
- * - anchor1groups: list of group docs representing the groups anchor1 categorizes this link/anchor2 in 
+ * - anchor1: doc 
  * - anchor2: doc
- * - anchor2page: number
- * - anchor2groups: list of group docs representing the groups anchor2 categorizes this link/anchor1 in 
  * 
  * group doc:
  * - type: string representing the group type/name/category
@@ -26,38 +26,80 @@ type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => vo
  */
 export class LinkManager {
 
-    private static _instance: LinkManager;
+    @observable static _instance: LinkManager;
+    @observable static userDocs: Doc[] = [];
     public static currentLink: Opt<Doc>;
-    public static get Instance(): LinkManager { return this._instance || (this._instance = new this()); }
+    public static get Instance() { return LinkManager._instance; }
+    constructor() {
+        LinkManager._instance = this;
+        setTimeout(() => {
+            LinkManager.userDocs = [Doc.LinkDBDoc().data as Doc, ...SharingManager.Instance.users.map(user => user.linkDatabase as Doc)];
+            const addLinkToDoc = (link: Doc): any => {
+                const a1 = link?.anchor1;
+                const a2 = link?.anchor2;
+                if (a1 instanceof Promise || a2 instanceof Promise) return PromiseValue(a1).then(a1 => PromiseValue(a2).then(a2 => addLinkToDoc(link)));
+                if (a1 instanceof Doc && a2 instanceof Doc && ((a1.author !== undefined && a2.author !== undefined) || link.author === Doc.CurrentUserEmail)) {
+                    Doc.GetProto(a1)[DirectLinksSym].add(link);
+                    Doc.GetProto(a2)[DirectLinksSym].add(link);
+                }
+            }
+            const remLinkFromDoc = (link: Doc): any => {
+                const a1 = link?.anchor1;
+                const a2 = link?.anchor2;
+                if (a1 instanceof Promise || a2 instanceof Promise) return PromiseValue(a1).then(a1 => PromiseValue(a2).then(a2 => remLinkFromDoc(link)));
+                if (a1 instanceof Doc && a2 instanceof Doc && ((a1.author !== undefined && a2.author !== undefined) || link.author === Doc.CurrentUserEmail)) {
+                    Doc.GetProto(a1)[DirectLinksSym].delete(link);
+                    Doc.GetProto(a2)[DirectLinksSym].delete(link);
+                }
+            }
+            const watchUserLinks = (userLinks: List<Doc>) => {
+                const toRealField = (field: Field) => field instanceof ProxyField ? field.value() : field;  // see List.ts.  data structure is not a simple list of Docs, but a list of ProxyField/Fields
+                observe(userLinks, change => {
+                    switch (change.type) {
+                        case "splice":
+                            (change as any).added.forEach((link: any) => addLinkToDoc(toRealField(link)));
+                            (change as any).removed.forEach((link: any) => remLinkFromDoc(toRealField(link)));
+                            break;
+                        case "update": let oldValue = change.oldValue;
+                    }
+                }, true);
+            }
+            observe(LinkManager.userDocs, change => {
+                switch (change.type) {
+                    case "splice": (change as any).added.forEach(watchUserLinks); break;
+                    case "update": let oldValue = change.oldValue;
+                }
+            }, true);
+        });
+    }
 
-    public addLink(linkDoc: Doc) { return Doc.AddDocToList(Doc.LinkDBDoc(), "data", linkDoc); }
+    public addLink(linkDoc: Doc) {
+        return Doc.AddDocToList(Doc.LinkDBDoc(), "data", linkDoc);
+    }
     public deleteLink(linkDoc: Doc) { return Doc.RemoveDocFromList(Doc.LinkDBDoc(), "data", linkDoc); }
     public deleteAllLinksOnAnchor(anchor: Doc) { LinkManager.Instance.relatedLinker(anchor).forEach(linkDoc => LinkManager.Instance.deleteLink(linkDoc)); }
 
     public getAllRelatedLinks(anchor: Doc) { return this.relatedLinker(anchor); } // finds all links that contain the given anchor
-    public getAllDirectLinks(anchor: Doc): Doc[] { return this.directLinker(anchor); }  // finds all links that contain the given anchor
-    public getAllLinks(): Doc[] { return this.allLinks(); }
+    public getAllDirectLinks(anchor: Doc): Doc[] { return Array.from(Doc.GetProto(anchor)[DirectLinksSym]); } // finds all links that contain the given anchor
+    public getAllLinks(): Doc[] { return []; }//this.allLinks(); }
 
-    allLinks = computedFn(function allLinks(this: any): Doc[] {
-        const linkData = Doc.LinkDBDoc().data;
-        const lset = new Set<Doc>(DocListCast(linkData));
-        SharingManager.Instance.users.forEach(user => DocListCast(user.linkDatabase?.data).forEach(doc => lset.add(doc)));
-        return Array.from(lset);
-    }, true);
-
-    directLinker = computedFn(function directLinker(this: any, anchor: Doc): Doc[] {
-        return LinkManager.Instance.allLinks().filter(link => {
-            const a1 = Cast(link?.anchor1, Doc, null);
-            const a2 = Cast(link?.anchor2, Doc, null);
-            return link && ((a1?.author !== undefined && a2?.author !== undefined) || link.author === Doc.CurrentUserEmail) && (Doc.AreProtosEqual(anchor, a1) || Doc.AreProtosEqual(anchor, a2) || Doc.AreProtosEqual(link, anchor));
-        });
-    }, true);
+    // allLinks = computedFn(function allLinks(this: any): Doc[] {
+    //     const linkData = Doc.LinkDBDoc().data;
+    //     const lset = new Set<Doc>(DocListCast(linkData));
+    //     SharingManager.Instance.users.forEach(user => DocListCast(user.linkDatabase?.data).forEach(doc => lset.add(doc)));
+    //     LinkManager.Instance.allLinks().filter(link => {
+    //         const a1 = Cast(link?.anchor1, Doc, null);
+    //         const a2 = Cast(link?.anchor2, Doc, null);
+    //         return link && ((a1?.author !== undefined && a2?.author !== undefined) || link.author === Doc.CurrentUserEmail) && (Doc.AreProtosEqual(anchor, a1) || Doc.AreProtosEqual(anchor, a2) || Doc.AreProtosEqual(link, anchor));
+    //     });
+    //     return Array.from(lset);
+    // }, true);
 
     relatedLinker = computedFn(function relatedLinker(this: any, anchor: Doc): Doc[] {
         const lfield = Doc.LayoutFieldKey(anchor);
         return DocListCast(anchor[lfield + "-annotations"]).concat(DocListCast(anchor[lfield + "-annotations-timeline"])).reduce((list, anno) =>
             [...list, ...LinkManager.Instance.relatedLinker(anno)],
-            LinkManager.Instance.directLinker(anchor).slice());
+            Array.from(Doc.GetProto(anchor)[DirectLinksSym]).slice());// LinkManager.Instance.directLinker(anchor).slice());
     }, true);
 
     // returns map of group type to anchor's links in that group type
@@ -74,13 +116,6 @@ export class LinkManager {
             }
         });
         return anchorGroups;
-    }
-
-    // checks if a link with the given anchors exists
-    public doesLinkExist(anchor1: Doc, anchor2: Doc): boolean {
-        return -1 !== LinkManager.Instance.allLinks().findIndex(linkDoc =>
-            (Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, null), anchor1) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, null), anchor2)) ||
-            (Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, null), anchor2) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, null), anchor1)));
     }
 
     // finds the opposite anchor of a given anchor in a link

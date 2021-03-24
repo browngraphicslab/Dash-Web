@@ -23,6 +23,7 @@ import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
 import { VideoBox } from "./VideoBox";
+import { TraceMobx } from "../../../fields/util";
 declare class MediaRecorder {
     constructor(e: any, options?: any);  // whatever MediaRecorder has
 }
@@ -133,6 +134,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
     }
     contentFunc = () => [this.content];
     render() {
+        TraceMobx();
         return <div className="videoBox" onContextMenu={this.specificContextMenu} style={{ width: "100%", height: "100%" }} >
             <div className="videoBox-viewer" >
                 <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}

@@ -85,6 +85,7 @@ export const DataSym = Symbol("Data");
 export const LayoutSym = Symbol("Layout");
 export const FieldsSym = Symbol("Fields");
 export const AclSym = Symbol("Acl");
+export const DirectLinksSym = Symbol("DirectLinks");
 export const AclUnset = Symbol("AclUnset");
 export const AclPrivate = Symbol("AclOwnerOnly");
 export const AclReadonly = Symbol("AclReadOnly");
@@ -185,6 +186,7 @@ export class Doc extends RefField {
     @observable private ___fields: any = {};
     @observable private ___fieldKeys: any = {};
     @observable public [AclSym]: { [key: string]: symbol };
+    @observable public [DirectLinksSym]: Set<Doc> = new Set();
 
     private [UpdatingFromServer]: boolean = false;
     private [ForceServerWrite]: boolean = false;
