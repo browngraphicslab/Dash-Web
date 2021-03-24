@@ -14,6 +14,7 @@ export class DocumentManager {
 
     //global holds all of the nodes (regardless of which collection they're in)
     @observable public DocumentViews: DocumentView[] = [];
+    @observable public RecordingEvent = 0;
     @observable public LinkedDocumentViews: { a: DocumentView, b: DocumentView, l: Doc }[] = [];
 
     private static _instance: DocumentManager;

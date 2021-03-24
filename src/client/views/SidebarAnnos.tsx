@@ -71,7 +71,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
     filtersHeight = () => 50;
     screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(Doc.NativeWidth(this.props.dataDoc), 0).scale(this.props.scaling?.() || 1);
     panelWidth = () => !this.props.layoutDoc._showSidebar ? 0 : (NumCast(this.props.layoutDoc.nativeWidth) - Doc.NativeWidth(this.props.dataDoc)) * this.props.PanelWidth() / NumCast(this.props.layoutDoc.nativeWidth);
-    panelHeight = () => this.props.PanelHeight() - this.filtersHeight() - 20;
+    panelHeight = () => this.props.PanelHeight() - this.filtersHeight();
     addDocument = (doc: Doc | Doc[]) => this.props.sidebarAddDocument(doc, this.sidebarKey());
     moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean) => this.props.moveDocument(doc, targetCollection, addDocument, this.sidebarKey());
     removeDocument = (doc: Doc | Doc[]) => this.props.removeDocument(doc, this.sidebarKey());
@@ -103,6 +103,10 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
                 width: `${this.panelWidth()}px`,
                 height: "100%"
             }}>
+                <div className="sidebarAnnos-tagList" style={{ height: this.filtersHeight(), width: this.panelWidth() }}>
+                    {this.allUsers.map(renderUsers)}
+                    {this.allHashtags.map(renderTag)}
+                </div>
                 <div style={{ width: "100%", height: this.panelHeight(), position: "relative" }}>
                     <CollectionStackingView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit} ref={this._stackRef}
                         NativeWidth={returnZero}
@@ -130,10 +134,6 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
                         fieldKey={this.sidebarKey()}
                         pointerEvents={"all"}
                     />
-                </div>
-                <div className="sidebarAnnos-tagList" style={{ height: this.filtersHeight(), width: this.panelWidth() }}>
-                    {this.allUsers.map(renderUsers)}
-                    {this.allHashtags.map(renderTag)}
                 </div>
             </div>;
     }
