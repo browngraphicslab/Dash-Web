@@ -113,7 +113,7 @@ export class KeyManager {
                     SelectionManager.DeselectAll();
                     LightboxView.SetLightboxDoc(undefined);
                 }
-                DictationManager.Controls.stop();
+                // DictationManager.Controls.stop();
                 GoogleAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
                 GroupManager.Instance.close();

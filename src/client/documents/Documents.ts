@@ -717,7 +717,7 @@ export namespace Docs {
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)),
-                { ...options, backgroundColor: ComputedField.MakeFunction("this._audioState === 'playing' ? 'green':'gray'") as any });
+                { ...options, backgroundColor: ComputedField.MakeFunction("this._mediaState === 'playing' ? 'green':'gray'") as any });
         }
 
         export function SearchDocument(options: DocumentOptions = {}) {
