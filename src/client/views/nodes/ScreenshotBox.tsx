@@ -218,7 +218,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
         dictationTextProto.recordingSource = this.dataDoc;
         dictationTextProto.recordingStart = ComputedField.MakeFunction(`self.recordingSource["${this.props.fieldKey}-recordingStart"]`);
         dictationTextProto.audioState = ComputedField.MakeFunction("self.recordingSource.audioState");
-        this.props.addDocument?.(dictationText);
+        this.props.addDocument?.(dictationText) || this.props.addDocTab(dictationText, "add:bottom");
         return dictationText;
     }
 
