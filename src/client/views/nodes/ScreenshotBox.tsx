@@ -1,37 +1,35 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, observable, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable } from "mobx";
 import { observer } from "mobx-react";
-import * as rp from 'request-promise';
+import { DateField } from "../../../fields/DateField";
 import { Doc, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
+import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
-import { listSpec, makeInterface } from "../../../fields/Schema";
+import { makeInterface } from "../../../fields/Schema";
+import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
-import { VideoField, AudioField } from "../../../fields/URLField";
-import { emptyFunction, returnFalse, returnOne, returnZero, Utils, OmitKeys } from "../../../Utils";
-import { Docs, DocUtils } from "../../documents/Documents";
+import { AudioField, VideoField } from "../../../fields/URLField";
+import { emptyFunction, OmitKeys, returnFalse, returnOne, Utils } from "../../../Utils";
+import { DocUtils } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { Networking } from "../../Network";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { DocumentManager } from "../../util/DocumentManager";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { CollectionStackedTimeline } from "../collections/CollectionStackedTimeline";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { ViewBoxBaseComponent, ViewBoxAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
+import { DocumentView } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
-import { CurrentUserUtils } from "../../util/CurrentUserUtils";
-import { Networking } from "../../Network";
-import { DocumentType } from "../../documents/DocumentTypes";
 import { VideoBox } from "./VideoBox";
-import { Id } from "../../../fields/FieldSymbols";
-import { CollectionStackedTimeline } from "../collections/CollectionStackedTimeline";
-import { DateField } from "../../../fields/DateField";
-import { ComputedField } from "../../../fields/ScriptField";
-import { DocumentManager } from "../../util/DocumentManager";
-import { DocumentView } from "./DocumentView";
 const path = require('path');
 declare class MediaRecorder {
     constructor(e: any, options?: any);  // whatever MediaRecorder has
 }
-
 
 type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
 const ScreenshotDocument = makeInterface(documentSchema);
@@ -40,12 +38,15 @@ const ScreenshotDocument = makeInterface(documentSchema);
 export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
     private _reactionDisposer?: IReactionDisposer;
     private _videoRef: HTMLVideoElement | null = null;
+    private _vchunks: any;
+    private _achunks: any;
+    private _vrecorder: any;
+    private _arecorder: any;
+    private _dictation: Doc | undefined;
+    private _dictationView: DocumentView | undefined;
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ScreenshotBox, fieldKey); }
     @computed get recordingStart() { return Cast(this.dataDoc[this.props.fieldKey + "-recordingStart"], DateField)?.date.getTime(); }
 
-    public get player(): HTMLVideoElement | null {
-        return this._videoRef;
-    }
 
     getAnchor = () => {
         const startTime = Cast(this.layoutDoc._currentTimecode, "number", null) || (this._vrecorder ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined);
@@ -55,7 +56,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
     }
 
     videoLoad = () => {
-        const aspect = this.player!.videoWidth / this.player!.videoHeight;
+        const aspect = this._videoRef!.videoWidth / this._videoRef!.videoHeight;
         const nativeWidth = Doc.NativeWidth(this.layoutDoc);
         const nativeHeight = Doc.NativeHeight(this.layoutDoc);
         if (!nativeWidth || !nativeHeight) {
@@ -65,49 +66,6 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
         }
     }
 
-    @action public Snapshot() {
-        const width = NumCast(this.layoutDoc._width);
-        const height = NumCast(this.layoutDoc._height);
-        const canvas = document.createElement('canvas');
-        canvas.width = 640;
-        canvas.height = 640 / (Doc.NativeAspect(this.layoutDoc) || 1);
-        const ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
-        if (ctx) {
-            ctx.rect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "blue";
-            ctx.fill();
-            this._videoRef && ctx.drawImage(this._videoRef, 0, 0, canvas.width, canvas.height);
-        }
-
-        if (this._videoRef) {
-            //convert to desired file format
-            const dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
-            // if you want to preview the captured image,
-            const filename = path.basename(encodeURIComponent("screenshot" + Utils.GenerateGuid().replace(/\..*$/, "").replace(" ", "_")));
-            ScreenshotBox.convertDataUri(dataUrl, filename).then(returnedFilename => {
-                setTimeout(() => {
-                    if (returnedFilename) {
-                        const imageSummary = Docs.Create.ImageDocument(Utils.prepend(returnedFilename), {
-                            x: NumCast(this.layoutDoc.x) + width, y: NumCast(this.layoutDoc.y),
-                            _width: 150, _height: height / width * 150, title: "--screenshot--"
-                        });
-                        if (!this.props.addDocument || this.props.addDocument === returnFalse) {
-                            const spt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-                            imageSummary.x = spt[0];
-                            imageSummary.y = spt[1];
-                            Cast(Cast(Doc.UserDoc().myOverlayDocs, Doc, null)?.data, listSpec(Doc), []).push(imageSummary);
-                        } else {
-                            this.props.addDocument?.(imageSummary);
-                        }
-                    }
-                }, 500);
-            });
-        }
-    }
-
-    componentDidMount() {
-    }
-
     componentWillUnmount() {
         this._reactionDisposer?.();
         const ind = DocUtils.ActiveRecordings.indexOf(this);
@@ -115,33 +73,13 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
     }
 
     @action
-    setVideoRef = (vref: HTMLVideoElement | null) => {
-        this._videoRef = vref;
-    }
+    setVideoRef = (vref: HTMLVideoElement | null) => this._videoRef = vref;
 
-    public static async convertDataUri(imageUri: string, returnedFilename: string) {
-        try {
-            const posting = Utils.prepend("/uploadURI");
-            const returnedUri = await rp.post(posting, {
-                body: {
-                    uri: imageUri,
-                    name: returnedFilename
-                },
-                json: true,
-            });
-            return returnedUri;
-
-        } catch (e) {
-            console.log("ScreenShotBox:" + e);
-        }
-    }
     @observable _screenCapture = false;
     specificContextMenu = (e: React.MouseEvent): void => {
         const field = Cast(this.dataDoc[this.fieldKey], VideoField);
         if (field) {
-            const url = field.url.href;
             const subitems: ContextMenuProps[] = [];
-            subitems.push({ description: "Take Snapshot", event: () => this.Snapshot(), icon: "expand-arrows-alt" });
             subitems.push({ description: "Screen Capture", event: this.toggleRecording, icon: "expand-arrows-alt" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: subitems, icon: "video" });
         }
@@ -159,13 +97,6 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
             Not supported.
             </video>;
     }
-
-    _vchunks: any;
-    _achunks: any;
-    _vrecorder: any;
-    _arecorder: any;
-    _dictation: Doc | undefined;
-    _dictationView: DocumentView | undefined;
 
     toggleRecording = action(async () => {
         this._screenCapture = !this._screenCapture;
@@ -199,12 +130,12 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
             setTimeout(() => this._dictationView = DocumentManager.Instance.getDocumentView(this._dictation!));
             this._arecorder.start();
             this._vrecorder.start();
-            this.dataDoc.audioState = "recording";
+            this.dataDoc.mediaState = "recording";
             DocUtils.ActiveRecordings.push(this);
         } else {
             this._arecorder.stop();
             this._vrecorder.stop();
-            this.dataDoc.audioState = "paused";
+            this.dataDoc.mediaState = "paused";
             const ind = DocUtils.ActiveRecordings.indexOf(this);
             ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
         }
@@ -217,7 +148,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
         const dictationTextProto = Doc.GetProto(dictationText);
         dictationTextProto.recordingSource = this.dataDoc;
         dictationTextProto.recordingStart = ComputedField.MakeFunction(`self.recordingSource["${this.props.fieldKey}-recordingStart"]`);
-        dictationTextProto.audioState = ComputedField.MakeFunction("self.recordingSource.audioState");
+        dictationTextProto.mediaState = ComputedField.MakeFunction("self.recordingSource.mediaState");
         this.props.addDocument?.(dictationText) || this.props.addDocTab(dictationText, "add:bottom");
         return dictationText;
     }
@@ -227,16 +158,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
             <div className="screenshotBox-recorder" key="snap" onPointerDown={this.toggleRecording} >
                 <FontAwesomeIcon icon="file" size="lg" />
             </div>
-            <div className="screenshotBox-snapshot" key="cam" onPointerDown={this.onSnapshot} >
-                <FontAwesomeIcon icon="camera" size="lg" />
-            </div>
         </div>);
-    }
-
-    onSnapshot = (e: React.PointerEvent) => {
-        this.Snapshot();
-        e.stopPropagation();
-        e.preventDefault();
     }
 
     contentFunc = () => [this.content];

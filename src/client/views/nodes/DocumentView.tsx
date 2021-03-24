@@ -158,7 +158,7 @@ export interface DocumentViewInternalProps extends DocumentViewProps {
 @observer
 export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps, Document>(Document) {
     @observable _animateScalingTo = 0;
-    @observable _audioState = 0;
+    @observable _mediaState = 0;
     @observable _pendingDoubleClick = false;
     private _downX: number = 0;
     private _downY: number = 0;
@@ -772,7 +772,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 style={{ height: 25, position: "absolute", top: 10, left: 10 }}
             >
                 <FontAwesomeIcon className="documentView-audioFont"
-                    style={{ color: [DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
+                    style={{ color: [DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._mediaState] }}
                     icon={!DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]).length ? "microphone" : "file-audio"} size="sm" />
             </div>;
         return <div className="documentView-contentsView"
@@ -835,7 +835,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     onPointerEnter = () => {
         const self = this;
         const audioAnnos = DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]);
-        if (audioAnnos && audioAnnos.length && this._audioState === 0) {
+        if (audioAnnos && audioAnnos.length && this._mediaState === 0) {
             const anno = audioAnnos[Math.floor(Math.random() * audioAnnos.length)];
             anno.data instanceof AudioField && new Howl({
                 src: [anno.data.url.href],
@@ -844,10 +844,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 loop: false,
                 volume: 0.5,
                 onend: function () {
-                    runInAction(() => self._audioState = 0);
+                    runInAction(() => self._mediaState = 0);
                 }
             });
-            this._audioState = 1;
+            this._mediaState = 1;
         }
     }
     recordAudioAnnotation = () => {
@@ -872,11 +872,11 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     }
                 }
             };
-            runInAction(() => self._audioState = 2);
+            runInAction(() => self._mediaState = 2);
             recorder.start();
             setTimeout(() => {
                 recorder.stop();
-                runInAction(() => self._audioState = 0);
+                runInAction(() => self._mediaState = 0);
                 gumStream.getAudioTracks()[0].stop();
             }, 5000);
         });

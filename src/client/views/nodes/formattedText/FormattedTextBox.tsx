@@ -124,9 +124,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @computed get scrollHeight() { return NumCast(this.rootDoc[this.fieldKey + "-scrollHeight"]); }
     @computed get sidebarHeight() { return NumCast(this.rootDoc[this.SidebarKey + "-height"]); }
     @computed get titleHeight() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin) || 0; }
-    @computed get _recording() { return this.dataDoc?.audioState === "recording"; }
+    @computed get _recording() { return this.dataDoc?.mediaState === "recording"; }
     set _recording(value) {
-        !this.dataDoc.recordingSource && (this.dataDoc.audioState = value ? "recording" : undefined);
+        !this.dataDoc.recordingSource && (this.dataDoc.mediaState = value ? "recording" : undefined);
     }
     @computed get config() {
         this._keymap = buildKeymap(schema, this.props);
@@ -307,7 +307,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         let link;
         DocListCast(this.dataDoc.links).forEach((l, i) => {
             const anchor = (l.anchor1 as Doc).annotationOn ? l.anchor1 as Doc : (l.anchor2 as Doc).annotationOn ? (l.anchor2 as Doc) : undefined;
-            if (anchor && (anchor.annotationOn as Doc).audioState === "recording") {
+            if (anchor && (anchor.annotationOn as Doc).mediaState === "recording") {
                 linkTime = NumCast(anchor._timecodeToShow /* audioStart */);
                 linkAnchor = anchor;
                 link = l;
