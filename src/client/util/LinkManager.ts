@@ -41,6 +41,7 @@ export class LinkManager {
                 if (a1 instanceof Doc && a2 instanceof Doc && ((a1.author !== undefined && a2.author !== undefined) || link.author === Doc.CurrentUserEmail)) {
                     Doc.GetProto(a1)[DirectLinksSym].add(link);
                     Doc.GetProto(a2)[DirectLinksSym].add(link);
+                    Doc.GetProto(link)[DirectLinksSym].add(link);
                 }
             }
             const remLinkFromDoc = (link: Doc): any => {
@@ -50,6 +51,7 @@ export class LinkManager {
                 if (a1 instanceof Doc && a2 instanceof Doc && ((a1.author !== undefined && a2.author !== undefined) || link.author === Doc.CurrentUserEmail)) {
                     Doc.GetProto(a1)[DirectLinksSym].delete(link);
                     Doc.GetProto(a2)[DirectLinksSym].delete(link);
+                    Doc.GetProto(link)[DirectLinksSym].delete(link);
                 }
             }
             const watchUserLinks = (userLinks: List<Doc>) => {
