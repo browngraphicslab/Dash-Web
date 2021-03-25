@@ -515,7 +515,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     render() {
         const myDashboards = DocListCast(CurrentUserUtils.MyDashboards.data);
-        const dashIcon = <img src="/assets/dashBlue.png" style={{ marginLeft: 5, width: 25, userSelect: "none" }} />;
+        const dashIcon = <img src="/assets/dashWhite.png" style={{ marginLeft: 5, width: 25, userSelect: "none" }} />;
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div className="searchBox-bar" style={{ background: Doc.UserDoc().darkScheme ? "#276B86" : "#BDDBE8" }}>
@@ -525,7 +525,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             className="searchBox-barChild searchBox-input" onKeyPress={this.enter}
                             style={{ padding: 1, paddingLeft: 20, paddingRight: 60, color: "black", height: 23, width: 250 }} />
                         <div style={{ display: "flex", alignItems: "center" }}>
-                            <div style={{ position: "absolute", left: 10 }}>
+                            <div style={{ position: "absolute", left: 34 }}>
                                 <Tooltip title={<div className="dash-tooltip" >drag search results as collection</div>}>
                                     <div ref={this.collectionRef}><FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg"
                                         style={{ cursor: "hand", color: "black", padding: 1, position: "relative" }} /></div>
