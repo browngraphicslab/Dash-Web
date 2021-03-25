@@ -58,6 +58,9 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
         }
     }
 
+    componentDidMount() {
+        this.props.setContentView?.(this); // this tells the DocumentView that this ScreenshotBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
+    }
     componentWillUnmount() {
         const ind = DocUtils.ActiveRecordings.indexOf(this);
         ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));

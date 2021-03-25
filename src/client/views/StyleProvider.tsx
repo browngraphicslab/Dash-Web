@@ -118,6 +118,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                 case DocumentType.LINK: return "transparent";
                 case DocumentType.WEB:
                 case DocumentType.PDF:
+                case DocumentType.SCREENSHOT:
                 case DocumentType.VID: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.COL:
                     if (StrCast(Doc.LayoutField(doc)).includes("SliderBox")) break;

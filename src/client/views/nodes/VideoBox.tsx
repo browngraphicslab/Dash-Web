@@ -320,12 +320,13 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                         onPause={() => this.Pause()}
                         onClick={e => e.preventDefault()}>
                         <source src={field.url.href} type="video/mp4" />
-                    Not supported.
-                    </video>
-                    <audio ref={this.setAudioRef} className={`audiobox-control${this.active() ? "-interactive" : ""}`}>
-                        <source src={this.audiopath} type="audio/mpeg" />
                         Not supported.
-                    </audio>;
+                    </video>
+                    {!this.audiopath ? (null) :
+                        <audio ref={this.setAudioRef} className={`audiobox-control${this.active() ? "-interactive" : ""}`}>
+                            <source src={this.audiopath} type="audio/mpeg" />
+                        Not supported.
+                    </audio>}
                 </div>
             </div>;
     }
