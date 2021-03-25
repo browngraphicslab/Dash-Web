@@ -122,7 +122,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
      * Applies the collection/dashboard's current filter attributes to the doc being added
      */
     addFilterAttributes = (doc: Doc) => {
-        Cast(FilterBox.targetDoc._docFilters, listSpec("string"))?.forEach(attribute => {
+        Cast((FilterBox._filterScope === "Current Collection" ? this.props.Document : CurrentUserUtils.ActiveDashboard)._docFilters, listSpec("string"))?.forEach(attribute => {
             if (attribute.charAt(0).toUpperCase() === attribute.charAt(0)) {
                 const fields = attribute.split(':');
                 if (fields[2] === "check") doc[DataSym][fields[0]] = fields[1];

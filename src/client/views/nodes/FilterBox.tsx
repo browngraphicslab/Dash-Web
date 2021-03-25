@@ -81,8 +81,9 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     * @returns the relevant doc according to the value of FilterBox._filterScope i.e. either the Current Dashboard or the Current Collection
     */
     @computed static get targetDoc() {
+        console.log("recomputing");
         if (FilterBox._filterScope === "Current Collection") {
-            return SelectionManager.Views()[0].Document.type === "collection" ? SelectionManager.Views()[0].Document : SelectionManager.Views()[0].props.ContainingCollectionDoc!;
+            return SelectionManager.Views()[0]?.Document.type === "collection" ? SelectionManager.Views()[0].Document : SelectionManager.Views()[0]?.props.ContainingCollectionDoc!;
         }
         else return CurrentUserUtils.ActiveDashboard;
     }
@@ -97,7 +98,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             }, { fireImmediately: true });
     }
     @computed get allDocs() {
-        trace();
+        // trace();
         const allDocs = new Set<Doc>();
         const targetDoc = FilterBox.targetDoc;
         if (this._loaded && targetDoc) {
@@ -109,7 +110,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
 
     @computed get _allFacets() {
-        trace();
+        // trace();
         const noviceReqFields = ["author", "tags", "text", "type"];
         const noviceLayoutFields: string[] = [];//["_curPage"];
         const noviceFields = [...noviceReqFields, ...noviceLayoutFields];
@@ -117,7 +118,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         const keys = new Set<string>(noviceFields);
         this.allDocs.forEach(doc => SearchBox.documentKeys(doc).filter(key => keys.add(key)));
         return Array.from(keys.keys()).filter(key => key[0]).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("_")) || noviceFields.includes(key) || !Doc.UserDoc().noviceMode).sort();
-        // return [];
     }
 
 

@@ -51,7 +51,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get filterDoc() {
-        return FilterBox.targetDoc;
+        return FilterBox._filterScope === "Current Collection" ? this.selectedDoc! : CurrentUserUtils.ActiveDashboard;
     }
     @computed get selectedDocumentView() {
         if (SelectionManager.Views().length) return SelectionManager.Views()[0];

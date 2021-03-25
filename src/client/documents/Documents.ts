@@ -990,7 +990,7 @@ export namespace DocUtils {
      * @param viewSpecScript 
      * Given a list of docs and docFilters, @returns the list of Docs that match those filters 
      */
-    export function FilterDocs(docs: Doc[], docFilters: string[], docRangeFilters: string[], viewSpecScript?: ScriptField) {
+    export function FilterDocs(docs: Doc[], docFilters: string[], docRangeFilters: string[], viewSpecScript?: ScriptField, parentCollection?: Doc) {
         const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
         if (!docFilters?.length && !docRangeFilters?.length) {
             return childDocs.filter(d => !d.cookies);  // remove documents that need a cookie if there are no filters to provide one
@@ -1040,16 +1040,16 @@ export namespace DocUtils {
                     return Field.toString(d[facetKey] as Field).includes(value);
                 });
                 // if we're ORing them together, the default return is false, and we return true for a doc if it satisfies any one set of criteria
-                if ((FilterBox.targetDoc.currentFilter as Doc).filterBoolean === "OR") {
+                if (((FilterBox._filterScope === "Current Collection" ? parentCollection || CurrentUserUtils.ActiveDashboard : CurrentUserUtils.ActiveDashboard).currentFilter as Doc)?.filterBoolean === "OR") {
                     if (satisfiesCheckFacets && !failsNotEqualFacets && satisfiesMatchFacets) return true;
                 }
                 // if we're ANDing them together, the default return is true, and we return false for a doc if it doesn't satisfy any set of criteria
                 else {
-                    if (!satisfiesCheckFacets || failsNotEqualFacets || (matches.length && satisfiesMatchFacets)) return false;
+                    if (!satisfiesCheckFacets || failsNotEqualFacets || (matches.length && !satisfiesMatchFacets)) return false;
                 }
 
             }
-            return (FilterBox.targetDoc.currentFilter as Doc).filterBoolean === "OR" ? false : true;
+            return ((FilterBox._filterScope === "Current Collection" ? parentCollection || CurrentUserUtils.ActiveDashboard : CurrentUserUtils.ActiveDashboard).currentFilter as Doc)?.filterBoolean === "OR" ? false : true;
         }) : childDocs;
         const rangeFilteredDocs = filteredDocs.filter(d => {
             for (let i = 0; i < docRangeFilters.length; i += 3) {
