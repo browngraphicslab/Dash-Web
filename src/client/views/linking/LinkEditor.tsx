@@ -232,22 +232,20 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     @computed
     get transitionSpeedSlider() {
         return <div className="ribbon-doubleButton" style={{ display: "inline-flex" }}>
-            <div className="ribbon-box">
-                Movement Speed
+            Movement Speed
                         <input type="range" step="0.1" min="0.1" max="10" value={this.transitionSpeed}
-                    className={`toolbar-slider`}
-                    id="toolbar-slider"
-                    // onPointerDown={() => this._batch = UndoManager.StartBatch("presTransition")}
-                    // onPointerUp={() => this._batch?.end()}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                        e.stopPropagation();
-                        this.setTransitionTime(e.target.value);
-                    }} />
-                <div className={`slider-headers`}>
-                    <div className="slider-text">Fast</div>
-                    <div className="slider-text">Medium</div>
-                    <div className="slider-text">Slow</div>
-                </div>
+                className={`toolbar-slider`}
+                id="toolbar-slider"
+                // onPointerDown={() => this._batch = UndoManager.StartBatch("presTransition")}
+                // onPointerUp={() => this._batch?.end()}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    e.stopPropagation();
+                    this.setTransitionTime(e.target.value);
+                }} />
+            <div className={`slider-headers`}>
+                <div className="slider-text">Fast</div>
+                <div className="slider-text">Medium</div>
+                <div className="slider-text">Slow</div>
             </div>
         </div>;
     }

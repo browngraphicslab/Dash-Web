@@ -854,18 +854,18 @@ border-bottom-left-radius: 7px;
 }
 
 .layout-container {
-padding: 5px;
-display: grid;
-background-color: $light-background;
-grid-template-columns: repeat(auto-fit, minmax(90px, 100px));
-width: 100%;
-border: solid 1px black;
-min-width: 100px;
-overflow: hidden;
+    padding: 5px;
+    display: grid;
+    background-color: $light-background;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 100px));
+    width: 100%;
+    border: solid 1px black;
+    min-width: 100px;
+    overflow: hidden;
 
-.layout:hover {
-    border: solid 2px #5c9edd;
-}
+    .layout:hover {
+        border: solid 2px #5c9edd;
+    }
 
 .layout {
     cursor: pointer;
