@@ -762,9 +762,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
                 editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
                 const escAnchorId = textAnchorId[0] >= '0' && textAnchorId[0] <= '9' ? `\\3${textAnchorId[0]} ${textAnchorId.substr(1)}` : textAnchorId;
-                addStyleSheetRule(FormattedTextBox._highlightStyleSheet, `${escAnchorId}`, { background: "yellow" });
+                addStyleSheetRule(FormattedTextBox._highlightStyleSheet, `${escAnchorId}`, { background: "yellow", transform: "scale(3)", "transform-origin": "left bottom" });
                 setTimeout(() => this._focusSpeed = undefined, this._focusSpeed);
-                setTimeout(() => clearStyleSheetRules(FormattedTextBox._highlightStyleSheet), Math.max(this._focusSpeed || 0, 1500));
+                setTimeout(() => clearStyleSheetRules(FormattedTextBox._highlightStyleSheet), Math.max(this._focusSpeed || 0, 3000));
             }
         }
 

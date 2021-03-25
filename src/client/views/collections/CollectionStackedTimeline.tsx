@@ -273,7 +273,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     }
 }
 
-interface StackedTinelineAnchorProps {
+interface StackedTimelineAnchorProps {
     mark: Doc;
     rangeClickScript: () => ScriptField;
     rangePlayScript: () => ScriptField;
@@ -297,7 +297,7 @@ interface StackedTinelineAnchorProps {
     stackedTimeline: CollectionStackedTimeline;
 }
 @observer
-class StackedTimelineAnchor extends React.Component<StackedTinelineAnchorProps> {
+class StackedTimelineAnchor extends React.Component<StackedTimelineAnchorProps> {
     _lastTimecode: number;
     _disposer: IReactionDisposer | undefined;
     constructor(props: any) {
@@ -307,7 +307,7 @@ class StackedTimelineAnchor extends React.Component<StackedTinelineAnchorProps> 
     componentDidMount() {
         this._disposer = reaction(() => this.props.currentTimecode(),
             (time) => {
-                if (!LightboxView.LightboxDoc && DocListCast(this.props.mark.links).length &&
+                if (!Doc.AreProtosEqual(LightboxView.LightboxDoc, this.props.layoutDoc) && DocListCast(this.props.mark.links).length &&
                     time > NumCast(this.props.mark[this.props.startTag]) &&
                     time < NumCast(this.props.mark[this.props.endTag]) &&
                     this._lastTimecode < NumCast(this.props.mark[this.props.startTag])) {
