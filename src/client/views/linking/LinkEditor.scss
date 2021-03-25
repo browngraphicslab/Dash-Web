@@ -299,3 +299,17 @@
         margin-left: 3px;
     }
 }
+
+.linkEditor-advancedSettings {
+    padding-left: 8px;
+
+    .linkEditor-advancedSettings-header {
+        // display: flex;
+        padding-right: 6px;
+    }
+
+    .linkEditor-advancedSettings-downArrow {
+        float: right;
+        margin-top: -14px;
+    }
+}

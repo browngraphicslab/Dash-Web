@@ -5,8 +5,9 @@ import { observer } from "mobx-react";
 import { Doc } from "../../../fields/Doc";
 import { DateCast, StrCast } from "../../../fields/Types";
 import { LinkManager } from "../../util/LinkManager";
-import { undoBatch } from "../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import './LinkEditor.scss';
+import "../nodes/PresBox.scss";
 import React = require("react");
 
 
@@ -23,9 +24,12 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     @observable relationship = StrCast(LinkManager.currentLink?.linkRelationship);
     @observable openDropdown: boolean = false;
     @observable showInfo: boolean = false;
+    @observable openAdvanced: boolean = false;
     @computed get infoIcon() { if (this.showInfo) { return "chevron-up"; } return "chevron-down"; }
+    @computed get advancedIcon() { if (this.openAdvanced) { return "chevron-up"; } return "chevron-down"; }
     @observable private buttonColor: string = "";
     @observable private relationshipButtonColor: string = "";
+    @observable transitionSpeed = 0;
 
     //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
 
@@ -135,7 +139,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     @computed
     get followingDropdown() {
         return <div className="linkEditor-followingDropdown">
-            <div className="linkEditor-followingDropdown-label">Follow Behavior:</div>
+            <div className="linkEditor-followingDropdown-label">Movement to Destination:</div>
             <div className="linkEditor-followingDropdown-dropdown">
                 <div className="linkEditor-followingDropdown-header"
                     onPointerDown={this.changeDropdown}>
@@ -148,7 +152,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                     style={{ display: this.openDropdown ? "" : "none" }}>
                     <div className="linkEditor-followingDropdown-option"
                         onPointerDown={() => this.changeFollowBehavior("default")}>
-                        Default
+                        Pan and Zoom
                         </div>
                     <div className="linkEditor-followingDropdown-option"
                         onPointerDown={() => this.changeFollowBehavior("add:left")}>
@@ -189,8 +193,86 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         </div>;
     }
 
+    @computed
+    get destinationViewDropdown() {
+        return <div className="linkEditor-followingDropdown">
+            <div className="linkEditor-followingDropdown-label">Destination View:</div>
+            <div className="linkEditor-followingDropdown-dropdown">
+                <div className="linkEditor-followingDropdown-header"
+                    onPointerDown={this.changeDropdown}>
+                    {StrCast(this.props.linkDoc.followLinkLocation, "default")}
+                    <FontAwesomeIcon className="linkEditor-followingDropdown-icon"
+                        icon={this.openDropdown ? "chevron-up" : "chevron-down"}
+                        size={"lg"} />
+                </div>
+                <div className="linkEditor-followingDropdown-optionsList"
+                    style={{ display: this.openDropdown ? "" : "none" }}>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("default")}>
+                        Default
+                        </div>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("add:left")}>
+                        Focus on Document
+                        </div>
+                </div>
+            </div>
+        </div>;
+    }
+
+    // Converts seconds to ms and updates presTransition
+    setTransitionTime = (number: String, change?: number) => {
+        let timeInMS = Number(number) * 1000;
+        if (change) timeInMS += change;
+        if (timeInMS < 100) timeInMS = 100;
+        if (timeInMS > 10000) timeInMS = 10000;
+        // Array.from(this._selectedArray.keys()).forEach((doc) => doc.presTransition = timeInMS);
+    }
+
+    @computed
+    get transitionSpeedSlider() {
+        return <div className="ribbon-doubleButton" style={{ display: "inline-flex" }}>
+            <div className="ribbon-box">
+                Movement Speed
+                        <input type="range" step="0.1" min="0.1" max="10" value={this.transitionSpeed}
+                    className={`toolbar-slider`}
+                    id="toolbar-slider"
+                    // onPointerDown={() => this._batch = UndoManager.StartBatch("presTransition")}
+                    // onPointerUp={() => this._batch?.end()}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        e.stopPropagation();
+                        this.setTransitionTime(e.target.value);
+                    }} />
+                <div className={`slider-headers`}>
+                    <div className="slider-text">Fast</div>
+                    <div className="slider-text">Medium</div>
+                    <div className="slider-text">Slow</div>
+                </div>
+            </div>
+        </div>;
+    }
+
+    @computed
+    get advancedSettings() {
+        return <div className="linkEditor-advancedSettings">
+            <div className="linkEditor-advancedSettings-header">
+                <div>Advanced Settings</div>
+                <Tooltip title={<><div className="dash-tooltip">Show advanced settings</div></>} placement="top">
+                    <div className="linkEditor-advancedSettings-downArrow"><FontAwesomeIcon className="button" icon={this.advancedIcon} size="lg" onPointerDown={this.changeAdvancedOpen} /></div>
+                </Tooltip>
+            </div>
+            {this.openAdvanced ? <div>
+                {this.destinationViewDropdown}
+                {this.transitionSpeedSlider}
+            </div> : null}
+        </div>;
+    }
+
     @action
     changeInfo = () => { this.showInfo = !this.showInfo; }
+
+    @action
+    changeAdvancedOpen = () => { this.openAdvanced = !this.openAdvanced; }
 
     render() {
         const destination = LinkManager.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
@@ -220,6 +302,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 {this.editDescription}
                 {this.editRelationship}
                 {this.followingDropdown}
+                {this.advancedSettings}
             </div>
 
         );
