@@ -167,7 +167,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     get onPerspectiveFlyout() {
         const excludedViewTypes = [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.StackedTimeline, CollectionViewType.Linear];
 
-        const makeLabel = (value: string, label: string) => <div className="radio">
+        const makeLabel = (value: string, label: string) => <div className="radio" key={label}>
             <label>
                 <input type="radio" value={value} checked={(this.selectedDoc?._viewType ?? "invalid") === value} onChange={this.handlePerspectiveChange} />
                 {label}
