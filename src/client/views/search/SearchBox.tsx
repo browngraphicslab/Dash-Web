@@ -513,13 +513,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     });
 
+    // <div className="searchBox-bar" style={{ background: Doc.UserDoc().darkScheme ? "#276B86" : "#BDDBE8" }}>
     render() {
         const myDashboards = DocListCast(CurrentUserUtils.MyDashboards.data);
-        const dashIcon = <img src="/assets/dashWhite.png" style={{ marginLeft: 5, width: 25, userSelect: "none" }} />;
+        const dashIcon = <img src={Doc.UserDoc().colorScheme == 'dark' ? "/assets/dashWhite.png" : "/assets/dashBlue.png"} style={{ marginLeft: 5, marginRight: 5, width: 23, height: 23, userSelect: "none", background: Doc.UserDoc().colorScheme == 'dark' ? "white" : "#5b9fdd", borderRadius: 3 }} />;
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
-                <div className="searchBox-bar" style={{ background: Doc.UserDoc().darkScheme ? "#276B86" : "#BDDBE8" }}>
-                    <div className="searchBox-left" >
+                <div className="searchBox-bar" style={{ background: Doc.UserDoc().colorScheme == 'dark' ? "black" : "#d3d3d3", borderBottom: "solid 2px #e3e3e3" }}>
+                    <div className="searchBox-left"
+                        style={{ color: Doc.UserDoc().colorScheme == 'dark' ? "white" : "black" }}>
                         {dashIcon}
                         <input defaultValue={""} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this._inputRef}
                             className="searchBox-barChild searchBox-input" onKeyPress={this.enter}
@@ -548,9 +550,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         </div>
                     </div >
                     <div className="searchBox-center" >
-                        <div className="searchBox-lozenge-dashboard"  >
+                        <div className="searchBox-lozenge-dashboard">
                             <select className="searchBox-dashSelect" onChange={e => CurrentUserUtils.openDashboard(Doc.UserDoc(), myDashboards[Number(e.target.value)])}
-                                value={myDashboards.indexOf(CurrentUserUtils.ActiveDashboard)}>
+                                value={myDashboards.indexOf(CurrentUserUtils.ActiveDashboard)}
+                                style={{ color: Doc.UserDoc().colorScheme == 'dark' ? "white" : "black" }}>
                                 {myDashboards.map((dash, i) => <option key={dash[Id]} value={i}> {StrCast(dash.title)} </option>)}
                             </select>
                             <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}>
@@ -568,10 +571,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 Logoff
                             </div>
                         </div>
-                        <div className="searchBar-icon">
+                        <div className="searchBar-icon"
+                            style={{ color: Doc.UserDoc().colorScheme == 'dark' ? "white" : "black" }}>
                             <FontAwesomeIcon icon="question-circle"></FontAwesomeIcon>
                         </div>
-                        <div className="searchBar-icon" onClick={() => SettingsManager.Instance.open()}>
+                        <div className="searchBar-icon" onClick={() => SettingsManager.Instance.open()}
+                            style={{ color: Doc.UserDoc().colorScheme == 'dark' ? "white" : "black" }}>
                             <FontAwesomeIcon icon="cog"></FontAwesomeIcon>
                         </div>
                     </div>

@@ -20,7 +20,7 @@ export class DashDocView {
         this._fieldWrapper = document.createElement("span");
         this._fieldWrapper.style.position = "relative";
         this._fieldWrapper.style.textIndent = "0";
-        this._fieldWrapper.style.border = "1px solid " + StrCast(tbox.layoutDoc.color, (Doc.UserDoc().darkScheme ? "dimGray" : "lightGray"));
+        this._fieldWrapper.style.border = "1px solid " + StrCast(tbox.layoutDoc.color, (Doc.UserDoc().colorScheme == 'dark' ? "dimGray" : "lightGray"));
         this._fieldWrapper.style.width = node.attrs.width;
         this._fieldWrapper.style.height = node.attrs.height;
         this._fieldWrapper.style.display = node.attrs.hidden ? "none" : "inline-block";

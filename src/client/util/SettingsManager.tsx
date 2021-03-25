@@ -69,6 +69,25 @@ export class SettingsManager extends React.Component<{}> {
         else DocServer.Control.makeEditable();
     });
 
+    @undoBatch changeColorScheme = action((e: React.ChangeEvent) => {
+        switch ((e.currentTarget as any).value) {
+            case "Light mode":
+                Doc.UserDoc().colorScheme = "light";
+                addStyleSheetRule(SettingsManager._settingsStyle, "lm_header", { background: "#d3d3d3 !important" });
+                break;
+            case "Dark mode":
+                Doc.UserDoc().colorScheme = "dark";
+                addStyleSheetRule(SettingsManager._settingsStyle, "lm_header", { background: "black !important" });
+                break;
+            case "Match system preferences": default:
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                    Doc.UserDoc().colorScheme = e.matches ? "dark" : "light";
+                });
+                break;
+        }
+    });
+
+
     @computed get colorsContent() {
         const colorBox = (func: (color: ColorState) => void) => <SketchPicker onChange={func} color={StrCast(this.backgroundColor)}
             presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505',
@@ -92,7 +111,7 @@ export class SettingsManager extends React.Component<{}> {
 
         const fontFamilies = ["Times New Roman", "Arial", "Georgia", "Comic Sans MS", "Tahoma", "Impact", "Crimson Text"];
         const fontSizes = ["7px", "8px", "9px", "10px", "12px", "14px", "16px", "18px", "20px", "24px", "32px", "48px", "72px"];
-        const colorSchemes = ["Light mode, Dark mode, Match system preferences"];
+        const colorSchemes = ["Light mode", "Dark mode", "Match system preferences"];
 
         return <div className="colors-content">
             <div className="preferences-color">
@@ -117,7 +136,7 @@ export class SettingsManager extends React.Component<{}> {
             <div className="preferences-colorScheme">
                 <div className="preferences-color-text">Color Scheme</div>
                 <div className="preferences-color-controls">
-                    <select className="scheme-select" onChange={this.changeFontSize} value={StrCast(Doc.UserDoc().colorScheme, "7px")}>
+                    <select className="scheme-select" onChange={this.changeColorScheme} value={StrCast(Doc.UserDoc().colorScheme, "7px")}>
                         {colorSchemes.map(scheme => <option key={scheme} value={scheme} defaultValue={StrCast(Doc.UserDoc().colorScheme)}> {scheme} </option>)}
                     </select>
                 </div>

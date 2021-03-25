@@ -40,7 +40,7 @@ export enum StyleProp {
     ShowTitle = "showTitle",              // whether to display a title on a Document (optional :hover suffix)
 }
 
-function darkScheme() { return BoolCast(Doc.UserDoc().darkScheme); }
+function darkScheme() { return Doc.UserDoc().colorScheme == 'dark'; }
 
 function toggleBackground(doc: Doc) {
     UndoManager.RunInBatch(() => runInAction(() => {
@@ -81,6 +81,9 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                 (doc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") : "") || "";
         case StyleProp.Color:
             if (isCaption) return "white";
+            if (!docProps) {
+                if (MainView.Instance.LastButton === doc) return darkScheme() ? "white" : "#5b9fdd";
+            }
             const backColor = backgroundCol() || "black";
             const col = Color(backColor).rgb();
             const colsum = (col.red() + col.green() + col.blue());
@@ -97,7 +100,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             if (Doc.UserDoc().renderStyle === "comic") return "transparent";
             let docColor: Opt<string> = StrCast(doc?._backgroundColor);
             if (!docProps) {
-                if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
+                if (MainView.Instance.LastButton === doc) return darkScheme() ? "rgb(62, 62, 62)" : "lightgrey";
                 switch (doc?.type) {
                     case DocumentType.FONTICON: return docColor || "black";
                     case DocumentType.LINK: return docColor || "lightblue";

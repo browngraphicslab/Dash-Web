@@ -65,8 +65,8 @@
                 color: black;
                 cursor: pointer;
                 font-size: 20px;
-                height: 25;
-                width: 25;
+                height: 30;
+                width: 30;
                 display: flex;
                 justify-content: center;
                 align-items: center;
@@ -79,7 +79,7 @@
             }
 
             .searchBar-icon:hover {
-                background-color: #92adb9;
+                background-color: #b5b3b3;
             }
 
             .searchBox-lozenge-user,
@@ -90,6 +90,7 @@
                 font-family: 'Roboto';
                 font-weight: 400;
                 padding: 4px;
+                align-self: center;
                 margin-right: 7px;
                 display: flex;
                 align-items: center;

@@ -441,7 +441,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         bounds.b = Math.max(bounds.y, Math.max(topBounds, Math.min(window.innerHeight, bounds.b + this._resizeBorderWidth / 2 + this._linkBoxHeight) - this._resizeBorderWidth / 2 - this._linkBoxHeight));
         const useRotation = seldoc.rootDoc.type === DocumentType.INK;
 
-        return (<div className="documentDecorations" style={{ background: Doc.UserDoc().darkScheme ? "dimgray" : "" }} >
+        return (<div className="documentDecorations" style={{ background: Doc.UserDoc().colorScheme == 'dark' ? "dimgray" : "" }} >
             <div className="documentDecorations-background" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
                 height: (bounds.b - bounds.y + this._resizeBorderWidth) + "px",

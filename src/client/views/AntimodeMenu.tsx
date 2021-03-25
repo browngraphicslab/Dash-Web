@@ -1,6 +1,7 @@
 import React = require("react");
 import { observable, action, runInAction } from "mobx";
 import "./AntimodeMenu.scss";
+import { Doc } from "../../fields/Doc";
 export interface AntimodeMenuProps {
 }
 
@@ -138,7 +139,7 @@ export abstract class AntimodeMenu<T extends AntimodeMenuProps> extends React.Co
         return (
             <div className="antimodeMenu-cont" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
                 style={{
-                    // backgroundColor: Doc.UserDoc().darkScheme ? "#0C3140" : "#92ADB9";
+                    backgroundColor: Doc.UserDoc().colorScheme == 'dark' ? "#323232" : "#e3e3e3",
                     left: this._left, top: this._top, opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay,
                     position: this.Pinned ? "unset" : undefined
                 }}>

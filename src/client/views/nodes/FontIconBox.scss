@@ -63,13 +63,13 @@
 
 .menuButton-drpDownBtn {
     cursor: pointer;
-    width: 40px;
-    height: 30px;
+    width: inherit;
+    height: inherit;
     border-radius: 7px;
     justify-content: center;
     align-items: center;
     display: grid;
-    grid-auto-columns: 30px 10px;
+    grid-auto-columns: 80% 20%;
     font-size: 25px;
 
     .menuButton-wrap {
@@ -88,8 +88,7 @@
     }
 
     .menuButton-dropDown {
-        width: 10px;
-        height: 30px;
+        height: inherit;
         display: flex;
         justify-content: center;
         align-items: center;

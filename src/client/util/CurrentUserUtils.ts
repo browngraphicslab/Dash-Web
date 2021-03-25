@@ -66,13 +66,16 @@ export class CurrentUserUtils {
                 [this.ficon({
                     ignoreClick: true,
                     icon: "mobile",
+                    btnType: ButtonType.ClickButton,
                     backgroundColor: "transparent"
                 }),
                 this.mobileTextContainer({},
                     [this.mobileButtonText({}, "NEW MOBILE BUTTON"), this.mobileButtonInfo({}, "You can customize this button and make it your own.")])]);
             doc["template-mobile-button"] = CurrentUserUtils.ficon({
                 onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
-                dragFactory: new PrefetchProxy(queryTemplate) as any as Doc, title: "mobile button", icon: "mobile"
+                dragFactory: new PrefetchProxy(queryTemplate) as any as Doc, title: "mobile button",
+                btnType: ButtonType.ClickButton,
+                icon: "mobile"
             });
         }
 
@@ -87,7 +90,9 @@ export class CurrentUserUtils {
             slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
             doc["template-button-slides"] = CurrentUserUtils.ficon({
                 onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
-                dragFactory: new PrefetchProxy(slideTemplate) as any as Doc, title: "presentation slide", icon: "address-card"
+                dragFactory: new PrefetchProxy(slideTemplate) as any as Doc, title: "presentation slide",
+                icon: "address-card",
+                btnType: ButtonType.ClickButton
             });
         }
 
@@ -133,7 +138,9 @@ export class CurrentUserUtils {
 
             doc["template-button-link"] = CurrentUserUtils.ficon({
                 onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
-                dragFactory: new PrefetchProxy(linkTemplate) as any as Doc, title: "link view", icon: "window-maximize", system: true
+                dragFactory: new PrefetchProxy(linkTemplate) as any as Doc, title: "link view",
+                btnType: ButtonType.ClickButton,
+                icon: "window-maximize", system: true
             });
         }
 
@@ -164,7 +171,9 @@ export class CurrentUserUtils {
 
             doc["template-button-switch"] = CurrentUserUtils.ficon({
                 onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
-                dragFactory: new PrefetchProxy(box) as any as Doc, title: "data switch", icon: "toggle-on", system: true
+                dragFactory: new PrefetchProxy(box) as any as Doc, title: "data switch",
+                btnType: ButtonType.ClickButton,
+                icon: "toggle-on", system: true
             });
         }
 
@@ -213,7 +222,9 @@ export class CurrentUserUtils {
 
             doc["template-button-detail"] = CurrentUserUtils.ficon({
                 onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
-                dragFactory: new PrefetchProxy(detailView) as any as Doc, title: "detailView", icon: "window-maximize", system: true
+                dragFactory: new PrefetchProxy(detailView) as any as Doc, title: "detailView",
+                btnType: ButtonType.ClickButton,
+                icon: "window-maximize", system: true
             });
         }
 
@@ -547,7 +558,7 @@ export class CurrentUserUtils {
                     dontUndo: true,
                     title,
                     target,
-                    backgroundColor: "black",
+                    backgroundColor: Doc.UserDoc().colorScheme == 'dark' ? "black" : "#e3e3e3",
                     _dropAction: "alias",
                     _removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
                     _width: 60,
@@ -563,7 +574,7 @@ export class CurrentUserUtils {
                 childDropAction: "alias",
                 _chromeHidden: true,
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
-                backgroundColor: "black", ignoreClick: true,
+                backgroundColor: Doc.UserDoc().colorScheme == 'dark' ? "black" : "#e3e3e3", ignoreClick: true,
                 _gridGap: 0,
                 _yMargin: 0,
                 _yPadding: 0, _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, _lockedPosition: true, system: true
@@ -573,8 +584,8 @@ export class CurrentUserUtils {
         PromiseValue(Cast(doc.menuStack, Doc)).then(stack => {
             stack && PromiseValue(stack.data).then(btns => {
                 DocListCastAsync(btns).then(bts => bts?.forEach(btn => {
-                    btn.color = "white";
-                    btn._backgroundColor = "";
+                    btn.color = Doc.UserDoc().colorScheme == 'dark' ? "#e3e3e3" : "black";
+                    btn._backgroundColor = Doc.UserDoc().colorScheme == 'dark' ? "black" : "#e3e3e3";
                     btn.dontUndo = true;
                     btn.system = true;
                     if (btn.title === "Catalog" || btn.title === "My Files") { // migration from Catalog to My Files
@@ -622,7 +633,7 @@ export class CurrentUserUtils {
                 onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
                 backgroundColor: data.backgroundColor, system: true
             },
-                [this.ficon({ ignoreClick: true, icon: data.icon, backgroundColor: "rgba(0,0,0,0)", system: true }), this.mobileTextContainer({}, [this.mobileButtonText({}, data.title), this.mobileButtonInfo({}, data.info)])])
+                [this.ficon({ ignoreClick: true, icon: data.icon, backgroundColor: "rgba(0,0,0,0)", btnType: ButtonType.ClickButton, system: true }), this.mobileTextContainer({}, [this.mobileButtonText({}, data.title), this.mobileButtonInfo({}, data.info)])])
         );
     }
 
@@ -929,7 +940,7 @@ export class CurrentUserUtils {
                 docList.push(CurrentUserUtils.blist({ flexDirection: 'column-reverse', linearViewExpandable: true, _height: 30, backgroundColor: "#E3E3E3" }, []));
             } else {
                 docList.push(Docs.Create.FontIconDocument({
-                    _nativeWidth: btnType === ButtonType.ClickButton ? 30 : 40, _nativeHeight: 30, _width: btnType === ButtonType.ClickButton ? 30 : 40, _height: 30,
+                    _nativeWidth: btnType === ButtonType.ClickButton ? 25 : 40, _nativeHeight: 25, _width: btnType === ButtonType.ClickButton ? 25 : 40, _height: 25,
                     icon,
                     btnType: btnType,
                     ignoreClick: ignoreClick,
@@ -1011,7 +1022,7 @@ export class CurrentUserUtils {
         }
         if (doc.myImportPanel === undefined) {
             const uploads = Cast(doc.myImportDocs, Doc, null);
-            const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _stayInCollection: true, _hideContextMenu: true, title: "Import", icon: "upload", system: true });
+            const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), btnType: ButtonType.ClickButton, toolTip: "Import External document", _stayInCollection: true, _hideContextMenu: true, title: "Import", icon: "upload", system: true });
             doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, _chromeHidden: true, _stayInCollection: true, _hideContextMenu: true, _lockedPosition: true, system: true }));
         }
     }
