@@ -117,7 +117,6 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
                     this.dataDoc.nativeWidth = this.dataDoc.nativeHeight = undefined;
                     this.layoutDoc._fitWidth = undefined;
                     this.dataDoc[this.props.fieldKey] = new VideoField(Utils.prepend(result.accessPaths.agnostic.client));
-                    this.props.addDocTab?.(Cast(this.dataDoc[this.fieldKey + "-dictation"], Doc, null), "add:bottom");
                 } else alert("video conversion failed");
             };
             this._audioRec.start();
@@ -138,6 +137,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
         const dictationText = CurrentUserUtils.GetNewTextDoc("",
             NumCast(this.rootDoc.x), NumCast(this.rootDoc.y) + NumCast(this.layoutDoc._height) + 10,
             NumCast(this.layoutDoc._width), 2 * NumCast(this.layoutDoc._height));
+        dictationText._autoHeight = false;
         const dictationTextProto = Doc.GetProto(dictationText);
         dictationTextProto.recordingSource = this.dataDoc;
         dictationTextProto.recordingStart = ComputedField.MakeFunction(`self.recordingSource["${this.props.fieldKey}-recordingStart"]`);

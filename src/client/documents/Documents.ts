@@ -1051,7 +1051,7 @@ export namespace DocUtils {
     export function MakeLinkToActiveAudio(doc: Doc, broadcastEvent = true) {
         broadcastEvent && runInAction(() => DocumentManager.Instance.RecordingEvent = DocumentManager.Instance.RecordingEvent + 1);
         return DocUtils.ActiveRecordings.map(audio =>
-            DocUtils.MakeLink({ doc: doc }, { doc: audio.getAnchor() || audio.props.Document }, "recording link", "recording timeline")).lastElement();
+            DocUtils.MakeLink({ doc: doc }, { doc: audio.getAnchor() || audio.props.Document }, "recording link", "recording timeline"));
     }
 
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string, allowParCollectionLink?: boolean, showPopup?: number[]) {

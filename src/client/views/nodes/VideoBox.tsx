@@ -389,6 +389,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         <div className="videoBox-timelineButton" key="timeline" onPointerDown={this.onTimelineHdlDown} style={{ bottom: `${100 - this.heightPercent}%` }}>
             <FontAwesomeIcon icon={"eye"} size="lg" />
         </div>,
+        <div className="videoBox-timelineButton" key="timeline" onPointerDown={this.onTimelineHdlDown} style={{ bottom: `${100 - this.heightPercent}%` }}>
+            <FontAwesomeIcon icon={"eye"} size="lg" />
+        </div>,
         VideoBox._showControls ? (null) : [
             // <div className="control-background">
             <div className="videoBox-play" key="play" onPointerDown={this.onPlayDown} >

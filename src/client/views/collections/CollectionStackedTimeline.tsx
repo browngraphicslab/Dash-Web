@@ -7,7 +7,7 @@ import { List } from "../../../fields/List";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
-import { emptyFunction, formatTime, OmitKeys, returnFalse, setupMoveUpEvents, StopEvent } from "../../../Utils";
+import { emptyFunction, formatTime, OmitKeys, returnFalse, setupMoveUpEvents, StopEvent, returnOne } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { Scripting } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -20,6 +20,7 @@ import { Transform } from "../../util/Transform";
 import { LinkManager } from "../../util/LinkManager";
 import { computedFn } from "mobx-utils";
 import { LightboxView } from "../LightboxView";
+import { FormattedTextBox } from "../nodes/formattedText/FormattedTextBox";
 
 type PanZoomDocument = makeInterface<[]>;
 const PanZoomDocument = makeInterface();
@@ -234,7 +235,8 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     currentTimecode = () => this.currentTime;
     render() {
         const timelineContentWidth = this.props.PanelWidth();
-        const timelineContentHeight = this.props.PanelHeight();
+        const timelineContentHeight = this.props.PanelHeight() * 2 / 3;
+        const dictationHeight = this.props.PanelHeight() / 3;
         const overlaps: { anchorStartTime: number, anchorEndTime: number, level: number }[] = [];
         const drawAnchors = this.childDocs.map(anchor => ({ level: this.getLevel(anchor, overlaps), anchor }));
         const maxLevel = overlaps.reduce((m, o) => Math.max(m, o.level), 0) + 2;
@@ -268,6 +270,25 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                     </div>;
             })}
             {this.selectionContainer}
+            <div style={{ position: "absolute", height: dictationHeight, top: timelineContentHeight, background: "tan" }}>
+                <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
+                    Document={this.dataDoc[this.props.fieldKey.replace("annotations", "dictation")]}
+                    PanelHeight={() => dictationHeight}
+                    isAnnotationOverlay={true}
+                    select={emptyFunction}
+                    active={returnFalse}
+                    scaling={returnOne}
+                    xMargin={25}
+                    yMargin={10}
+                    whenActiveChanged={emptyFunction}
+                    removeDocument={returnFalse}
+                    moveDocument={returnFalse}
+                    addDocument={returnFalse}
+                    CollectionView={undefined}
+                    renderDepth={this.props.renderDepth + 1}>
+                </DocumentView>
+            </div>
+
             <div className="collectionStackedTimeline-current" style={{ left: `${this.currentTime / this.duration * 100}%` }} />
         </div>;
     }
@@ -307,7 +328,9 @@ class StackedTimelineAnchor extends React.Component<StackedTimelineAnchorProps> 
     componentDidMount() {
         this._disposer = reaction(() => this.props.currentTimecode(),
             (time) => {
-                if (!Doc.AreProtosEqual(LightboxView.LightboxDoc, this.props.layoutDoc) && DocListCast(this.props.mark.links).length &&
+                const dictationDoc = Cast(this.props.layoutDoc["data-dictation"], Doc, null);
+                const isDictation = dictationDoc && DocListCast(this.props.mark.links).some(link => Cast(link.anchor1, Doc, null)?.annotationOn === dictationDoc);
+                if ((isDictation || !Doc.AreProtosEqual(LightboxView.LightboxDoc, this.props.layoutDoc)) && DocListCast(this.props.mark.links).length &&
                     time > NumCast(this.props.mark[this.props.startTag]) &&
                     time < NumCast(this.props.mark[this.props.endTag]) &&
                     this._lastTimecode < NumCast(this.props.mark[this.props.startTag])) {
