@@ -19,6 +19,7 @@ import "./CollectionStackedTimeline.scss";
 import { Transform } from "../../util/Transform";
 import { LinkManager } from "../../util/LinkManager";
 import { computedFn } from "mobx-utils";
+import { LightboxView } from "../LightboxView";
 
 type PanZoomDocument = makeInterface<[]>;
 const PanZoomDocument = makeInterface();
@@ -306,7 +307,7 @@ class StackedTimelineAnchor extends React.Component<StackedTinelineAnchorProps> 
     componentDidMount() {
         this._disposer = reaction(() => this.props.currentTimecode(),
             (time) => {
-                if (DocListCast(this.props.mark.links).length &&
+                if (!LightboxView.LightboxDoc && DocListCast(this.props.mark.links).length &&
                     time > NumCast(this.props.mark[this.props.startTag]) &&
                     time < NumCast(this.props.mark[this.props.endTag]) &&
                     this._lastTimecode < NumCast(this.props.mark[this.props.startTag])) {

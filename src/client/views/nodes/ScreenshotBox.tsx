@@ -24,6 +24,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
 import { VideoBox } from "./VideoBox";
 import { TraceMobx } from "../../../fields/util";
+import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 declare class MediaRecorder {
     constructor(e: any, options?: any);  // whatever MediaRecorder has
 }
@@ -40,6 +41,10 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
     @observable _screenCapture = false;
     @computed get recordingStart() { return Cast(this.dataDoc[this.props.fieldKey + "-recordingStart"], DateField)?.date.getTime(); }
 
+    constructor(props: any) {
+        super(props);
+        this.setupDictation();
+    }
     getAnchor = () => {
         const startTime = Cast(this.layoutDoc._currentTimecode, "number", null) || (this._videoRec ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined);
         return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "_timecodeToShow", "_timecodeToHide",
@@ -59,6 +64,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
     }
 
     componentDidMount() {
+        this.dataDoc.nativeWidth = this.dataDoc.nativeHeight = 0;
         this.props.setContentView?.(this); // this tells the DocumentView that this ScreenshotBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
     }
     componentWillUnmount() {
@@ -108,10 +114,12 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
                 if (!(result instanceof Error)) { // convert this screenshotBox into normal videoBox
                     this.dataDoc.type = DocumentType.VID;
                     this.layoutDoc.layout = VideoBox.LayoutString(this.fieldKey);
+                    this.dataDoc.nativeWidth = this.dataDoc.nativeHeight = undefined;
+                    this.layoutDoc._fitWidth = undefined;
                     this.dataDoc[this.props.fieldKey] = new VideoField(Utils.prepend(result.accessPaths.agnostic.client));
+                    this.props.addDocTab?.(Cast(this.dataDoc[this.fieldKey + "-dictation"], Doc, null), "add:bottom");
                 } else alert("video conversion failed");
             };
-            this.setupDictation();
             this._audioRec.start();
             this._videoRec.start();
             this.dataDoc.mediaState = "recording";
@@ -126,6 +134,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
     });
 
     setupDictation = () => {
+        if (this.dataDoc[this.fieldKey + "-dictation"]) return;
         const dictationText = CurrentUserUtils.GetNewTextDoc("",
             NumCast(this.rootDoc.x), NumCast(this.rootDoc.y) + NumCast(this.layoutDoc._height) + 10,
             NumCast(this.layoutDoc._width), 2 * NumCast(this.layoutDoc._height));
@@ -133,32 +142,58 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
         dictationTextProto.recordingSource = this.dataDoc;
         dictationTextProto.recordingStart = ComputedField.MakeFunction(`self.recordingSource["${this.props.fieldKey}-recordingStart"]`);
         dictationTextProto.mediaState = ComputedField.MakeFunction("self.recordingSource.mediaState");
-        this.props.addDocument?.(dictationText) || this.props.addDocTab(dictationText, "add:bottom");
+        this.dataDoc[this.fieldKey + "-dictation"] = dictationText;
     }
     contentFunc = () => [this.content];
+    videoPanelHeight = () => NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"], 1) / NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"], 1) * this.props.PanelWidth();
+    formattedPanelHeight = () => Math.max(0, this.props.PanelHeight() - this.videoPanelHeight())
     render() {
         TraceMobx();
         return <div className="videoBox" onContextMenu={this.specificContextMenu} style={{ width: "100%", height: "100%" }} >
             <div className="videoBox-viewer" >
-                <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
-                    PanelHeight={this.props.PanelHeight}
-                    PanelWidth={this.props.PanelWidth}
-                    focus={this.props.focus}
-                    isSelected={this.props.isSelected}
-                    isAnnotationOverlay={true}
-                    select={emptyFunction}
-                    active={returnFalse}
-                    scaling={returnOne}
-                    whenActiveChanged={emptyFunction}
-                    removeDocument={returnFalse}
-                    moveDocument={returnFalse}
-                    addDocument={returnFalse}
-                    CollectionView={undefined}
-                    ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                    renderDepth={this.props.renderDepth + 1}
-                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
-                    {this.contentFunc}
-                </CollectionFreeFormView>
+                <div style={{ position: "relative", height: this.videoPanelHeight() }}>
+                    <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+                        PanelHeight={this.videoPanelHeight}
+                        PanelWidth={this.props.PanelWidth}
+                        focus={this.props.focus}
+                        isSelected={this.props.isSelected}
+                        isAnnotationOverlay={true}
+                        select={emptyFunction}
+                        active={returnFalse}
+                        scaling={returnOne}
+                        whenActiveChanged={emptyFunction}
+                        removeDocument={returnFalse}
+                        moveDocument={returnFalse}
+                        addDocument={returnFalse}
+                        CollectionView={undefined}
+                        ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                        renderDepth={this.props.renderDepth + 1}
+                        ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
+                        {this.contentFunc}
+                    </CollectionFreeFormView></div>
+                <div style={{ position: "relative", height: this.formattedPanelHeight() }}>
+                    <FormattedTextBox {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+                        Document={this.dataDoc[this.fieldKey + "-dictation"]}
+                        fieldKey={"text"}
+                        PanelHeight={this.formattedPanelHeight}
+                        PanelWidth={this.props.PanelWidth}
+                        focus={this.props.focus}
+                        isSelected={this.props.isSelected}
+                        isAnnotationOverlay={true}
+                        select={emptyFunction}
+                        active={returnFalse}
+                        scaling={returnOne}
+                        xMargin={25}
+                        yMargin={10}
+                        whenActiveChanged={emptyFunction}
+                        removeDocument={returnFalse}
+                        moveDocument={returnFalse}
+                        addDocument={returnFalse}
+                        CollectionView={undefined}
+                        ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                        renderDepth={this.props.renderDepth + 1}
+                        ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
+                    </FormattedTextBox></div>
             </div>
             {!this.props.isSelected() ? (null) : <div className="screenshotBox-uiButtons">
                 <div className="screenshotBox-recorder" key="snap" onPointerDown={this.toggleRecording} >

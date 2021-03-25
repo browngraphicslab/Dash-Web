@@ -135,14 +135,14 @@ export class LinkManager {
 
 
     // follows a link - if the target is on screen, it highlights/pans to it.
-    // if the target isn't onscreen, then it will open up the target in a tab, on the right, or in place
+    // if the target isn't onscreen, then it will open up the target in the lightbox, or in place
     // depending on the followLinkLocation property of the source (or the link itself as a fallback);
     public static FollowLink = (linkDoc: Opt<Doc>, sourceDoc: Doc, docViewProps: DocumentViewSharedProps, altKey: boolean, zoom: boolean = false) => {
         const batch = UndoManager.StartBatch("follow link click");
         // open up target if it's not already in view ...
         const createViewFunc = (doc: Doc, followLoc: string, finished?: Opt<() => void>) => {
             const createTabForTarget = (didFocus: boolean) => new Promise<ViewAdjustment>(res => {
-                const where = LightboxView.LightboxDoc ? "lightbox" : StrCast(sourceDoc.followLinkLocation) || followLoc;
+                const where = LightboxView.LightboxDoc ? "lightbox" : StrCast(sourceDoc.followLinkLocation, followLoc);
                 docViewProps.addDocTab(doc, where);
                 setTimeout(() => {
                     const targDocView = DocumentManager.Instance.getFirstDocumentView(doc);
@@ -195,7 +195,7 @@ export class LinkManager {
                         const containerDoc = Cast(target.annotationOn, Doc, null) || target;
                         const targetContext = Cast(containerDoc?.context, Doc, null);
                         const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
-                        DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "add:right"), finished), targetNavContext, linkDoc, undefined, sourceDoc, finished);
+                        DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "lightbox"), finished), targetNavContext, linkDoc, undefined, sourceDoc, finished);
                     }
                 } else {
                     finished?.();

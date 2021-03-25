@@ -182,7 +182,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     private createRealSummaryLink = (relative: string) => {
         const url = this.choosePath(Utils.prepend(relative));
-        const width = this.layoutDoc._width || 0;
+        const width = this.layoutDoc._width || 1;
         const height = this.layoutDoc._height || 0;
         const imageSummary = Docs.Create.ImageDocument(url, {
             _nativeWidth: Doc.NativeWidth(this.layoutDoc), _nativeHeight: Doc.NativeHeight(this.layoutDoc),
@@ -548,7 +548,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     scaling = () => this.props.scaling?.() || 1;
     panelWidth = () => this.props.PanelWidth() * this.heightPercent / 100;
-    panelHeight = () => this.layoutDoc._fitWidth ? this.panelWidth() / Doc.NativeAspect(this.rootDoc) : this.props.PanelHeight() * this.heightPercent / 100;
+    panelHeight = () => this.layoutDoc._fitWidth ? this.panelWidth() / (Doc.NativeAspect(this.rootDoc) || 1) : this.props.PanelHeight() * this.heightPercent / 100;
     screenToLocalTransform = () => {
         const offset = (this.props.PanelWidth() - this.panelWidth()) / 2 / this.scaling();
         return this.props.ScreenToLocalTransform().translate(-offset, 0).scale(100 / this.heightPercent);
