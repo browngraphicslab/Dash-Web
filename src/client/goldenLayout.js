@@ -1,4 +1,5 @@
 (function ($) {
+    //if a tab is removed from the DOM and reinserted somewhere else all nested scrollTops seems to get reset to 0. (golden layout does this when a row structure needs to be converted to col or vice-versa)
     const saveScrollTops = (element) => {
         const children = Array.from(element.children());
         while (children.length) {
@@ -492,6 +493,8 @@
         this._dragSources = [];
         this._updatingColumnsResponsive = false;
         this._firstLoad = true;
+        this.saveScrollTops = saveScrollTops;
+        this.restoreScrollTops = restoreScrollTops;
 
         this.width = null;
         this.height = null;

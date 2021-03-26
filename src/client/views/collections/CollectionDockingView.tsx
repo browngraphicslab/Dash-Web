@@ -162,27 +162,6 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         if (!instance) return false;
         const docContentConfig = CollectionDockingView.makeDocumentConfig(document, panelName);
 
-        //if a tab is removed from the DOM and reinserted somewhere else all nested scrollTops seems to get reset to 0. (golden layout does this when a row structure needs to be converted to col or vice-versa)
-        const saveScrollTops = (element: any) => {
-            const children = Array.from(element.children()) as any[];
-            while (children.length) {
-                const child = children.pop();
-                if (child.children) children.push(...(Array.from(child.children) as any[]));
-                if (child?.scrollTop) child.preScrollTop = child.scrollTop;
-            }
-        }
-        const restoreScrollTops = (element: any) => {
-            const children = Array.from(element.children()) as any[];
-            while (children.length) {
-                const child = children.pop();
-                if (child.children) children.push(...(Array.from(child.children) as any[]));
-                if (child?.preScrollTop) {
-                    child.scrollTop = child.preScrollTop;
-                    child.preScrollTop = undefined;
-                }
-            }
-        }
-
         if (!pullSide && stack) {
             stack.addChild(docContentConfig, undefined);
             stack.setActiveContentItem(stack.contentItems[stack.contentItems.length - 1]);
@@ -210,7 +189,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                         const rowlayout = instance._goldenLayout.root.contentItems[0];
                         const newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, instance._goldenLayout);
 
-                        saveScrollTops(rowlayout.element);
+                        CollectionDockingView.Instance._goldenLayout.saveScrollTops(rowlayout.element);
                         rowlayout.parent.replaceChild(rowlayout, newColumn);
                         if (pullSide === "top") {
                             newColumn.addChild(rowlayout, undefined, true);
@@ -219,7 +198,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                             newColumn.addChild(newContentItem, undefined, true);
                             newColumn.addChild(rowlayout, 0, true);
                         }
-                        restoreScrollTops(rowlayout.element);
+                        CollectionDockingView.Instance._goldenLayout.restoreScrollTops(rowlayout.element);
 
                         rowlayout.config.height = 50;
                         newContentItem.config.height = 50;
@@ -235,7 +214,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                         const collayout = instance._goldenLayout.root.contentItems[0];
                         const newRow = collayout.layoutManager.createContentItem({ type: "row" }, instance._goldenLayout);
 
-                        saveScrollTops(collayout.element);
+                        CollectionDockingView.Instance._goldenLayout.saveScrollTops(collayout.element);
                         collayout.parent.replaceChild(collayout, newRow);
                         if (pullSide === "left") {
                             newRow.addChild(collayout, undefined, true);
@@ -244,7 +223,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                             newRow.addChild(newContentItem, undefined, true);
                             newRow.addChild(collayout, 0, true);
                         }
-                        restoreScrollTops(collayout.element);
+                        CollectionDockingView.Instance._goldenLayout.restoreScrollTops(collayout.element);
 
                         collayout.config.width = 50;
                         newContentItem.config.width = 50;
