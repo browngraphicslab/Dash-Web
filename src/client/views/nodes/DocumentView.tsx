@@ -1102,16 +1102,16 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     render() {
         TraceMobx();
-        const xshift = this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) <= 0.001 ? this.props.PanelWidth() : undefined;
-        const yshift = this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Yshift) <= 0.001 ? this.props.PanelHeight() : undefined;
+        const xshift = () => (this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) <= 0.001 ? this.props.PanelWidth() : undefined);
+        const yshift = () => (this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Yshift) <= 0.001 ? this.props.PanelHeight() : undefined);
         return (<div className="contentFittingDocumentView">
             {!this.props.Document || !this.props.PanelWidth() ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
                     style={{
                         position: this.props.Document.isInkMask ? "absolute" : undefined,
                         transform: `translate(${this.centeringX}px, ${this.centeringY}px)`,
-                        width: xshift ?? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%`,
-                        height: yshift ?? (this.fitWidth ? `${this.panelHeight}px` :
+                        width: xshift() ?? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%`,
+                        height: yshift() ?? (this.fitWidth ? `${this.panelHeight}px` :
                             `${100 * this.effectiveNativeHeight / this.effectiveNativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%`),
                     }}>
                     <DocumentViewInternal {...this.props}

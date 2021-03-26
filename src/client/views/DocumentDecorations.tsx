@@ -94,7 +94,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         setupMoveUpEvents(this, e, e => this.onBackgroundMove(true, e), (e) => { }, action((e) => {
             !this._edtingTitle && (this._accumulatedTitle = this._titleControlString.startsWith("#") ? this.selectionTitle : this._titleControlString);
             this._edtingTitle = true;
-            this._keyinput.current && setTimeout(this._keyinput.current!.focus);
+            this._keyinput.current && setTimeout(this._keyinput.current.focus);
         }));
     }
 

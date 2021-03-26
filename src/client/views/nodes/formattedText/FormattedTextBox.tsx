@@ -1153,7 +1153,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                             setTimeout(func);
                         }
                         else docView.ComponentView?.playFrom?.(timecode, Cast(anchor.timecodeToHide, "number", null)); // bcz: would be nice to find the next audio tag in the doc and play until that
-                    }
+                    };
                     func();
                 }
             });

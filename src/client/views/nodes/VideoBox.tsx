@@ -297,9 +297,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     // returns the path of the audio file
     @computed get audiopath() {
-        const field = Cast(this.props.Document[this.props.fieldKey + '-audio'], AudioField);
-        const path = (field instanceof AudioField) ? field.url.href : "";
-        return path === nullAudio ? "" : path;
+        const field = Cast(this.props.Document[this.props.fieldKey + '-audio'], AudioField, null);
+        const vfield = Cast(this.dataDoc[this.fieldKey], VideoField, null);
+        return field?.url.href ?? vfield?.url.href ?? "";
     }
     // ref for updating time
     _audioPlayer: HTMLAudioElement | null = null;
@@ -322,7 +322,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                         <source src={field.url.href} type="video/mp4" />
                         Not supported.
                     </video>
-                    {!this.audiopath ? (null) :
+                    {!this.audiopath || this.audiopath === field.url.href ? (null) :
                         <audio ref={this.setAudioRef} className={`audiobox-control${this.active() ? "-interactive" : ""}`}>
                             <source src={this.audiopath} type="audio/mpeg" />
                         Not supported.
@@ -510,6 +510,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         return <div className="videoBox-stackPanel" style={{ transition: this.transition, height: `${100 - this.heightPercent}%` }}>
             <CollectionStackedTimeline ref={this._stackedTimeline} {...this.props}
                 fieldKey={this.annotationKey}
+                mediaPath={this.audiopath}
                 renderDepth={this.props.renderDepth + 1}
                 startTag={"_timecodeToShow" /* videoStart */}
                 endTag={"_timecodeToHide" /* videoEnd */}

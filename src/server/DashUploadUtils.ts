@@ -16,7 +16,7 @@ import { resolvedServerUrl } from "./server_Initialization";
 import { AcceptableMedia, Upload } from './SharedMediaTypes';
 import request = require('request-promise');
 const parse = require('pdf-parse');
-var ffmpeg = require("fluent-ffmpeg");
+const ffmpeg = require("fluent-ffmpeg");
 const requestImageSize = require("../client/util/request-image-size");
 
 export enum SizeSuffix {
@@ -75,7 +75,8 @@ export namespace DashUploadUtils {
                 if (format.includes("x-matroska")) {
                     await new Promise(res => ffmpeg(file.path)
                         .videoCodec("copy") // this will copy the data instead of reencode it
-                        .save(file.path.replace(".mkv", ".mp4")).on('end', () => res()));
+                        .save(file.path.replace(".mkv", ".mp4"))
+                        .on('end', res));
                     file.path = file.path.replace(".mkv", ".mp4");
                     format = ".mp4";
                 }

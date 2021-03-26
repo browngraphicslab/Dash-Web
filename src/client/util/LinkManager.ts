@@ -33,7 +33,7 @@ export class LinkManager {
     constructor() {
         LinkManager._instance = this;
         setTimeout(() => {
-            LinkManager.userDocs = [Doc.LinkDBDoc().data as Doc, ...SharingManager.Instance.users.map(user => user.linkDatabase as Doc)];
+            LinkManager.userDocs = [Doc.LinkDBDoc().data as Doc, ...SharingManager.Instance.users.map(user => user.linkDatabase)];
             const addLinkToDoc = (link: Doc): any => {
                 const a1 = link?.anchor1;
                 const a2 = link?.anchor2;
@@ -43,7 +43,7 @@ export class LinkManager {
                     Doc.GetProto(a2)[DirectLinksSym].add(link);
                     Doc.GetProto(link)[DirectLinksSym].add(link);
                 }
-            }
+            };
             const remLinkFromDoc = (link: Doc): any => {
                 const a1 = link?.anchor1;
                 const a2 = link?.anchor2;
@@ -53,23 +53,23 @@ export class LinkManager {
                     Doc.GetProto(a2)[DirectLinksSym].delete(link);
                     Doc.GetProto(link)[DirectLinksSym].delete(link);
                 }
-            }
+            };
             const watchUserLinks = (userLinks: List<Doc>) => {
                 const toRealField = (field: Field) => field instanceof ProxyField ? field.value() : field;  // see List.ts.  data structure is not a simple list of Docs, but a list of ProxyField/Fields
                 observe(userLinks, change => {
-                    switch (change.type) {
+                    switch (change.type as any) {
                         case "splice":
                             (change as any).added.forEach((link: any) => addLinkToDoc(toRealField(link)));
                             (change as any).removed.forEach((link: any) => remLinkFromDoc(toRealField(link)));
                             break;
-                        case "update": let oldValue = change.oldValue;
+                        case "update": //let oldValue = change.oldValue;
                     }
                 }, true);
-            }
+            };
             observe(LinkManager.userDocs, change => {
-                switch (change.type) {
+                switch (change.type as any) {
                     case "splice": (change as any).added.forEach(watchUserLinks); break;
-                    case "update": let oldValue = change.oldValue;
+                    case "update": //let oldValue = change.oldValue;
                 }
             }, true);
         });
@@ -82,7 +82,9 @@ export class LinkManager {
     public deleteAllLinksOnAnchor(anchor: Doc) { LinkManager.Instance.relatedLinker(anchor).forEach(linkDoc => LinkManager.Instance.deleteLink(linkDoc)); }
 
     public getAllRelatedLinks(anchor: Doc) { return this.relatedLinker(anchor); } // finds all links that contain the given anchor
-    public getAllDirectLinks(anchor: Doc): Doc[] { return Array.from(Doc.GetProto(anchor)[DirectLinksSym]); } // finds all links that contain the given anchor
+    public getAllDirectLinks(anchor: Doc): Doc[] {
+        return Array.from(Doc.GetProto(anchor)[DirectLinksSym]);
+    } // finds all links that contain the given anchor
     public getAllLinks(): Doc[] { return []; }//this.allLinks(); }
 
     // allLinks = computedFn(function allLinks(this: any): Doc[] {

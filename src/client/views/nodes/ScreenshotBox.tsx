@@ -146,7 +146,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
     }
     contentFunc = () => [this.content];
     videoPanelHeight = () => NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"], 1) / NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"], 1) * this.props.PanelWidth();
-    formattedPanelHeight = () => Math.max(0, this.props.PanelHeight() - this.videoPanelHeight())
+    formattedPanelHeight = () => Math.max(0, this.props.PanelHeight() - this.videoPanelHeight());
     render() {
         TraceMobx();
         return <div className="videoBox" onContextMenu={this.specificContextMenu} style={{ width: "100%", height: "100%" }} >

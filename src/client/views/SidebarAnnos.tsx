@@ -79,7 +79,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
 
     sidebarStyleProvider = (doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) => {
         if (property === StyleProp.ShowTitle) return StrCast(this.props.layoutDoc["sidebar-childShowTitle"], "title");
-        return this.props.styleProvider?.(doc, props, property)
+        return this.props.styleProvider?.(doc, props, property);
     }
     render() {
         const renderTag = (tag: string) => {

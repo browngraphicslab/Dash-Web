@@ -1,18 +1,15 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import axios from "axios";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import Waveform from "react-audio-waveform";
 import { DateField } from "../../../fields/DateField";
 import { Doc, DocListCast, Opt } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
-import { List } from "../../../fields/List";
-import { createSchema, listSpec, makeInterface } from "../../../fields/Schema";
+import { makeInterface } from "../../../fields/Schema";
 import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { AudioField, nullAudio } from "../../../fields/URLField";
-import { emptyFunction, formatTime, numberRange, Utils } from "../../../Utils";
+import { emptyFunction, formatTime, Utils } from "../../../Utils";
 import { DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -35,7 +32,6 @@ const AudioDocument = makeInterface(documentSchema);
 export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioDocument>(AudioDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(AudioBox, fieldKey); }
     public static Enabled = false;
-    public static NUMBER_OF_BUCKETS = 100;
     static playheadWidth = 30; // width of playhead
     static heightPercent = 80; // height of timeline in percent of height of audioBox.
     static Instance: AudioBox;
@@ -295,35 +291,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         e.stopPropagation();
     }
 
-    // returns the audio waveform
-    @computed get waveform() {
-        const audioBuckets = Cast(this.dataDoc.audioBuckets, listSpec("number"), []);
-        !audioBuckets.length && setTimeout(() => this.createWaveformBuckets());
-        return <Waveform
-            color={"darkblue"}
-            height={this._waveHeight}
-            barWidth={0.1}
-            pos={this.duration}
-            duration={this.duration}
-            peaks={audioBuckets.length === AudioBox.NUMBER_OF_BUCKETS ? audioBuckets : undefined}
-            progressColor={"blue"} />;
-    }
-
-    // decodes the audio file into peaks for generating the waveform
-    createWaveformBuckets = async () => {
-        axios({ url: this.path, responseType: "arraybuffer" })
-            .then(response => (new (window.AudioContext)()).decodeAudioData(response.data,
-                action(buffer => {
-                    const decodedAudioData = buffer.getChannelData(0);
-                    const bucketDataSize = Math.floor(decodedAudioData.length / AudioBox.NUMBER_OF_BUCKETS);
-                    const brange = Array.from(Array(bucketDataSize));
-                    this.dataDoc.audioBuckets = new List<number>(
-                        numberRange(AudioBox.NUMBER_OF_BUCKETS).map(i =>
-                            brange.reduce((p, x, j) => Math.abs(Math.max(p, decodedAudioData[i * bucketDataSize + j])), 0) / 2));
-                }))
-            );
-    }
-
     playing = () => this.mediaState === "playing";
     playLink = (link: Doc) => {
         const stack = this._stackedTimeline.current;
@@ -353,6 +320,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @computed get renderTimeline() {
         return <CollectionStackedTimeline ref={this._stackedTimeline} {...this.props}
             fieldKey={this.annotationKey}
+            mediaPath={this.path}
             renderDepth={this.props.renderDepth + 1}
             startTag={"_timecodeToShow" /* audioStart */}
             endTag={"_timecodeToHide" /* audioEnd */}
@@ -407,9 +375,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                     <div className="audiobox-player" style={{ height: `${AudioBox.heightPercent}%` }} >
                         <div className="audiobox-playhead" style={{ width: AudioBox.playheadWidth }} title={this.mediaState === "paused" ? "play" : "pause"} onClick={this.Play}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.mediaState === "paused" ? "play" : "pause"} size={"1x"} /></div>
                         <div className="audiobox-timeline" style={{ top: 0, height: `100%`, left: AudioBox.playheadWidth, width: `calc(100% - ${AudioBox.playheadWidth}px)`, background: "white" }}>
-                            <div className="waveform">
-                                {this.waveform}
-                            </div>
                             {this.renderTimeline}
                         </div>
                         {this.audio}

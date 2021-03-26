@@ -388,7 +388,7 @@ export namespace DragManager {
             if (dragElement !== ele) {
                 const children = [Array.from(ele.children), Array.from(dragElement.children)];
                 while (children[0].length) {
-                    const childs = [children[0].pop(), children[1].pop()]
+                    const childs = [children[0].pop(), children[1].pop()];
                     if (childs[0]?.children) {
                         children[0].push(...Array.from(childs[0].children));
                         children[1].push(...Array.from(childs[1]!.children));
