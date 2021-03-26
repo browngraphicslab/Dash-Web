@@ -363,6 +363,7 @@ export namespace DragManager {
         const dragElements = eles.map(ele => {
             if (!ele.parentNode) dragDiv.appendChild(ele);
             const dragElement = ele.parentNode === dragDiv ? ele : ele.cloneNode(true) as HTMLElement;
+
             const rect = ele.getBoundingClientRect();
             const scaleX = rect.width / ele.offsetWidth,
                 scaleY = ele.offsetHeight ? rect.height / ele.offsetHeight : scaleX;
@@ -394,15 +395,6 @@ export namespace DragManager {
                 const pdfBox = dragElement.getElementsByTagName("canvas");
                 const pdfBoxSrc = ele.getElementsByTagName("canvas");
                 Array.from(pdfBox).map((pb, i) => pb.getContext('2d')!.drawImage(pdfBoxSrc[i], 0, 0));
-                const pdfView = dragElement.getElementsByClassName("pdfViewer-viewer");
-                const pdfViewSrc = ele.getElementsByClassName("pdfViewer-viewer");
-                const tops = Array.from(pdfViewSrc).map(p => p.scrollTop);
-                const oldopacity = dragElement.style.opacity;
-                dragElement.style.opacity = "0";
-                setTimeout(() => {
-                    dragElement.style.opacity = oldopacity;
-                    Array.from(pdfView).map((v, i) => v.scrollTo({ top: tops[i] }));
-                }, 0);
             }
             if (dragElement.hasAttribute("style")) (dragElement as any).style.pointerEvents = "none";
             const set = dragElement.getElementsByTagName('*');
@@ -412,6 +404,19 @@ export namespace DragManager {
             }
 
             dragDiv.appendChild(dragElement);
+            if (dragElement !== ele) {
+                const children = Array.from(ele.children);
+                const dchildren = Array.from(dragElement.children);
+                while (children.length) {
+                    const child = children.pop();
+                    const dchild = dchildren.pop();
+                    if (child?.children) {
+                        children.push(...(Array.from(child.children)));
+                        dchildren.push(...(Array.from(dchild!.children)));
+                    }
+                    if (child?.scrollTop) dchild!.scrollTop = child.scrollTop;
+                }
+            }
             return dragElement;
         });
 
