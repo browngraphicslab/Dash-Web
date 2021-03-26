@@ -1,4 +1,22 @@
 (function ($) {
+    const saveScrollTops = (element) => {
+        const children = Array.from(element.children());
+        while (children.length) {
+            const child = children.pop();
+            if (child.children) children.push(...(Array.from(child.children)));
+            if (child.scrollTop) child.preScrollTop = child.scrollTop;
+        }
+    }
+    const restoreScrollTops = (element) => {
+        const children = Array.from(element.children());
+        while (children.length) {
+            const child = children.pop();
+            if (child.children) children.push(...(Array.from(child.children)));
+            if (child.preScrollTop) {
+                child.scrollTop = child.preScrollTop;
+            }
+        }
+    }
     var lm = { "config": {}, "container": {}, "controls": {}, "errors": {}, "items": {}, "utils": {} };
     lm.utils.F = function () {
     };
@@ -2064,6 +2082,7 @@
         this.element.find('.lm_tab').attr('title', lm.utils.stripTags(this._contentItem.config.title));
         this.element.find('.lm_title').html(this._contentItem.config.title);
         this.childElementContainer = this.element.find('.lm_content');
+        saveScrollTops(contentItem.element);
         this.childElementContainer.append(contentItem.element);
 
         this._updateTree();
@@ -2071,6 +2090,7 @@
         this._setDimensions();
 
         $(document.body).append(this.element);
+        restoreScrollTops(contentItem.element);
 
         var offset = this._layoutManager.container.offset();
 
@@ -2186,6 +2206,7 @@
                 this._contentItem._$destroy();
             }
 
+            restoreScrollTops(this._contentItem.element)
             this.element.remove();
 
             this._layoutManager.emit('itemDropped', this._contentItem);
@@ -3211,7 +3232,10 @@
                 if (canDelete) {
                     rowOrCol.removeChild(stack);
                     if (rowOrCol.contentItems.length === 1 && parRowOrCol.contentItems.length === 1 && !parRowOrCol.isRoot) {
+
+                        saveScrollTops(rowOrCol.contentItems[0].element);
                         parRowOrCol.replaceChild(rowOrCol, rowOrCol.contentItems[0]);
+                        restoreScrollTops(rowOrCol.contentItems[0].element);
                     }
                 }
             }
