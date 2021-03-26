@@ -258,13 +258,14 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         </div>;
     }
     @computed get renderAudioWaveform() {
-        return !this.props.mediaPath ? (null) : <div style={{ position: "absolute", width: "100%", top: 0, left: 0 }}>
-            <AudioWaveform
-                duration={this.duration}
-                mediaPath={this.props.mediaPath}
-                dataDoc={this.dataDoc}
-                PanelHeight={this.timelineContentHeight} />
-        </div>;
+        return !this.props.mediaPath ? (null) :
+            <div className="collectionStackedTimeline-waveform" >
+                <AudioWaveform
+                    duration={this.duration}
+                    mediaPath={this.props.mediaPath}
+                    dataDoc={this.dataDoc}
+                    PanelHeight={this.timelineContentHeight} />
+            </div>;
     }
     currentTimecode = () => this.currentTime;
     render() {
