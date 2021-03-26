@@ -303,7 +303,7 @@ export namespace DragManager {
                 near = pt.pt;
             }
         });
-        return { thisX: near[0], thisY: near[1] };
+        return { x: near[0], y: near[1] };
     }
     // snap to the active snap lines - if oneAxis is set (eg, for maintaining aspect ratios), then it only snaps to the nearest horizontal/vertical line 
     export function snapDrag(e: PointerEvent, xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number) {
@@ -320,8 +320,8 @@ export namespace DragManager {
             return drag;
         };
         return {
-            thisX: snapVal([xFromLeft, xFromRight], e.pageX, SnappingManager.vertSnapLines()),
-            thisY: snapVal([yFromTop, yFromBottom], e.pageY, SnappingManager.horizSnapLines())
+            x: snapVal([xFromLeft, xFromRight], e.pageX, SnappingManager.vertSnapLines()),
+            y: snapVal([yFromTop, yFromBottom], e.pageY, SnappingManager.horizSnapLines())
         };
     }
     export let docsBeingDragged: Doc[] = [];
@@ -344,29 +344,22 @@ export namespace DragManager {
             dragDiv.appendChild(dragLabel);
             DragManager.Root().appendChild(dragDiv);
         }
-        dragDiv.style.width = "";
-        dragDiv.style.height = "";
-        dragDiv.style.overflow = "";
+        Object.assign(dragDiv.style, { width: "", height: "", overflow: "" });
         dragDiv.hidden = false;
-        const scaleXs: number[] = [];
-        const scaleYs: number[] = [];
-        const xs: number[] = [];
-        const ys: number[] = [];
+        const scaleXs: number[] = [], scaleYs: number[] = [], xs: number[] = [], ys: number[] = [];
 
         docsBeingDragged = dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof AnchorAnnoDragData ? [dragData.dragDocument] : [];
         const elesCont = {
-            left: Number.MAX_SAFE_INTEGER,
-            top: Number.MAX_SAFE_INTEGER,
-            right: Number.MIN_SAFE_INTEGER,
-            bottom: Number.MIN_SAFE_INTEGER
+            left: Number.MAX_SAFE_INTEGER, right: Number.MIN_SAFE_INTEGER,
+            top: Number.MAX_SAFE_INTEGER, bottom: Number.MIN_SAFE_INTEGER
         };
         const dragElements = eles.map(ele => {
             if (!ele.parentNode) dragDiv.appendChild(ele);
             const dragElement = ele.parentNode === dragDiv ? ele : ele.cloneNode(true) as HTMLElement;
-
             const rect = ele.getBoundingClientRect();
-            const scaleX = rect.width / ele.offsetWidth,
-                scaleY = ele.offsetHeight ? rect.height / ele.offsetHeight : scaleX;
+            const scaleX = rect.width / ele.offsetWidth;
+            const scaleY = ele.offsetHeight ? rect.height / ele.offsetHeight : scaleX;
+
             elesCont.left = Math.min(rect.left, elesCont.left);
             elesCont.top = Math.min(rect.top, elesCont.top);
             elesCont.right = Math.max(rect.right, elesCont.right);
@@ -375,20 +368,12 @@ export namespace DragManager {
             ys.push(rect.top);
             scaleXs.push(scaleX);
             scaleYs.push(scaleY);
-            dragElement.style.opacity = "0.7";
-            dragElement.style.position = "absolute";
-            dragElement.style.margin = "0";
-            dragElement.style.top = "0";
-            dragElement.style.bottom = "";
-            dragElement.style.left = "0";
-            dragElement.style.color = "black";
-            dragElement.style.transition = "none";
-            dragElement.style.transformOrigin = "0 0";
-            dragElement.style.borderRadius = getComputedStyle(ele).borderRadius;
-            dragElement.style.zIndex = globalCssVariables.contextMenuZindex;// "1000";
-            dragElement.style.transform = `translate(${rect.left + (options?.offsetX || 0)}px, ${rect.top + (options?.offsetY || 0)}px) scale(${scaleX}, ${scaleY})`;
-            dragElement.style.width = `${rect.width / scaleX}px`;
-            dragElement.style.height = `${rect.height / scaleY}px`;
+            Object.assign(dragElement.style, {
+                opacity: "0.7", position: "absolute", margin: "0", top: "0", bottom: "", left: "0", color: "black", transition: "none",
+                borderRadius: getComputedStyle(ele).borderRadius, zIndex: globalCssVariables.contextMenuZindex,
+                transformOrigin: "0 0", width: `${rect.width / scaleX}px`, height: `${rect.height / scaleY}px`,
+                transform: `translate(${rect.left + (options?.offsetX || 0)}px, ${rect.top + (options?.offsetY || 0)}px) scale(${scaleX}, ${scaleY})`,
+            });
             dragLabel.style.transform = `translate(${rect.left + (options?.offsetX || 0)}px, ${rect.top + (options?.offsetY || 0) - 20}px)`;
 
             if (docsBeingDragged.length) {
@@ -396,25 +381,19 @@ export namespace DragManager {
                 const pdfBoxSrc = ele.getElementsByTagName("canvas");
                 Array.from(pdfBox).map((pb, i) => pb.getContext('2d')!.drawImage(pdfBoxSrc[i], 0, 0));
             }
-            if (dragElement.hasAttribute("style")) (dragElement as any).style.pointerEvents = "none";
-            const set = dragElement.getElementsByTagName('*');
-            // tslint:disable-next-line: prefer-for-of
-            for (let i = 0; i < set.length; i++) {
-                set[i].hasAttribute("style") && ((set[i] as any).style.pointerEvents = "none");
-            }
+            [dragElement, ...Array.from(dragElement.getElementsByTagName('*'))].forEach(ele =>
+                ele.hasAttribute("style") && ((ele as any).style.pointerEvents = "none"));
 
             dragDiv.appendChild(dragElement);
             if (dragElement !== ele) {
-                const children = Array.from(ele.children);
-                const dchildren = Array.from(dragElement.children);
-                while (children.length) {
-                    const child = children.pop();
-                    const dchild = dchildren.pop();
-                    if (child?.children) {
-                        children.push(...(Array.from(child.children)));
-                        dchildren.push(...(Array.from(dchild!.children)));
+                const children = [Array.from(ele.children), Array.from(dragElement.children)];
+                while (children[0].length) {
+                    const childs = [children[0].pop(), children[1].pop()]
+                    if (childs[0]?.children) {
+                        children[0].push(...Array.from(childs[0].children));
+                        children[1].push(...Array.from(childs[1]!.children));
                     }
-                    if (child?.scrollTop) dchild!.scrollTop = child.scrollTop;
+                    if (childs[0]?.scrollTop) childs[1]!.scrollTop = childs[0].scrollTop;
                 }
             }
             return dragElement;
@@ -428,13 +407,26 @@ export namespace DragManager {
         options?.hideSource && hideDragShowOriginalElements(true);
 
         SnappingManager.SetIsDragging(true);
-        let lastX = downX;
-        let lastY = downY;
+        let lastPt = { x: downX, y: downY };
         const xFromLeft = downX - elesCont.left;
         const yFromTop = downY - elesCont.top;
         const xFromRight = elesCont.right - downX;
         const yFromBottom = elesCont.bottom - downY;
         let scrollAwaiter: Opt<NodeJS.Timeout>;
+
+        AbortDrag = () => {
+            options?.dragComplete?.(new DragCompleteEvent(true, dragData));
+            endDrag();
+        };
+
+        const endDrag = action(() => {
+            hideDragShowOriginalElements(false);
+            document.removeEventListener("pointermove", moveHandler, true);
+            document.removeEventListener("pointerup", upHandler);
+            SnappingManager.SetIsDragging(false);
+            SnappingManager.clearSnapLines();
+            batch.end();
+        });
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
@@ -508,93 +500,39 @@ export namespace DragManager {
                 scrollAwaiter = setTimeout(autoScrollHandler, 250);
             }
 
-            const { thisX, thisY } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);
+            const { x, y } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);
+            const moveVec = { x: x - lastPt.x, y: y - lastPt.y };
+            lastPt = { x, y };
 
-            const moveX = thisX - lastX;
-            const moveY = thisY - lastY;
-            lastX = thisX;
-            lastY = thisY;
-            dragLabel.style.transform = `translate(${xs[0] + moveX + (options?.offsetX || 0)}px, ${ys[0] + moveY + (options?.offsetY || 0) - 20}px)`;
+            dragLabel.style.transform = `translate(${xs[0] + moveVec.x + (options?.offsetX || 0)}px, ${ys[0] + moveVec.y + (options?.offsetY || 0) - 20}px)`;
             dragElements.map((dragElement, i) => (dragElement.style.transform =
-                `translate(${(xs[i] += moveX) + (options?.offsetX || 0)}px, ${(ys[i] += moveY) + (options?.offsetY || 0)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
+                `translate(${(xs[i] += moveVec.x) + (options?.offsetX || 0)}px, ${(ys[i] += moveVec.y) + (options?.offsetY || 0)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
             );
         };
-
-        const endDrag = action(() => {
-            hideDragShowOriginalElements(false);
-            document.removeEventListener("pointermove", moveHandler, true);
-            document.removeEventListener("pointerup", upHandler);
-            SnappingManager.SetIsDragging(false);
-            SnappingManager.clearSnapLines();
-            batch.end();
-        });
-
-        AbortDrag = () => {
-            options?.dragComplete?.(new DragCompleteEvent(true, dragData));
-            endDrag();
-        };
         const upHandler = (e: PointerEvent) => {
-            const complete = new DragCompleteEvent(false, dragData);
-            dispatchDrag(eles, e, complete, xFromLeft, yFromTop, xFromRight, yFromBottom, options, finishDrag);
-            options?.dragComplete?.(complete);
+            dispatchDrag(document.elementFromPoint(e.x, e.y) || document.body, e, new DragCompleteEvent(false, dragData), snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom), finishDrag, options);
             endDrag();
         };
         document.addEventListener("pointermove", moveHandler, true);
         document.addEventListener("pointerup", upHandler);
     }
 
-    function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, complete: DragCompleteEvent,
-        xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number, options?: DragOptions, finishDrag?: (e: DragCompleteEvent) => void) {
-        const removed = dragEles.map(dragEle => {
-            const ret = { ele: dragEle, w: dragEle.style.width, h: dragEle.style.height, o: dragEle.style.overflow };
-            dragEle.style.width = "0";
-            dragEle.style.height = "0";
-            dragEle.style.overflow = "hidden";
-            return ret;
-        });
-        dragDiv.hidden = true;
-        dragDiv.style.width = "0";
-        dragDiv.style.height = "0";
-        dragDiv.style.overflow = "hidden";
-        const target = document.elementFromPoint(e.x, e.y);
-        removed.map(r => {
-            r.ele.style.width = r.w;
-            r.ele.style.height = r.h;
-            r.ele.style.overflow = r.o;
-        });
-        const { thisX, thisY } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);
-        if (target) {
-            target.dispatchEvent(
-                new CustomEvent<DropEvent>("dashPreDrop", {
-                    bubbles: true,
-                    detail: {
-                        x: thisX,
-                        y: thisY,
-                        complete: complete,
-                        shiftKey: e.shiftKey,
-                        altKey: e.altKey,
-                        metaKey: e.metaKey,
-                        ctrlKey: e.ctrlKey,
-                        embedKey: CanEmbed
-                    }
-                })
-            );
-            finishDrag?.(complete);
-            target.dispatchEvent(
-                new CustomEvent<DropEvent>("dashOnDrop", {
-                    bubbles: true,
-                    detail: {
-                        x: thisX,
-                        y: thisY,
-                        complete: complete,
-                        shiftKey: e.shiftKey,
-                        altKey: e.altKey,
-                        metaKey: e.metaKey,
-                        ctrlKey: e.ctrlKey,
-                        embedKey: CanEmbed
-                    }
-                })
-            );
-        }
+    function dispatchDrag(target: Element, e: PointerEvent, complete: DragCompleteEvent, pos: { x: number, y: number }, finishDrag?: (e: DragCompleteEvent) => void, options?: DragOptions) {
+        const dropArgs = {
+            bubbles: true,
+            detail: {
+                ...pos,
+                complete,
+                shiftKey: e.shiftKey,
+                altKey: e.altKey,
+                metaKey: e.metaKey,
+                ctrlKey: e.ctrlKey,
+                embedKey: CanEmbed
+            }
+        };
+        target.dispatchEvent(new CustomEvent<DropEvent>("dashPreDrop", dropArgs));
+        finishDrag?.(complete);
+        target.dispatchEvent(new CustomEvent<DropEvent>("dashOnDrop", dropArgs));
+        options?.dragComplete?.(complete);
     }
 }
