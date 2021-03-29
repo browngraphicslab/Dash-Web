@@ -243,8 +243,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         PanelWidth={this.lightboxWidth}
                         PanelHeight={this.lightboxHeight}
                         focus={DocUtils.DefaultFocus}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
+                        whenChildContentsActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
                         docRangeFilters={returnEmptyFilter}
                         searchFilterDocs={returnEmptyDoclist}

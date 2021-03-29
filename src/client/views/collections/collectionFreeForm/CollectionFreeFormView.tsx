@@ -67,7 +67,6 @@ export const panZoomSchema = createSchema({
 type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof collectionSchema, typeof documentSchema, typeof pageSchema]>;
 const PanZoomDocument = makeInterface(panZoomSchema, collectionSchema, documentSchema, pageSchema);
 export type collectionFreeformViewProps = {
-    parentActive: (outsideReaction: boolean) => boolean;
     annotationLayerHostsContent?: boolean; // whether to force scaling of content (needed by ImageBox)
     viewDefDivClick?: ScriptField;
     childPointerEvents?: boolean;
@@ -152,7 +151,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     getKeyFrameEditing = () => this._keyframeEditing;
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
-    parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.props.parentActive?.(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
     elementFunc = () => this._layoutElements;
     shrinkWrap = () => {
         const vals = this.fitToContentVals;
@@ -1036,8 +1034,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             removeDocument={this.props.removeDocument}
             moveDocument={this.props.moveDocument}
             pinToPres={this.props.pinToPres}
-            whenActiveChanged={this.props.whenActiveChanged}
-            parentActive={this.parentActive}
+            whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
             docViewPath={this.props.docViewPath}
             styleProvider={this.getClusterColor}
             layerProvider={this.props.layerProvider}
@@ -1046,6 +1043,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             freezeDimensions={this.props.childFreezeDimensions}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             bringToFront={this.bringToFront}
+            documentActive={() => this.props.active()}
             dontRegisterView={this.props.dontRegisterView}
             pointerEvents={this.backgroundActive || this.props.childPointerEvents ? "all" :
                 (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? "none" : undefined}

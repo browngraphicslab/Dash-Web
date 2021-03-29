@@ -258,8 +258,7 @@ export class MainView extends React.Component {
             PanelWidth={this.getPWidth}
             PanelHeight={this.getPHeight}
             focus={DocUtils.DefaultFocus}
-            parentActive={returnTrue}
-            whenActiveChanged={emptyFunction}
+            whenChildContentsActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
             docFilters={returnEmptyFilter}
             docRangeFilters={returnEmptyFilter}
@@ -351,8 +350,7 @@ export class MainView extends React.Component {
                         renderDepth={0}
                         scriptContext={CollectionDockingView.Instance.props.Document}
                         focus={DocUtils.DefaultFocus}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
+                        whenChildContentsActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
                         docFilters={returnEmptyFilter}
                         docRangeFilters={returnEmptyFilter}
@@ -383,8 +381,7 @@ export class MainView extends React.Component {
                 focus={DocUtils.DefaultFocus}
                 styleProvider={DefaultStyleProvider}
                 layerProvider={undefined}
-                parentActive={returnTrue}
-                whenActiveChanged={emptyFunction}
+                whenChildContentsActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
                 docRangeFilters={returnEmptyFilter}
@@ -483,7 +480,6 @@ export class MainView extends React.Component {
                     fieldKey={"data"}
                     dropAction={"alias"}
                     setHeight={returnFalse}
-                    parentActive={returnFalse}
                     styleProvider={DefaultStyleProvider}
                     layerProvider={undefined}
                     rootSelected={returnTrue}
@@ -503,7 +499,7 @@ export class MainView extends React.Component {
                     PanelHeight={this.getContentsHeight}
                     renderDepth={0}
                     focus={DocUtils.DefaultFocus}
-                    whenActiveChanged={emptyFunction}
+                    whenChildContentsActiveChanged={emptyFunction}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
@@ -567,8 +563,7 @@ export class MainView extends React.Component {
                 renderDepth={0}
                 focus={DocUtils.DefaultFocus}
                 docViewPath={returnEmptyDoclist}
-                parentActive={returnFalse}
-                whenActiveChanged={emptyFunction}
+                whenChildContentsActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
                 docRangeFilters={returnEmptyFilter}
@@ -594,13 +589,12 @@ export class MainView extends React.Component {
                     setHeight={returnFalse}
                     rootSelected={returnFalse}
                     renderDepth={0}
-                    parentActive={returnFalse}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
                     ScreenToLocalTransform={Transform.Identity}
                     bringToFront={returnFalse}
                     active={returnFalse}
-                    whenActiveChanged={returnFalse}
+                    whenChildContentsActiveChanged={returnFalse}
                     focus={returnFalse}
                     docViewPath={returnEmptyDoclist}
                     PanelWidth={() => 500}
@@ -672,8 +666,7 @@ export class MainView extends React.Component {
                             ScreenToLocalTransform={Transform.Identity}
                             bringToFront={returnFalse}
                             active={returnFalse}
-                            parentActive={returnFalse}
-                            whenActiveChanged={returnFalse}
+                            whenChildContentsActiveChanged={returnFalse}
                             focus={returnFalse}
                             PanelWidth={() => 500}
                             PanelHeight={() => 800}

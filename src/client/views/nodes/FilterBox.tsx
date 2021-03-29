@@ -216,8 +216,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     select={returnFalse}
                     bringToFront={emptyFunction}
                     active={returnTrue}
-                    parentActive={returnFalse}
-                    whenActiveChanged={returnFalse}
+                    whenChildContentsActiveChanged={returnFalse}
                     treeViewHideTitle={true}
                     focus={returnFalse}
                     treeViewHideHeaderFields={true}

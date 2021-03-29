@@ -53,8 +53,7 @@ export default class Palette extends React.Component<PaletteProps> {
                             docViewPath={returnEmptyDoclist}
                             styleProvider={returnEmptyString}
                             layerProvider={undefined}
-                            parentActive={returnTrue}
-                            whenActiveChanged={emptyFunction}
+                            whenChildContentsActiveChanged={emptyFunction}
                             bringToFront={emptyFunction}
                             docFilters={returnEmptyFilter}
                             docRangeFilters={returnEmptyFilter}

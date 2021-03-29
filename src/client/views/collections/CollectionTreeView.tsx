@@ -184,8 +184,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 addDocument={this.props.addDocument}
                 moveDocument={returnFalse}
                 removeDocument={returnFalse}
-                parentActive={this.props.active}
-                whenActiveChanged={this.props.whenActiveChanged}
+                whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
                 addDocTab={this.props.addDocTab}
                 pinToPres={this.props.pinToPres}
                 bringToFront={returnFalse}
@@ -197,7 +196,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     @computed get outlineMode() { return this.doc.treeViewType === "outline"; }
     @computed get fileSysMode() { return this.doc.treeViewType === "fileSystem"; }
     onChildClick = () => this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
-    whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); };
+    whenChildContentsActiveChanged = (isActive: boolean) => { this.props.whenChildContentsActiveChanged(this._isChildActive = isActive); };
     active = (outsideReaction: boolean | undefined) => this.props.active(outsideReaction) || this._isChildActive;
     panelWidth = () => this.props.PanelWidth() - 20; // bcz: 20 is the 10 + 10 for the left and right padding.
     @computed get treeChildren() {
@@ -213,7 +212,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.styleProvider, returnTrue, this.props.ScreenToLocalTransform,
             this.outerXf, this.active, this.panelWidth, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
             BoolCast(this.doc.treeViewPreventOpen), [], this.props.onCheckedClick,
-            this.onChildClick, this.props.treeViewSkipFields, true, this.whenActiveChanged, this.props.dontRegisterView || Cast(this.props.Document.childDontRegisterViews, "boolean", null), this);
+            this.onChildClick, this.props.treeViewSkipFields, true, this.whenChildContentsActiveChanged, this.props.dontRegisterView || Cast(this.props.Document.childDontRegisterViews, "boolean", null), this);
     }
     @computed get titleBar() {
         const hideTitle = this.props.treeViewHideTitle || this.doc.treeViewHideTitle;

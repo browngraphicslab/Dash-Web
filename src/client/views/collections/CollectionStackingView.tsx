@@ -248,8 +248,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             moveDocument={this.props.moveDocument}
             removeDocument={this.props.removeDocument}
             contentPointerEvents={StrCast(this.layoutDoc.contentPointerEvents)}
-            parentActive={this.props.active}
-            whenActiveChanged={this.props.whenActiveChanged}
+            whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
             addDocTab={this.addDocTab}
             bringToFront={returnFalse}
             scriptContext={this.props.scriptContext}

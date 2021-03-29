@@ -496,7 +496,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                                 active={this.active}
                                 ContentScaling={returnOne}
                                 bringToFront={emptyFunction}
-                                whenActiveChanged={this.whenActiveChanged}
+                                whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
                                 removeDocument={this.removeDocument}
                                 moveDocument={this.moveDocument}
                                 addDocument={this.sidebarAddDocument}

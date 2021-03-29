@@ -64,7 +64,6 @@ export enum CollectionViewType {
 export interface CollectionViewProps extends FieldViewProps {
     isAnnotationOverlay?: boolean;  // is the collection an annotation overlay (eg an overlay on an image/video/etc)
     layoutEngine?: () => string;
-    parentActive: (outsideReaction: boolean) => boolean;
     filterAddDocument?: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 
@@ -115,7 +114,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
             false;
     }
 
-    whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
+    whenChildContentsActiveChanged = (isActive: boolean) => this.props.whenChildContentsActiveChanged(this._isChildActive = isActive);
 
     @action.bound
     addDocument = (doc: Doc | Doc[]): boolean => {
@@ -346,8 +345,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
             removeDocument: this.removeDocument,
             moveDocument: this.moveDocument,
             active: this.active,
-            whenActiveChanged: this.whenActiveChanged,
-            parentActive: this.props.parentActive,
+            whenChildContentsActiveChanged: this.whenChildContentsActiveChanged,
             PanelWidth: this.bodyPanelWidth,
             PanelHeight: this.props.PanelHeight,
             childLayoutTemplate: this.childLayoutTemplate,

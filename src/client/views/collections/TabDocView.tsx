@@ -322,8 +322,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 ScreenToLocalTransform={this.ScreenToLocalTransform}
                 dontCenter={"y"}
                 rootSelected={returnTrue}
-                parentActive={this.active}
-                whenActiveChanged={emptyFunction}
+                whenChildContentsActiveChanged={emptyFunction}
                 focus={this.focusFunc}
                 docViewPath={returnEmptyDoclist}
                 bringToFront={emptyFunction}
@@ -417,7 +416,6 @@ export class TabMinimapView extends React.Component<TabMinimapViewProps> {
                     CollectionView={undefined}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
-                    parentActive={returnFalse}
                     docViewPath={returnEmptyDoclist}
                     childLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
                     noOverlay={true} // don't render overlay Docs since they won't scale
@@ -437,7 +435,7 @@ export class TabMinimapView extends React.Component<TabMinimapViewProps> {
                     PanelHeight={this.returnMiniSize}
                     ScreenToLocalTransform={Transform.Identity}
                     renderDepth={0}
-                    whenActiveChanged={emptyFunction}
+                    whenChildContentsActiveChanged={emptyFunction}
                     focus={DocUtils.DefaultFocus}
                     styleProvider={TabMinimapView.miniStyleProvider}
                     layerProvider={undefined}

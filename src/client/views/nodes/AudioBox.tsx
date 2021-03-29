@@ -311,8 +311,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         }
     }
 
-    isActiveChild = () => this._isChildActive;
-    timelineWhenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(runInAction(() => this._isChildActive = isActive));
+    isActiveChild = () => this._isAnyChildContentActive;
+    timelineWhenChildContentsActiveChanged = (isActive: boolean) => this.props.whenChildContentsActiveChanged(runInAction(() => this._isAnyChildContentActive = isActive));
     timelineScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-AudioBox.playheadWidth, -(100 - this.heightPercent) / 200 * this.props.PanelHeight());
     setAnchorTime = (time: number) => this._ele!.currentTime = this.layoutDoc._currentTimecode = time;
     timelineHeight = () => this.props.PanelHeight() * this.heightPercent / 100 * this.heightPercent / 100; // panelHeight * heightPercent is player height.  * heightPercent is timeline height (as per css inline)
@@ -331,7 +331,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             playFrom={this.playFrom}
             setTime={this.setAnchorTime}
             playing={this.playing}
-            whenActiveChanged={this.timelineWhenActiveChanged}
+            whenChildContentsActiveChanged={this.timelineWhenChildContentsActiveChanged}
             removeDocument={this.removeDocument}
             ScreenToLocalTransform={this.timelineScreenToLocal}
             isChildActive={this.isActiveChild}
@@ -370,7 +370,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             RECORD
                         </button>}
                 </div> :
-                <div className="audiobox-controls" style={{ pointerEvents: this._isChildActive || this.active() ? "all" : "none" }} >
+                <div className="audiobox-controls" style={{ pointerEvents: this._isAnyChildContentActive || this.active() ? "all" : "none" }} >
                     <div className="audiobox-dictation" />
                     <div className="audiobox-player" style={{ height: `${AudioBox.heightPercent}%` }} >
                         <div className="audiobox-playhead" style={{ width: AudioBox.playheadWidth }} title={this.mediaState === "paused" ? "play" : "pause"} onClick={this.Play}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.mediaState === "paused" ? "play" : "pause"} size={"1x"} /></div>

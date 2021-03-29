@@ -875,8 +875,7 @@ export class GestureOverlay extends Touchable {
                 layerProvider={undefined}
                 docViewPath={returnEmptyDoclist}
                 focus={DocUtils.DefaultFocus}
-                parentActive={returnTrue}
-                whenActiveChanged={emptyFunction}
+                whenChildContentsActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docRangeFilters={returnEmptyFilter}
                 docFilters={returnEmptyFilter}

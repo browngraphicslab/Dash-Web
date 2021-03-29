@@ -154,8 +154,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 styleProvider={this.props.styleProvider}
                                 layerProvider={this.props.layerProvider}
                                 docViewPath={returnEmptyDoclist}
-                                parentActive={returnTrue}
-                                whenActiveChanged={emptyFunction}
+                                whenChildContentsActiveChanged={emptyFunction}
                                 bringToFront={emptyFunction}
                                 docFilters={this.props.docFilters}
                                 docRangeFilters={this.props.docRangeFilters}

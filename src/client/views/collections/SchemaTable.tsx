@@ -586,8 +586,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         ContainingCollectionDoc={this.props.CollectionView?.props.Document}
                         ContainingCollectionView={this.props.CollectionView}
                         moveDocument={this.props.moveDocument}
-                        parentActive={this.props.active}
-                        whenActiveChanged={emptyFunction}
+                        whenChildContentsActiveChanged={emptyFunction}
                         addDocTab={this.props.addDocTab}
                         pinToPres={this.props.pinToPres}
                         bringToFront={returnFalse}>

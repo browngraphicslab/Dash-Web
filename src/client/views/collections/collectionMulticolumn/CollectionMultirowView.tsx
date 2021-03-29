@@ -239,8 +239,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
             removeDocument={this.props.removeDocument}
-            parentActive={this.props.active}
-            whenActiveChanged={this.props.whenActiveChanged}
+            whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
             addDocTab={this.addDocTab}
             pinToPres={this.props.pinToPres}
             bringToFront={returnFalse}

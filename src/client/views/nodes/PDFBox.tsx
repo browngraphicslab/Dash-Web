@@ -245,7 +245,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                 loaded={!Doc.NativeAspect(this.dataDoc) ? this.loaded : undefined}
                 setPdfViewer={this.setPdfViewer}
                 addDocument={this.addDocument}
-                whenActiveChanged={this.whenActiveChanged}
+                whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
                 startupLive={true}
                 ContentScaling={this.props.scaling}
                 sidebarWidth={this.sidebarWidth}

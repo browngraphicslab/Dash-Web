@@ -54,7 +54,6 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                 PanelHeight={this.panelHeight}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                 bringToFront={returnFalse}
-                parentActive={this.props.active}
             />;
         };
 

@@ -171,7 +171,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             ScreenToLocalTransform={dxf}
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
-            parentActive={this.props.active}
             dontCenter={"y"}
         />;
     }

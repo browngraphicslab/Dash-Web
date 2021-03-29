@@ -97,8 +97,7 @@ export class AudioUpload extends React.Component {
                         layerProvider={undefined}
                         styleProvider={() => "rgba(0,0,0,0)"}
                         docViewPath={returnEmptyDoclist}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
+                        whenChildContentsActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}

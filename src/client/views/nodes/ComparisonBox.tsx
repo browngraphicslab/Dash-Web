@@ -86,8 +86,7 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                 <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                     Document={whichDoc}
                     DataDoc={undefined}
-                    pointerEvents={"none"}
-                    parentActive={this.props.active} />
+                    pointerEvents={"none"} />
                 {clearButton(which)}
             </> :  // placeholder image if doc is missing
                 <div className="placeholder">

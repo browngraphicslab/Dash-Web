@@ -214,8 +214,7 @@ export class MobileInterface extends React.Component {
                     styleProvider={this.whitebackground}
                     layerProvider={undefined}
                     docViewPath={returnEmptyDoclist}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
+                    whenChildContentsActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}

@@ -107,8 +107,7 @@ export interface DocumentViewSharedProps {
     docRangeFilters: () => string[];
     searchFilterDocs: () => Doc[];
     contentsActive?: (setActive: () => boolean) => void;
-    parentActive: (outsideReaction: boolean) => boolean;
-    whenActiveChanged: (isActive: boolean) => void;
+    whenChildContentsActiveChanged: (isActive: boolean) => void;
     rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
     addDocTab: (doc: Doc, where: string) => boolean;
     addDocument?: (doc: Doc | Doc[]) => boolean;
@@ -131,6 +130,7 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     hideTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
     hideDecorationTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
     treeViewDoc?: Doc;
+    documentActive?: () => boolean; // whether a document should handle pointer events
     contentPointerEvents?: string; // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
     radialMenu?: String[];
     LayoutTemplateString?: string;
@@ -175,7 +175,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     _componentView: Opt<DocComponentView>; // needs to be accessed from DocumentView wrapper class
 
     private get topMost() { return this.props.renderDepth === 0; }
-    private get active() { return this.props.isSelected(true) || this.props.parentActive(true); }
+    private get active() { return this.props.documentActive?.() || this.props.isSelected(true); }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
     public get LayoutFieldKey() { return Doc.LayoutFieldKey(this.layoutDoc); }
@@ -755,7 +755,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     rootSelected = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     panelHeight = () => this.props.PanelHeight() - this.headerMargin;
-    parentActive = (outsideReaction: boolean) => this.props.layerProvider?.(this.layoutDoc) === false ? this.props.parentActive(outsideReaction) : false;
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
@@ -787,7 +786,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 PanelHeight={this.panelHeight}
                 setHeight={this.setHeight}
                 contentsActive={this.setContentsActive}
-                parentActive={this.parentActive}
                 ScreenToLocalTransform={this.screenToLocal}
                 rootSelected={this.rootSelected}
                 onClick={this.onClickFunc}

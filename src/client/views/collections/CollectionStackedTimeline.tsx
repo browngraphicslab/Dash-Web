@@ -249,7 +249,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                 xMargin={25}
                 yMargin={10}
                 ScreenToLocalTransform={this.dictationScreenToLocalTransform}
-                whenActiveChanged={emptyFunction}
+                whenChildContentsActiveChanged={emptyFunction}
                 removeDocument={returnFalse}
                 moveDocument={returnFalse}
                 addDocument={returnFalse}
@@ -399,7 +399,6 @@ class StackedTimelineAnchor extends React.Component<StackedTimelineAnchorProps> 
                 PanelHeight={() => height}
                 ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-x, -y)}
                 focus={focusFunc}
-                parentActive={out => this.props.isSelected(out) || this.props.isChildActive()}
                 rootSelected={returnFalse}
                 onClick={script}
                 onDoubleClick={this.props.layoutDoc.autoPlayAnchors ? undefined : doublescript}

@@ -309,7 +309,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const interactive = CurrentUserUtils.SelectedTool !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div key="loading">Loading</div> :
-            <div className="container" key="container" style={{ pointerEvents: this._isChildActive || this.active() ? "all" : "none" }}>
+            <div className="container" key="container" style={{ pointerEvents: this._isAnyChildContentActive || this.active() ? "all" : "none" }}>
                 <div className={`${style}`} style={{ width: "100%", height: "100%", left: "0px" }}>
                     <video key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}
                         style={{ height: "100%", width: "auto", display: "flex", margin: "auto" }}
@@ -501,8 +501,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     playing = () => this._playing;
-    isActiveChild = () => this._isChildActive;
-    timelineWhenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
+    isActiveChild = () => this._isAnyChildContentActive;
+    timelineWhenChildContentsActiveChanged = action((isActive: boolean) => this.props.whenChildContentsActiveChanged(this._isAnyChildContentActive = isActive));
     timelineScreenToLocal = () => this.props.ScreenToLocalTransform().scale(this.scaling()).translate(0, -this.heightPercent / 100 * this.props.PanelHeight());
     setAnchorTime = (time: number) => this.player!.currentTime = this.layoutDoc._currentTimecode = time;
     timelineHeight = () => this.props.PanelHeight() * (100 - this.heightPercent) / 100;
@@ -520,7 +520,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 playFrom={this.playFrom}
                 setTime={this.setAnchorTime}
                 playing={this.playing}
-                whenActiveChanged={this.timelineWhenActiveChanged}
+                whenChildContentsActiveChanged={this.timelineWhenChildContentsActiveChanged}
                 removeDocument={this.removeDocument}
                 ScreenToLocalTransform={this.timelineScreenToLocal}
                 isChildActive={this.isActiveChild}
@@ -578,7 +578,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                         PanelWidth={this.panelWidth}
                         PanelHeight={this.panelHeight}
                         ScreenToLocalTransform={this.screenToLocalTransform}
-                        whenActiveChanged={this.whenActiveChanged}
+                        whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
                         removeDocument={this.removeDocument}
                         moveDocument={this.moveDocument}
                         addDocument={this.addDocWithTimecode}

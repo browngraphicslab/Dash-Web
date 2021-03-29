@@ -161,7 +161,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
                         select={emptyFunction}
                         active={returnFalse}
                         scaling={returnOne}
-                        whenActiveChanged={emptyFunction}
+                        whenChildContentsActiveChanged={emptyFunction}
                         removeDocument={returnFalse}
                         moveDocument={returnFalse}
                         addDocument={returnFalse}
@@ -185,7 +185,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
                         scaling={returnOne}
                         xMargin={25}
                         yMargin={10}
-                        whenActiveChanged={emptyFunction}
+                        whenChildContentsActiveChanged={emptyFunction}
                         removeDocument={returnFalse}
                         moveDocument={returnFalse}
                         addDocument={returnFalse}

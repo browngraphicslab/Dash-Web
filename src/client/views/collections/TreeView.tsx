@@ -67,7 +67,7 @@ export interface TreeViewProps {
     onChildClick?: () => ScriptField;
     skipFields?: string[];
     firstLevel: boolean;
-    whenActiveChanged: (isActive: boolean) => void;
+    whenChildContentsActiveChanged: (isActive: boolean) => void;
     parentTreeView: TreeView | CollectionTreeView | undefined;
 }
 
@@ -331,7 +331,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                     this.props.treeView, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                     this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.titleStyleProvider, this.props.layerProvider, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
                     this.props.panelWidth, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
-                    [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenActiveChanged, this.props.dontRegisterView, this);
+                    [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenChildContentsActiveChanged, this.props.dontRegisterView, this);
             } else {
                 contentElement = <EditableView key="editableView"
                     contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
@@ -414,7 +414,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                         this.dataDoc, expandKey, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                         StrCast(this.doc.childDropAction, this.props.dropAction) as dropActionType, this.props.addDocTab, this.props.pinToPres, this.titleStyleProvider, this.props.layerProvider, this.props.ScreenToLocalTransform,
                         this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
-                        [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenActiveChanged, this.props.dontRegisterView, this)}
+                        [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenChildContentsActiveChanged, this.props.dontRegisterView, this)}
             </ul >;
         } else if (this.treeViewExpandedView === "fields") {
             return <ul key={this.doc[Id] + this.doc.title}>
@@ -604,8 +604,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 contextMenuItems={this.contextMenuItems}
                 renderDepth={1}
                 focus={returnTrue}
-                parentActive={returnTrue}
-                whenActiveChanged={this.props.whenActiveChanged}
+                whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
                 bringToFront={emptyFunction}
                 cantBrush={this.props.treeView.props.cantBrush}
                 dontRegisterView={BoolCast(this.props.treeView.props.Document.childDontRegisterViews)}
@@ -687,8 +686,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             addDocument={this.props.addDocument}
             moveDocument={this.move}
             removeDocument={this.props.removeDoc}
-            parentActive={this.props.active}
-            whenActiveChanged={this.props.whenActiveChanged}
+            whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
             addDocTab={this.props.addDocTab}
             pinToPres={this.props.pinToPres}
             cantBrush={this.props.treeView.props.cantBrush}
@@ -794,7 +792,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         onChildClick: undefined | (() => ScriptField),
         skipFields: string[] | undefined,
         firstLevel: boolean,
-        whenActiveChanged: (isActive: boolean) => void,
+        whenChildContentsActiveChanged: (isActive: boolean) => void,
         dontRegisterView: boolean | undefined,
         parentTreeView: CollectionTreeView | TreeView | undefined
     ) {
@@ -862,7 +860,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 renderedIds={renderedIds}
                 skipFields={skipFields}
                 firstLevel={firstLevel}
-                whenActiveChanged={whenActiveChanged}
+                whenChildContentsActiveChanged={whenChildContentsActiveChanged}
                 parentTreeView={parentTreeView} />;
         });
     }

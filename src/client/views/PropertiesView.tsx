@@ -288,8 +288,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     addDocument={returnFalse}
                     moveDocument={undefined}
                     removeDocument={returnFalse}
-                    parentActive={returnFalse}
-                    whenActiveChanged={emptyFunction}
+                    whenChildContentsActiveChanged={emptyFunction}
                     addDocTab={returnFalse}
                     pinToPres={emptyFunction}
                     bringToFront={returnFalse}

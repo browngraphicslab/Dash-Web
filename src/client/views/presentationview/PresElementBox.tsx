@@ -103,11 +103,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     PanelWidth={this.embedWidth}
                     PanelHeight={this.embedHeight}
                     ScreenToLocalTransform={Transform.Identity}
-                    parentActive={this.props.active}
                     moveDocument={this.props.moveDocument!}
                     renderDepth={this.props.renderDepth + 1}
                     focus={DocUtils.DefaultFocus}
-                    whenActiveChanged={returnFalse}
+                    whenChildContentsActiveChanged={returnFalse}
                     bringToFront={returnFalse}
                     docFilters={this.props.docFilters}
                     docRangeFilters={this.props.docRangeFilters}

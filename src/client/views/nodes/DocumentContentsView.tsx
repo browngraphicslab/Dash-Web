@@ -158,7 +158,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
             "onPointerUp",
         ];
         const list = {
-            ...OmitKeys(this.props, [...docOnlyProps], "", (obj: any) => obj.active = this.props.parentActive).omit,
+            ...OmitKeys(this.props, [...docOnlyProps], "").omit,
             RootDoc: Cast(this.layoutDoc?.rootDocument, Doc, null) || this.layoutDoc,
             Document: this.layoutDoc,
             DataDoc: this.dataDoc,

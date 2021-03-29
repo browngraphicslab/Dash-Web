@@ -142,10 +142,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 onChildClick={this.scriptField}
                 dropAction={undefined}
                 active={returnTrue}
-                parentActive={returnFalse}
                 bringToFront={emptyFunction}
                 focus={emptyFunction}
-                whenActiveChanged={emptyFunction}
+                whenChildContentsActiveChanged={emptyFunction}
                 ScreenToLocalTransform={Transform.Identity}
                 isSelected={returnFalse}
                 pinToPres={emptyFunction}

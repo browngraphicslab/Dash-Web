@@ -176,8 +176,7 @@ export class DashDocViewInternal extends React.Component<IDashDocViewInternal> {
                     PanelWidth={this._finalLayout[WidthSym]}
                     PanelHeight={this._finalLayout[HeightSym]}
                     focus={this.outerFocus}
-                    parentActive={returnFalse}
-                    whenActiveChanged={returnFalse}
+                    whenChildContentsActiveChanged={returnFalse}
                     bringToFront={emptyFunction}
                     dontRegisterView={false}
                     docFilters={this.props.tbox?.props.docFilters}

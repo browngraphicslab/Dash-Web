@@ -23,7 +23,7 @@ interface ExtraProps {
     rootDoc: Doc;
     dataDoc: Doc;
     annotationsActive: (outsideReaction: boolean) => boolean;
-    whenActiveChanged: (isActive: boolean) => void;
+    whenChildContentsActiveChanged: (isActive: boolean) => void;
     ScreenToLocalTransform: () => Transform;
     sidebarAddDocument: (doc: (Doc | Doc[]), suffix: string) => boolean;
     removeDocument: (doc: (Doc | Doc[]), suffix: string) => boolean;
@@ -122,7 +122,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
                         select={emptyFunction}
                         active={this.props.annotationsActive}
                         scaling={returnOne}
-                        whenActiveChanged={this.props.whenActiveChanged}
+                        whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
                         childHideDecorationTitle={returnTrue}
                         removeDocument={this.removeDocument}
                         moveDocument={this.moveDocument}
