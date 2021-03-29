@@ -20,7 +20,7 @@ import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { ContextMenuProps } from '../ContextMenuItem';
-import { ViewBoxAnnotatableComponent } from '../DocComponent';
+import { ViewBoxAnnotatableComponent, ViewBoxAnnotatableProps } from '../DocComponent';
 import { MarqueeAnnotator } from '../MarqueeAnnotator';
 import { StyleProp } from '../StyleProvider';
 import { FaceRectangles } from './FaceRectangles';
@@ -46,7 +46,7 @@ const uploadIcons = {
 };
 
 @observer
-export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageDocument>(ImageDocument) {
+export class ImageBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ImageDocument>(ImageDocument, "annotations") {
     protected _multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ImageBox, fieldKey); }
     private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
@@ -319,7 +319,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     }
     @action
     marqueeDown = (e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.layoutDoc._viewScale === 1 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
+        if (!e.altKey && e.button === 0 && this.layoutDoc._viewScale === 1 && this.isContentActive(true)) this._marqueeing = [e.clientX, e.clientY];
     }
     @action
     finishMarquee = () => {
@@ -358,7 +358,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 select={emptyFunction}
-                active={this.annotationsActive}
+                isContentActive={this.annotationsActive}
                 whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}>
                 {this.contentFunc}
             </CollectionFreeFormView>

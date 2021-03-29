@@ -16,7 +16,7 @@ import { undoBatch } from '../../util/UndoManager';
 import { panZoomSchema } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
-import { ViewBoxAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent, ViewBoxAnnotatableProps } from "../DocComponent";
 import { PDFViewer } from "../pdf/PDFViewer";
 import { SidebarAnnos } from '../SidebarAnnos';
 import { FieldView, FieldViewProps } from './FieldView';
@@ -28,7 +28,7 @@ type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, t
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
 
 @observer
-export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocument>(PdfDocument) {
+export class PDFBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, PdfDocument>(PdfDocument, "annotations") {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PDFBox, fieldKey); }
     private _searchString: string = "";
     private _initialScrollTarget: Opt<Doc>;
@@ -171,9 +171,9 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         </>;
         const searchTitle = `${!this._searching ? "Open" : "Close"} Search Bar`;
         const curPage = this.Document._curPage || 1;
-        return !this.active() ? (null) :
+        return !this.isContentActive() ? (null) :
             <div className="pdfBox-ui" onKeyDown={e => [KeyCodes.BACKSPACE, KeyCodes.DELETE].includes(e.keyCode) ? e.stopPropagation() : true}
-                onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none" }}>
+                onPointerDown={e => e.stopPropagation()} style={{ display: this.isContentActive() ? "flex" : "none" }}>
                 <div className="pdfBox-overlayCont" onPointerDown={(e) => e.stopPropagation()} style={{ left: `${this._searching ? 0 : 100}%` }}>
                     <button className="pdfBox-overlayButton" title={searchTitle} />
                     <input className="pdfBox-searchBar" placeholder="Search" ref={this._searchRef} onChange={this.searchStringChanged}
@@ -203,7 +203,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                     {this._pageControls ? pageBtns : (null)}
                 </div>
                 <button className="pdfBox-sidebarBtn" title="Toggle Sidebar"
-                    style={{ right: this.sidebarWidth() + 7, display: !this.active() ? "none" : undefined }}
+                    style={{ right: this.sidebarWidth() + 7, display: !this.isContentActive() ? "none" : undefined }}
                     onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} >
                     <FontAwesomeIcon icon={"chevron-left"} size="sm" />
                 </button>
@@ -221,7 +221,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     }
 
     @computed get renderTitleBox() {
-        const classname = "pdfBox" + (this.active() ? "-interactive" : "");
+        const classname = "pdfBox" + (this.isContentActive() ? "-interactive" : "");
         return <div className={classname} >
             <div className="pdfBox-title-outer">
                 <strong className="pdfBox-title" >{this.props.Document.title}</strong>
@@ -240,7 +240,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             <PDFViewer {...this.props}
                 pdf={this._pdf!}
                 url={this.pdfUrl!.url.pathname}
-                active={this.active}
+                isContentActive={this.isContentActive}
                 anchorMenuClick={this._sidebarRef.current?.anchorMenuClick}
                 loaded={!Doc.NativeAspect(this.dataDoc) ? this.loaded : undefined}
                 setPdfViewer={this.setPdfViewer}
@@ -259,7 +259,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                 sidebarAddDocument={this.sidebarAddDocument}
                 moveDocument={this.moveDocument}
                 removeDocument={this.removeDocument}
-                active={this.active}
+                isContentActive={this.isContentActive}
             />
             {this.settingsPanel()}
         </div>;

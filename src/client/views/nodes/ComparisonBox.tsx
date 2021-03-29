@@ -9,7 +9,7 @@ import { emptyFunction, OmitKeys, setupMoveUpEvents } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
 import { SnappingManager } from '../../util/SnappingManager';
 import { undoBatch } from '../../util/UndoManager';
-import { ViewBoxAnnotatableComponent } from '../DocComponent';
+import { ViewBoxAnnotatableComponent, ViewBoxAnnotatableProps } from '../DocComponent';
 import "./ComparisonBox.scss";
 import { DocumentView } from './DocumentView';
 import { FieldView, FieldViewProps } from './FieldView';
@@ -21,7 +21,7 @@ type ComparisonDocument = makeInterface<[typeof comparisonSchema, typeof documen
 const ComparisonDocument = makeInterface(comparisonSchema, documentSchema);
 
 @observer
-export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, ComparisonDocument>(ComparisonDocument) {
+export class ComparisonBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ComparisonDocument>(ComparisonDocument, "annotations") {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ComparisonBox, fieldKey); }
     protected _multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
     private _disposers: (DragManager.DragDropDisposer | undefined)[] = [undefined, undefined];
@@ -102,7 +102,7 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         };
 
         return (
-            <div className={`comparisonBox${this.active() || SnappingManager.GetIsDragging() ? "-interactive" : ""}` /* change className to easily disable/enable pointer events in CSS */}>
+            <div className={`comparisonBox${this.isContentActive() || SnappingManager.GetIsDragging() ? "-interactive" : ""}` /* change className to easily disable/enable pointer events in CSS */}>
                 {displayBox("after", 1, this.props.PanelWidth() - 3)}
                 <div className="clip-div" style={{ width: clipWidth, transition: this._animating, background: StrCast(this.layoutDoc._backgroundColor, "gray") }}>
                     {displayBox("before", 0, 0)}

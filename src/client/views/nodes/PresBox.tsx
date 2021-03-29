@@ -713,8 +713,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     whenChildContentsActiveChanged = action((isActive: boolean) => this.props.whenChildContentsActiveChanged(this._isChildActive = isActive));
     // For dragging documents into the presentation trail
-    addDocumentFilter = (doc: Doc | Doc[]) => {
-        const docs = doc instanceof Doc ? [doc] : doc;
+    addDocumentFilter = (docs: Doc[]) => {
         docs.forEach((doc, i) => {
             if (doc.presentationTargetDoc) return true;
             if (doc.type === DocumentType.LABEL) {

@@ -485,7 +485,7 @@ export class MainView extends React.Component {
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     select={emptyFunction}
-                    active={returnFalse}
+                    isContentActive={returnFalse}
                     isSelected={returnFalse}
                     docViewPath={returnEmptyDoclist}
                     moveDocument={this.moveButtonDoc}
@@ -547,7 +547,7 @@ export class MainView extends React.Component {
                 fieldKey="data"
                 dropAction="move"
                 isSelected={returnTrue}
-                active={returnTrue}
+                isContentActive={returnTrue}
                 select={returnTrue}
                 setHeight={returnFalse}
                 addDocument={undefined}
@@ -593,7 +593,7 @@ export class MainView extends React.Component {
                     pinToPres={returnFalse}
                     ScreenToLocalTransform={Transform.Identity}
                     bringToFront={returnFalse}
-                    active={returnFalse}
+                    isContentActive={returnFalse}
                     whenChildContentsActiveChanged={returnFalse}
                     focus={returnFalse}
                     docViewPath={returnEmptyDoclist}
@@ -665,7 +665,7 @@ export class MainView extends React.Component {
                             pinToPres={returnFalse}
                             ScreenToLocalTransform={Transform.Identity}
                             bringToFront={returnFalse}
-                            active={returnFalse}
+                            isContentActive={returnFalse}
                             whenChildContentsActiveChanged={returnFalse}
                             focus={returnFalse}
                             PanelWidth={() => 500}

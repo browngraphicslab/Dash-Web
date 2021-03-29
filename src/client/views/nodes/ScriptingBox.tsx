@@ -15,7 +15,7 @@ import { InteractionUtils } from "../../util/InteractionUtils";
 import { CompileScript, Scripting, ScriptParam } from "../../util/Scripting";
 import { ScriptManager } from "../../util/ScriptManager";
 import { ContextMenu } from "../ContextMenu";
-import { ViewBoxAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent, ViewBoxAnnotatableProps } from "../DocComponent";
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { OverlayView } from "../OverlayView";
@@ -29,7 +29,7 @@ type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentS
 const ScriptingDocument = makeInterface(ScriptingSchema, documentSchema);
 
 @observer
-export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, ScriptingDocument>(ScriptingDocument) {
+export class ScriptingBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ScriptingDocument>(ScriptingDocument, "annotations") {
 
     private dropDisposer?: DragManager.DragDropDisposer;
     protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer | undefined;

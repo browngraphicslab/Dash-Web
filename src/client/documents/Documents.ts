@@ -1322,7 +1322,10 @@ export namespace DocUtils {
     export function LeavePushpin(doc: Doc) {
         if (doc.isPushpin) return undefined;
         const context = Cast(doc.context, Doc, null) ?? Cast(doc.annotationOn, Doc, null);
-        const hasContextAnchor = DocListCast(doc.links).some(l => (l.anchor2 === doc && Cast(l.anchor1, Doc, null)?.annotationOn === context) || (l.anchor1 === doc && Cast(l.anchor2, Doc, null)?.annotationOn === context));
+        const hasContextAnchor = DocListCast(doc.links).
+            some(l =>
+                (l.anchor2 === doc && Cast(l.anchor1, Doc, null)?.annotationOn === context) ||
+                (l.anchor1 === doc && Cast(l.anchor2, Doc, null)?.annotationOn === context));
         if (context && !hasContextAnchor && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
             const pushpin = Docs.Create.FontIconDocument({
                 title: "pushpin", label: "", annotationOn: Cast(doc.annotationOn, Doc, null), isPushpin: true,

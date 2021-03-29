@@ -19,7 +19,7 @@ import { CollectionFreeFormView } from "../collections/collectionFreeForm/Collec
 import { CollectionStackedTimeline } from "../collections/CollectionStackedTimeline";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { ViewBoxAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent, ViewBoxAnnotatableProps } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { MarqueeAnnotator } from "../MarqueeAnnotator";
 import { StyleProp } from "../StyleProvider";
@@ -32,7 +32,7 @@ type VideoDocument = makeInterface<[typeof documentSchema]>;
 const VideoDocument = makeInterface(documentSchema);
 
 @observer
-export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument) {
+export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, VideoDocument>(VideoDocument, "annotations") {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(VideoBox, fieldKey); }
     static _youtubeIframeCounter: number = 0;
     static Instance: VideoBox;
@@ -63,7 +63,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     private get transition() { return this._clicking ? "left 0.5s, width 0.5s, height 0.5s" : ""; }
     public get player(): HTMLVideoElement | null { return this._videoRef; }
 
-    constructor(props: Readonly<FieldViewProps>) {
+    constructor(props: Readonly<ViewBoxAnnotatableProps & FieldViewProps>) {
         super(props);
         VideoBox.Instance = this;
     }
@@ -309,7 +309,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const interactive = CurrentUserUtils.SelectedTool !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div key="loading">Loading</div> :
-            <div className="container" key="container" style={{ pointerEvents: this._isAnyChildContentActive || this.active() ? "all" : "none" }}>
+            <div className="container" key="container" style={{ pointerEvents: this._isAnyChildContentActive || this.isContentActive() ? "all" : "none" }}>
                 <div className={`${style}`} style={{ width: "100%", height: "100%", left: "0px" }}>
                     <video key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}
                         style={{ height: "100%", width: "auto", display: "flex", margin: "auto" }}
@@ -323,7 +323,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                         Not supported.
                     </video>
                     {!this.audiopath || this.audiopath === field.url.href ? (null) :
-                        <audio ref={this.setAudioRef} className={`audiobox-control${this.active() ? "-interactive" : ""}`}>
+                        <audio ref={this.setAudioRef} className={`audiobox-control${this.isContentActive() ? "-interactive" : ""}`}>
                             <source src={this.audiopath} type="audio/mpeg" />
                         Not supported.
                     </audio>}
@@ -420,7 +420,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         setupMoveUpEvents(this, e,
             action((e: PointerEvent) => {
                 this._clicking = false;
-                if (this.active()) {
+                if (this.isContentActive()) {
                     const local = this.props.ScreenToLocalTransform().scale(this.props.scaling?.() || 1).transformPoint(e.clientX, e.clientY);
                     this.layoutDoc._timelineHeightPercent = Math.max(0, Math.min(100, local[1] / this.props.PanelHeight() * 100));
                 }
@@ -429,7 +429,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             () => {
                 this.layoutDoc._timelineHeightPercent = this.heightPercent !== 100 ? 100 : VideoBox.heightPercent;
                 setTimeout(action(() => this._clicking = false), 500);
-            }, this.active(), this.active());
+            }, this.isContentActive(), this.isContentActive());
     });
 
     onResetDown = (e: React.PointerEvent) => {
@@ -526,7 +526,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 isChildActive={this.isActiveChild}
                 Play={this.Play}
                 Pause={this.Pause}
-                active={this.active}
+                isContentActive={this.isContentActive}
                 playLink={this.playLink}
                 PanelHeight={this.timelineHeight}
             />
@@ -538,7 +538,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     marqueeDown = action((e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.layoutDoc._viewScale === 1 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
+        if (!e.altKey && e.button === 0 && this.layoutDoc._viewScale === 1 && this.isContentActive(true)) this._marqueeing = [e.clientX, e.clientY];
     });
 
     finishMarquee = action(() => {
@@ -572,7 +572,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                         isAnnotationOverlay={true}
                         annotationLayerHostsContent={true}
                         select={emptyFunction}
-                        active={this.annotationsActive}
+                        isContentActive={this.annotationsActive}
                         scaling={returnOne}
                         docFilters={this.timelineDocFilter}
                         PanelWidth={this.panelWidth}

@@ -782,7 +782,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     componentDidMount() {
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
-        this.props.contentsActive?.(this.active);
+        this.props.contentsActive?.(this.isContentActive);
         this._cachedLinks = DocListCast(this.Document.links);
         this._disposers.breakupDictation = reaction(() => DocumentManager.Instance.RecordingEvent, this.breakupDictation);
         this._disposers.autoHeight = reaction(() => this.autoHeight, autoHeight => autoHeight && this.tryUpdateScrollHeight());
@@ -1192,7 +1192,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if ((e.nativeEvent as any).formattedHandled) {
             console.log("handled");
         }
-        if (!(e.nativeEvent as any).formattedHandled && this.active(true)) {
+        if (!(e.nativeEvent as any).formattedHandled && this.isContentActive(true)) {
             const editor = this._editorView!;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
             !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
@@ -1422,7 +1422,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 const proseHeight = this.ProseRef?.scrollHeight || 0;
                 const scrollHeight = this.ProseRef && Math.min(NumCast(this.layoutDoc.docMaxAutoHeight, proseHeight), proseHeight);
                 if (scrollHeight && this.props.renderDepth && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
-                    const setScrollHeight = () => this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight;
+                    const setScrollHeight = () => {
+                        this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight;
+                    };
                     if (this.rootDoc === this.layoutDoc.doc || this.layoutDoc.resolvedDataDoc) {
                         setScrollHeight();
                     } else setTimeout(setScrollHeight, 10); // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
@@ -1447,7 +1449,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @computed get sidebarHandle() {
         TraceMobx();
         const annotated = DocListCast(this.dataDoc[this.SidebarKey]).filter(d => d?.author).length;
-        return (!annotated && !this.active()) ? (null) : <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown}
+        return (!annotated && !this.isContentActive()) ? (null) : <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown}
             style={{
                 left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`,
                 background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.WidgetColor + (annotated ? ":annotated" : ""))
@@ -1467,7 +1469,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 scaleField={this.SidebarKey + "-scale"}
                 isAnnotationOverlay={false}
                 select={emptyFunction}
-                active={this.annotationsActive}
+                isContentActive={this.annotationsActive}
                 scaling={this.sidebarContentScaling}
                 whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
                 removeDocument={this.sidebarRemDocument}
@@ -1489,7 +1491,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     render() {
         TraceMobx();
         const selected = this.props.isSelected();
-        const active = this.active();
+        const active = this.isContentActive();
         const scale = this.props.hideOnLeave ? 1 : (this.props.scaling?.() || 1) * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = (CurrentUserUtils.SelectedTool === InkTool.None || SnappingManager.GetIsDragging()) && (this.layoutDoc.z || this.props.layerProvider?.(this.layoutDoc) !== false);

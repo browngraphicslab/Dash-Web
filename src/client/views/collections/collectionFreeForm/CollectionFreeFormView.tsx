@@ -116,7 +116,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @computed get views() { return this._layoutElements.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele); }
     @computed get backgroundEvents() { return this.props.layerProvider?.(this.layoutDoc) === false && SnappingManager.GetIsDragging(); }
-    @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
+    @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.isContentActive() || this.props.isContentActive()); }
     @computed get fitToContentVals() {
         return {
             bounds: { ...this.contentBounds, cx: (this.contentBounds.x + this.contentBounds.r) / 2, cy: (this.contentBounds.y + this.contentBounds.b) / 2 },
@@ -457,7 +457,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return;
         }
         this._hitCluster = this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY));
-        if (e.button === 0 && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+        if (e.button === 0 && !e.altKey && !e.ctrlKey && this.props.isContentActive(true)) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -482,7 +482,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const pt = me.changedTouches[0];
             if (pt) {
                 this._hitCluster = this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY));
-                if (!e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+                if (!e.shiftKey && !e.altKey && !e.ctrlKey && this.props.isContentActive(true)) {
                     this.removeMoveListeners();
                     this.addMoveListeners();
                     this.removeEndListeners();
@@ -645,7 +645,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (this.props.Document._isGroup) return; // groups don't pan when dragged -- instead let the event go through to allow the group itself to drag
         if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) return;
         if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) {
-            if (this.props.active(true)) e.stopPropagation();
+            if (this.props.isContentActive(true)) e.stopPropagation();
         } else if (!e.cancelBubble) {
             if (CurrentUserUtils.SelectedTool === InkTool.None) {
                 if (this.tryDragCluster(e, this._hitCluster)) {
@@ -733,7 +733,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     handle2PointersDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
-        if (!e.nativeEvent.cancelBubble && this.props.active(true)) {
+        if (!e.nativeEvent.cancelBubble && this.props.isContentActive(true)) {
             // const pt1: React.Touch | null = e.targetTouches.item(0);
             // const pt2: React.Touch | null = e.targetTouches.item(1);
             // // if (!pt1 || !pt2) return;
@@ -817,7 +817,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (!e.ctrlKey && this.props.Document.scrollHeight !== undefined) { // things that can scroll vertically should do that instead of zooming
             e.stopPropagation();
         }
-        else if (this.props.active(true) && !this.Document._isGroup) {
+        else if (this.props.isContentActive(true) && !this.Document._isGroup) {
             e.stopPropagation();
             e.preventDefault();
             this.zoom(e.clientX, e.clientY, e.deltaY); // if (!this.props.isAnnotationOverlay) // bcz: do we want to zoom in on images/videos/etc?
@@ -1043,7 +1043,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             freezeDimensions={this.props.childFreezeDimensions}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             bringToFront={this.bringToFront}
-            documentActive={() => this.props.active()}
+            isDocumentActive={() => this.props.isContentActive()}
             dontRegisterView={this.props.dontRegisterView}
             pointerEvents={this.backgroundActive || this.props.childPointerEvents ? "all" :
                 (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? "none" : undefined}
@@ -1486,7 +1486,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 width: `${100 / (this.contentScaling || 1)}%`,
                 height: this.isAnnotationOverlay && this.Document.scrollHeight ? this.Document.scrollHeight : `${100 / (this.contentScaling || 1)}%`// : this.isAnnotationOverlay ? (this.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight()
             }}>
-            {this.Document._freeformLOD && !this.props.active() && !this.props.isAnnotationOverlay && this.props.renderDepth > 0 ?
+            {this.Document._freeformLOD && !this.props.isContentActive() && !this.props.isAnnotationOverlay && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
             {this.props.noOverlay ? (null) : <CollectionFreeFormOverlayView elements={this.elementFunc} />}
 

@@ -98,7 +98,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
         };
         return !this.props.layoutDoc._showSidebar ? (null) :
             <div style={{
-                position: "absolute", pointerEvents: this.props.active() ? "all" : undefined, top: 0, right: 0,
+                position: "absolute", pointerEvents: this.props.isContentActive() ? "all" : undefined, top: 0, right: 0,
                 background: this.props.styleProvider?.(this.props.rootDoc, this.props, StyleProp.WidgetColor),
                 width: `${this.panelWidth()}px`,
                 height: "100%"
@@ -120,7 +120,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
                         scaleField={this.sidebarKey() + "-scale"}
                         isAnnotationOverlay={false}
                         select={emptyFunction}
-                        active={this.props.annotationsActive}
+                        isContentActive={this.props.annotationsActive}
                         scaling={returnOne}
                         whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
                         childHideDecorationTitle={returnTrue}

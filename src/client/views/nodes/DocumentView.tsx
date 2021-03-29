@@ -110,6 +110,7 @@ export interface DocumentViewSharedProps {
     whenChildContentsActiveChanged: (isActive: boolean) => void;
     rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
     addDocTab: (doc: Doc, where: string) => boolean;
+    filterAddDocument?: (doc: []) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     addDocument?: (doc: Doc | Doc[]) => boolean;
     removeDocument?: (doc: Doc | Doc[]) => boolean;
     moveDocument?: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
@@ -130,7 +131,8 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     hideTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
     hideDecorationTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
     treeViewDoc?: Doc;
-    documentActive?: () => boolean; // whether a document should handle pointer events
+    isDocumentActive?: () => boolean | undefined; // whether a document should handle pointer events
+    isContentActive?: () => boolean | undefined; // whether a document should handle pointer events
     contentPointerEvents?: string; // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
     radialMenu?: String[];
     LayoutTemplateString?: string;
@@ -175,7 +177,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     _componentView: Opt<DocComponentView>; // needs to be accessed from DocumentView wrapper class
 
     private get topMost() { return this.props.renderDepth === 0; }
-    private get active() { return this.props.documentActive?.() || this.props.isSelected(true); }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
     public get LayoutFieldKey() { return Doc.LayoutFieldKey(this.layoutDoc); }
@@ -279,7 +280,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             this._downX = touch.clientX;
             this._downY = touch.clientY;
             if (!e.nativeEvent.cancelBubble) {
-                if ((this.active || this.layoutDoc.onDragStart || this.onClickHandler) && !e.ctrlKey && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) e.stopPropagation();
+                if ((this.props.isDocumentActive?.() || this.layoutDoc.onDragStart || this.onClickHandler) && !e.ctrlKey && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) e.stopPropagation();
                 this.removeMoveListeners();
                 this.addMoveListeners();
                 this.removeEndListeners();
@@ -290,10 +291,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     }
 
     handle1PointerMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
-        if (e.cancelBubble && this.active) {
+        if (e.cancelBubble && this.props.isDocumentActive?.()) {
             this.removeMoveListeners();
         }
-        else if (!e.cancelBubble && (this.active || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+        else if (!e.cancelBubble && (this.props.isDocumentActive?.() || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
             const touch = me.touchEvent.changedTouches.item(0);
             if (touch && (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3)) {
                 if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler)) {
@@ -510,7 +511,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if ((!e.nativeEvent.cancelBubble || this.onClickHandler || this.layoutDoc.onDragStart) &&
             // if this is part of a template, let the event go up to the tempalte root unless right/ctrl clicking
             !(this.props.Document.rootDocument && !(e.ctrlKey || e.button > 0))) {
-            if ((this.active || this.layoutDoc.onDragStart) &&
+            if ((this.props.isDocumentActive?.() || this.layoutDoc.onDragStart) &&
                 !e.ctrlKey &&
                 (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
                 !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
@@ -527,10 +528,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     onPointerMove = (e: PointerEvent): void => {
         if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || [InkTool.Highlighter, InkTool.Pen].includes(CurrentUserUtils.SelectedTool))) return;
-        if (e.cancelBubble && this.active) {
+        if (e.cancelBubble && this.props.isDocumentActive?.()) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (this.active || this.layoutDoc.onDragStart) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+        else if (!e.cancelBubble && (this.props.isDocumentActive?.() || this.layoutDoc.onDragStart) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);

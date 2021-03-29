@@ -533,14 +533,14 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 <div className={this.isStackingView ? "collectionStackingView" : "collectionMasonryView"}
                     ref={this.createRef}
                     style={{
-                        overflowY: this.props.active() ? "auto" : "hidden",
+                        overflowY: this.props.isContentActive() ? "auto" : "hidden",
                         background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.BackgroundColor),
                         pointerEvents: this.backgroundEvents ? "all" : undefined
                     }}
                     onScroll={action(e => this._scroll = e.currentTarget.scrollTop)}
                     onDrop={this.onExternalDrop.bind(this)}
                     onContextMenu={this.onContextMenu}
-                    onWheel={e => this.props.active(true) && e.stopPropagation()} >
+                    onWheel={e => this.props.isContentActive(true) && e.stopPropagation()} >
                     {this.renderedSections}
                     {!this.showAddAGroup ? (null) :
                         <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"

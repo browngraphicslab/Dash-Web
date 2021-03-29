@@ -114,7 +114,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     onPointerDownTimeline = (e: React.PointerEvent): void => {
         const rect = this._timeline?.getBoundingClientRect();
         const clientX = e.clientX;
-        if (rect && this.props.active()) {
+        if (rect && this.props.isContentActive()) {
             const wasPlaying = this.props.playing();
             if (wasPlaying) this.props.Pause();
             const wasSelecting = CollectionStackedTimeline.SelectingRegion === this;

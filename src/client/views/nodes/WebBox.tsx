@@ -21,7 +21,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { ViewBoxAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent, ViewBoxAnnotatableProps } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { LightboxView } from "../LightboxView";
 import { MarqueeAnnotator } from "../MarqueeAnnotator";
@@ -39,7 +39,7 @@ type WebDocument = makeInterface<[typeof documentSchema]>;
 const WebDocument = makeInterface(documentSchema);
 
 @observer
-export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
+export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, WebDocument>(WebDocument, "annotations") {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
@@ -391,7 +391,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     @action
     onMarqueeDown = (e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.active(true)) {
+        if (!e.altKey && e.button === 0 && this.isContentActive(true)) {
             this._marqueeing = [e.clientX, e.clientY];
             this.props.select(false);
         }
@@ -440,7 +440,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     sidebarWidth = () => !this.layoutDoc._showSidebar ? 0 : (NumCast(this.layoutDoc.nativeWidth) - Doc.NativeWidth(this.dataDoc)) * this.props.PanelWidth() / NumCast(this.layoutDoc.nativeWidth);
 
     @computed get content() {
-        return <div className={"webBox-cont" + (!this.props.docViewPath().lastElement()?.docView?._pendingDoubleClick && this.active() && CurrentUserUtils.SelectedTool === InkTool.None && !DocumentDecorations.Instance?.Interacting ? "-interactive" : "")}
+        return <div className={"webBox-cont" + (!this.props.docViewPath().lastElement()?.docView?._pendingDoubleClick && this.isContentActive() && CurrentUserUtils.SelectedTool === InkTool.None && !DocumentDecorations.Instance?.Interacting ? "-interactive" : "")}
             style={{ width: NumCast(this.layoutDoc[this.fieldKey + "-contentWidth"]) || `${100 / (this.props.scaling?.() || 1)}%`, }}>
             {this.urlContent}
         </div>;
@@ -464,7 +464,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         const inactiveLayer = this.props.layerProvider?.(this.layoutDoc) === false;
         const scale = this.props.scaling?.() || 1;
         return (
-            <div className="webBox" ref={this._mainCont} style={{ pointerEvents: this.annotationsActive() ? "all" : this.active() || SnappingManager.GetIsDragging() ? undefined : "none" }} >
+            <div className="webBox" ref={this._mainCont} style={{ pointerEvents: this.annotationsActive() ? "all" : this.isContentActive() || SnappingManager.GetIsDragging() ? undefined : "none" }} >
                 <div className={`webBox-container`}
                     style={{ pointerEvents: inactiveLayer ? "none" : undefined }}
                     onContextMenu={this.specificContextMenu}>
@@ -493,7 +493,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                                 PanelHeight={this.panelHeight}
                                 dropAction={"alias"}
                                 select={emptyFunction}
-                                active={this.active}
+                                isContentActive={this.isContentActive}
                                 ContentScaling={returnOne}
                                 bringToFront={emptyFunction}
                                 whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
@@ -524,7 +524,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             mainCont={this._mainCont.current} />}
                 </div >
                 <button className="webBox-overlayButton-sidebar" key="sidebar" title="Toggle Sidebar"
-                    style={{ right: this.sidebarWidth() + 7, display: !this.active() ? "none" : undefined }}
+                    style={{ right: this.sidebarWidth() + 7, display: !this.isContentActive() ? "none" : undefined }}
                     onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} >
                     <FontAwesomeIcon style={{ color: "white" }} icon={"chevron-left"} size="sm" />
                 </button>
@@ -538,7 +538,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     sidebarAddDocument={this.sidebarAddDocument}
                     moveDocument={this.moveDocument}
                     removeDocument={this.removeDocument}
-                    active={this.active}
+                    isContentActive={this.isContentActive}
                 />
             </div>);
     }

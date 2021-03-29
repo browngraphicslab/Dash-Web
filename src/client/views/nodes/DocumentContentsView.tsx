@@ -40,6 +40,7 @@ import React = require("react");
 import { TraceMobx, GetEffectiveAcl } from "../../../fields/util";
 import { ScriptField } from "../../../fields/ScriptField";
 import XRegExp = require("xregexp");
+import { DocumentType } from "../../documents/DocumentTypes";
 
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 

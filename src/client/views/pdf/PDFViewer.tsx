@@ -158,7 +158,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 
     copy = (e: ClipboardEvent) => {
-        if (this.active() && e.clipboardData) {
+        if (this.isContentActive() && e.clipboardData) {
             e.clipboardData.setData("text/plain", this._selectionText);
             e.preventDefault();
         }
@@ -375,10 +375,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this._downX = e.clientX;
         this._downY = e.clientY;
         if ((this.Document._viewScale || 1) !== 1) return;
-        if ((e.button !== 0 || e.altKey) && this.active(true)) {
+        if ((e.button !== 0 || e.altKey) && this.isContentActive(true)) {
             this._setPreviewCursor?.(e.clientX, e.clientY, true);
         }
-        if (!e.altKey && e.button === 0 && this.props.active(true)) {
+        if (!e.altKey && e.button === 0 && this.props.isContentActive(true)) {
             this.props.select(false);
             this._marqueeing = [e.clientX, e.clientY];
             if (e.target && ((e.target as any).className.includes("endOfContent") || ((e.target as any).parentElement.className !== "textLayer"))) {
@@ -482,7 +482,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     @action
     onZoomWheel = (e: React.WheelEvent) => {
-        if (this.active(true)) {
+        if (this.isContentActive(true)) {
             e.stopPropagation();
             if (e.ctrlKey) {
                 const curScale = Number(this._pdfViewer.currentScaleValue);
@@ -528,7 +528,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 PanelWidth={this.panelWidth}
                 dropAction={"alias"}
                 select={emptyFunction}
-                active={this.annotationsActive}
+                isContentActive={this.annotationsActive}
                 ContentScaling={this.contentZoom}
                 bringToFront={emptyFunction}
                 whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
@@ -542,7 +542,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         </div>;
     }
     @computed get pdfViewerDiv() {
-        return <div className={"pdfViewerDash-text" + (this._textSelecting && (this.props.isSelected() || this.props.active()) ? "-selected" : "")} ref={this._viewer} />;
+        return <div className={"pdfViewerDash-text" + (this._textSelecting && (this.props.isSelected() || this.props.isContentActive()) ? "-selected" : "")} ref={this._viewer} />;
     }
     @computed get contentScaling() { return this.props.ContentScaling?.() || 1; }
     @computed get standinViews() {

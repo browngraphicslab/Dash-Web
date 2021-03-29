@@ -197,7 +197,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     @computed get fileSysMode() { return this.doc.treeViewType === "fileSystem"; }
     onChildClick = () => this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
     whenChildContentsActiveChanged = (isActive: boolean) => { this.props.whenChildContentsActiveChanged(this._isChildActive = isActive); };
-    active = (outsideReaction: boolean | undefined) => this.props.active(outsideReaction) || this._isChildActive;
+    active = (outsideReaction: boolean | undefined) => this.props.isContentActive(outsideReaction) || this._isChildActive;
     panelWidth = () => this.props.PanelWidth() - 20; // bcz: 20 is the 10 + 10 for the left and right padding.
     @computed get treeChildren() {
         TraceMobx();
@@ -224,7 +224,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         const background = this.props.styleProvider?.(this.doc, this.props, StyleProp.BackgroundColor);
         const paddingX = `${NumCast(this.doc._xPadding, 15)}px`;
         const paddingTop = `${NumCast(this.doc._yPadding, 20)}px`;
-        const pointerEvents = !this.props.active() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined;
+        const pointerEvents = !this.props.isContentActive() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined;
 
         return !this.treeChildren ? (null) : (
             <div className="collectionTreeView-container" onContextMenu={this.onContextMenu}>
