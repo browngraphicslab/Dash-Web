@@ -564,7 +564,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             style={{
                 pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined,
                 borderRadius
-            }} >
+            }} onWheel={e => { e.stopPropagation(); e.preventDefault(); }}>
             <div className="videoBox-viewer" onPointerDown={this.marqueeDown} >
                 <div style={{ position: "absolute", transition: this.transition, width: this.panelWidth(), height: this.panelHeight(), top: 0, left: `${(100 - this.heightPercent) / 2}%` }}>
                     <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}

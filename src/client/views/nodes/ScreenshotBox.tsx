@@ -134,7 +134,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
 
     setupDictation = () => {
         if (this.dataDoc[this.fieldKey + "-dictation"]) return;
-        const dictationText = CurrentUserUtils.GetNewTextDoc("",
+        const dictationText = CurrentUserUtils.GetNewTextDoc("dictation",
             NumCast(this.rootDoc.x), NumCast(this.rootDoc.y) + NumCast(this.layoutDoc._height) + 10,
             NumCast(this.layoutDoc._width), 2 * NumCast(this.layoutDoc._height));
         dictationText._autoHeight = false;

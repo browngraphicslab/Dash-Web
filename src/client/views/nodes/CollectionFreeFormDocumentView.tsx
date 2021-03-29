@@ -176,7 +176,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 zIndex: this.ZInd,
                 mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,
-                pointerEvents: "none"
             }} >
 
             {Doc.UserDoc().renderStyle !== "comic" ? (null) :

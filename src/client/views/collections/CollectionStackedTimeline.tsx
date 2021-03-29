@@ -8,7 +8,7 @@ import { List } from "../../../fields/List";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
-import { emptyFunction, formatTime, OmitKeys, returnFalse, returnOne, setupMoveUpEvents, StopEvent } from "../../../Utils";
+import { emptyFunction, formatTime, OmitKeys, returnFalse, returnOne, setupMoveUpEvents, StopEvent, returnTrue } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { LinkManager } from "../../util/LinkManager";
 import { Scripting } from "../../util/Scripting";
@@ -236,6 +236,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
 
     dictationHeight = () => this.props.PanelHeight() / 3;
     timelineContentHeight = () => this.props.PanelHeight() * 2 / 3;
+    dictationScreenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(0, -this.timelineContentHeight());
     @computed get renderDictation() {
         const dictation = Cast(this.dataDoc[this.props.fieldKey.replace("annotations", "dictation")], Doc, null);
         return !dictation ? (null) : <div style={{ position: "absolute", height: this.dictationHeight(), top: this.timelineContentHeight(), background: "tan" }}>
@@ -244,10 +245,10 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                 PanelHeight={this.dictationHeight}
                 isAnnotationOverlay={true}
                 select={emptyFunction}
-                active={returnFalse}
                 scaling={returnOne}
                 xMargin={25}
                 yMargin={10}
+                ScreenToLocalTransform={this.dictationScreenToLocalTransform}
                 whenActiveChanged={emptyFunction}
                 removeDocument={returnFalse}
                 moveDocument={returnFalse}
