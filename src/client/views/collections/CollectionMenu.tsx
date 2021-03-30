@@ -517,7 +517,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                             </button>
                         </Tooltip>
                         {this.subChrome}
-                        {/* {this.notACollection || this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes} */}
+                        {this.notACollection || this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes}
                         {!this._buttonizableCommands ? (null) : this.templateChrome}
                     </div>
                 </div>

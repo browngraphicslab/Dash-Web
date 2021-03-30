@@ -30,10 +30,9 @@ import { DefaultLayerProvider, DefaultStyleProvider, StyleLayers, StyleProp } fr
 import { CollectionDockingView } from './CollectionDockingView';
 import { CollectionDockingViewMenu } from './CollectionDockingViewMenu';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
-import { CollectionViewType } from './CollectionView';
+import { CollectionViewType, CollectionView } from './CollectionView';
 import "./TabDocView.scss";
 import React = require("react");
-import Color = require('color');
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -336,7 +335,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     background={this.miniMapColor}
                     document={this._document}
                     tabView={this.tabView} />
-                <Tooltip style={{ display: this._document?._viewType !== CollectionViewType.Freeform ? "none" : undefined }} key="ttip" title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
+                <Tooltip style={{ display: this._document.layout !== CollectionView.LayoutString(Doc.LayoutFieldKey(this._document)) || this._document?._viewType !== CollectionViewType.Freeform ? "none" : undefined }} key="ttip" title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
                     <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
                         <FontAwesomeIcon icon={"globe-asia"} size="lg" />
                     </div>

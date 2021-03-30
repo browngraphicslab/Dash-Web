@@ -7,6 +7,7 @@ import { DocServer } from "../DocServer";
 import { AssignAllExtensions } from "../../extensions/General/Extensions";
 import { Networking } from "../Network";
 import { CollectionView } from "./collections/CollectionView";
+import { LinkManager } from "../util/LinkManager";
 
 AssignAllExtensions();
 
@@ -31,5 +32,6 @@ AssignAllExtensions();
     d.setTime(d.getTime() + (100 * 24 * 60 * 60 * 1000));
     const expires = "expires=" + d.toUTCString();
     document.cookie = `loadtime=${loading};${expires};path=/`;
+    new LinkManager();
     ReactDOM.render(<MainView />, document.getElementById('root'));
 })();

@@ -13,7 +13,7 @@ import { PrefetchProxy } from "../../../fields/Proxy";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { returnFalse, returnOne } from "../../../Utils";
+import { returnFalse, returnOne, returnTrue, emptyFunction } from '../../../Utils';
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -195,7 +195,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     componentDidMount() {
         this.rootDoc.presBox = this.rootDoc;
         this.rootDoc._forceRenderEngine = "timeline";
-        this.rootDoc._replacedChrome = "replaced";
         this.layoutDoc.presStatus = PresStatus.Edit;
         this.layoutDoc._gridGap = 0;
         this.layoutDoc._yMargin = 0;
@@ -231,17 +230,20 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     // 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
     startTempMedia = (targetDoc: Doc, activeItem: Doc) => {
         const duration: number = NumCast(activeItem.presEndTime) - NumCast(activeItem.presStartTime);
-        if (targetDoc.type === DocumentType.AUDIO) {
-            if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
-            targetDoc._triggerAudio = NumCast(activeItem.presStartTime);
-            this._mediaTimer = [setTimeout(() => targetDoc._audioStop = true, duration * 1000), targetDoc];
-        } else if (targetDoc.type === DocumentType.VID) {
-            if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
-            targetDoc._triggerVideoStop = true;
-            setTimeout(() => targetDoc._currentTimecode = NumCast(activeItem.presStartTime), 10);
-            setTimeout(() => targetDoc._triggerVideo = true, 20);
-            this._mediaTimer = [setTimeout(() => targetDoc._triggerVideoStop = true, (duration * 1000) + 20), targetDoc];
+        if ([DocumentType.VID, DocumentType.AUDIO].includes(targetDoc.type as any)) {
+            const targMedia = DocumentManager.Instance.getDocumentView(targetDoc);
+            targMedia?.ComponentView?.playFrom?.(NumCast(activeItem.presStartTime), NumCast(activeItem.presStartTime) + duration);
         }
+        // if (targetDoc.type === DocumentType.AUDIO) {
+        //     if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
+        //     targetDoc._triggerAudio = NumCast(activeItem.presStartTime);
+        //     this._mediaTimer = [setTimeout(() => targetDoc._audioStop = true, duration * 1000), targetDoc];
+        // } else if (targetDoc.type === DocumentType.VID) {
+        //     targetDoc._triggerVideoStop = true;
+        //     setTimeout(() => targetDoc._currentTimecode = NumCast(activeItem.presStartTime), 10);
+        //     setTimeout(() => targetDoc._triggerVideo = true, 20);
+        //     this._mediaTimer = [setTimeout(() => targetDoc._triggerVideoStop = true, (duration * 1000) + 20), targetDoc];
+        // }
     }
 
     stopTempMedia = (targetDoc: Doc) => {
@@ -424,7 +426,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // this still needs some fixing
             setTimeout(resetSelection, 500);
             if (doc !== targetDoc) {
-                setTimeout(() => finished?.(), 100); /// give it some time to create the targetDoc if we're opening up its context
+                setTimeout(finished ?? emptyFunction, 100); /// give it some time to create the targetDoc if we're opening up its context
             } else {
                 finished?.();
             }
@@ -2262,7 +2264,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
         const isMini: boolean = this.toolbarWidth <= 100;
         return (
-            <div className="presBox-buttons" style={{ display: !this.rootDoc._chromeStatus ? "none" : undefined }}>
+            <div className="presBox-buttons" style={{ display: !this.rootDoc._chromeHidden ? "none" : undefined }}>
                 {isMini ? (null) : <select className="presBox-viewPicker"
                     style={{ display: this.layoutDoc.presStatus === "edit" ? "block" : "none" }}
                     onPointerDown={e => e.stopPropagation()}
@@ -2449,6 +2451,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             PanelHeight={this.panelHeight}
                             childIgnoreNativeSize={true}
                             moveDocument={returnFalse}
+                            childFitWidth={returnTrue}
                             childOpacity={returnOne}
                             childLayoutTemplate={this.childLayoutTemplate}
                             filterAddDocument={this.addDocumentFilter}

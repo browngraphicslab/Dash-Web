@@ -203,7 +203,7 @@ export class CurrentUserUtils {
                 new SchemaHeaderField("[Long Description]", "dimGray", undefined, undefined, undefined, true),
                 new SchemaHeaderField("[Details]", "dimGray", undefined, undefined, undefined, true),
             ]);
-            const detailView = Docs.Create.StackingDocument([carousel, descriptionWrapper], { ...shared, ...detailViewOpts, system: true });
+            const detailView = Docs.Create.StackingDocument([carousel, descriptionWrapper], { ...shared, ...detailViewOpts, _chromeHidden: true, system: true });
             detailView.isTemplateDoc = makeTemplate(detailView);
 
             details.title = "Details";
@@ -225,7 +225,7 @@ export class CurrentUserUtils {
         ];
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument(requiredTypes, {
-                title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
+                title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title", _chromeHidden: true,
                 hidden: ComputedField.MakeFunction("IsNoviceMode()") as any,
                 _stayInCollection: true, _hideContextMenu: true,
                 _autoHeight: true, _width: 500, _height: 300, _fitWidth: true, _columnWidth: 35, ignoreClick: true, _lockedPosition: true,
@@ -367,7 +367,7 @@ export class CurrentUserUtils {
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
-                { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _fitWidth: true, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true, cloneFieldFilter: new List<string>(["system"]) });
+                { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _fitWidth: true, _width: 400, _height: 500, targetDropAction: "alias", _chromeHidden: true, boxShadow: "0 0", system: true, cloneFieldFilter: new List<string>(["system"]) });
             ((doc.emptyPresentation as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyCollection === undefined) {
@@ -423,7 +423,7 @@ export class CurrentUserUtils {
             ((doc.emptyScript as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyScreenshot === undefined) {
-            doc.emptyScreenshot = Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyScreenshot = Docs.Create.ScreenshotDocument("", { _fitWidth: true, _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyAudio === undefined) {
             doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "audio recording", system: true, cloneFieldFilter: new List<string>(["system"]) });
@@ -453,7 +453,7 @@ export class CurrentUserUtils {
             { toolTip: "Tap to create a progressive slide", title: "Slide", icon: "file", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptySlide as Doc, noviceMode: true },
             { toolTip: "Tap to create a cat image in a new pane, drag for a cat image", title: "Image", icon: "cat", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyImage as Doc },
             { toolTip: "Tap to create a comparison box in a new pane, drag for a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyComparison as Doc, noviceMode: true },
-            { toolTip: "Tap to create a screen grabber in a new pane, drag for a screen grabber", title: "Grab", icon: "photo-video", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScreenshot as Doc },
+            { toolTip: "Tap to create a screen grabber in a new pane, drag for a screen grabber", title: "Grab", icon: "photo-video", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScreenshot as Doc, noviceMode: true },
             { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
             { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyButton as Doc },
             { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory))', drag: `Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
@@ -483,22 +483,22 @@ export class CurrentUserUtils {
             title,
             toolTip,
             ignoreClick,
-            dropAction: "alias",
+            _dropAction: "alias",
             onDragStart: drag ? ScriptField.MakeFunction(drag) : undefined,
             onClick: click ? ScriptField.MakeScript(click) : undefined,
             backgroundColor,
             _hideContextMenu: true,
-            removeDropProperties: new List<string>(["_stayInCollection"]),
+            _removeDropProperties: new List<string>(["_stayInCollection"]),
             _stayInCollection: true,
             dragFactory,
             clickFactory,
-            hidden: noviceMode ? ComputedField.MakeFunction("IsNoviceMode()") as any : undefined,
+            hidden: !noviceMode ? ComputedField.MakeFunction("IsNoviceMode()") as any : undefined,
             system: true,
         }));
 
         if (dragCreatorSet === undefined) {
             doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
-                title: "Basic Item Creators", _showTitle: "title", _xMargin: 0, _stayInCollection: true, _hideContextMenu: true,
+                title: "Basic Item Creators", _showTitle: "title", _xMargin: 0, _stayInCollection: true, _hideContextMenu: true, _chromeHidden: true,
                 _autoHeight: true, _width: 500, _height: 300, _fitWidth: true, _columnWidth: 35, ignoreClick: true, _lockedPosition: true,
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), system: true
             }));
@@ -546,8 +546,8 @@ export class CurrentUserUtils {
                     title,
                     target,
                     backgroundColor: "black",
-                    dropAction: "alias",
-                    removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
+                    _dropAction: "alias",
+                    _removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
                     _width: 60,
                     _height: 60,
                     watchedDocuments,
@@ -559,6 +559,7 @@ export class CurrentUserUtils {
             doc.menuStack = new PrefetchProxy(Docs.Create.StackingDocument(menuBtns, {
                 title: "menuItemPanel",
                 childDropAction: "alias",
+                _chromeHidden: true,
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
                 backgroundColor: "black", ignoreClick: true,
                 _gridGap: 0,
@@ -596,7 +597,7 @@ export class CurrentUserUtils {
     // Sets up mobileMenu stacking document
     static setupMobileMenu() {
         const menu = new PrefetchProxy(Docs.Create.StackingDocument(this.setupMobileButtons(), {
-            _width: 980, ignoreClick: true, _lockedPosition: false, title: "home", _yMargin: 100, system: true
+            _width: 980, ignoreClick: true, _lockedPosition: false, title: "home", _yMargin: 100, system: true, _chromeHidden: true,
         }));
         return menu;
     }
@@ -626,27 +627,27 @@ export class CurrentUserUtils {
     // sets up the main document for the mobile button
     static mobileButton = (opts: DocumentOptions, docs: Doc[]) => Docs.Create.MulticolumnDocument(docs, {
         ...opts,
-        dropAction: undefined, removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 900, _nativeHeight: 250, _width: 900, _height: 250, _yMargin: 15,
+        _removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 900, _nativeHeight: 250, _width: 900, _height: 250, _yMargin: 15,
         borderRounding: "5px", boxShadow: "0 0", system: true
     }) as any as Doc
 
     // sets up the text container for the information contained within the mobile button
     static mobileTextContainer = (opts: DocumentOptions, docs: Doc[]) => Docs.Create.MultirowDocument(docs, {
         ...opts,
-        dropAction: undefined, removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 450, _nativeHeight: 250, _width: 450, _height: 250, _yMargin: 25,
+        _removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 450, _nativeHeight: 250, _width: 450, _height: 250, _yMargin: 25,
         backgroundColor: "rgba(0,0,0,0)", borderRounding: "0", boxShadow: "0 0", ignoreClick: true, system: true
     }) as any as Doc
 
     // Sets up the title of the button
     static mobileButtonText = (opts: DocumentOptions, buttonTitle: string) => Docs.Create.TextDocument(buttonTitle, {
         ...opts,
-        dropAction: undefined, title: buttonTitle, _fontSize: "37px", _xMargin: 0, _yMargin: 0, ignoreClick: true, backgroundColor: "rgba(0,0,0,0)", system: true
+        title: buttonTitle, _fontSize: "37px", _xMargin: 0, _yMargin: 0, ignoreClick: true, backgroundColor: "rgba(0,0,0,0)", system: true
     }) as any as Doc
 
     // Sets up the description of the button
     static mobileButtonInfo = (opts: DocumentOptions, buttonInfo: string) => Docs.Create.TextDocument(buttonInfo, {
         ...opts,
-        dropAction: undefined, title: "info", _fontSize: "25px", _xMargin: 0, _yMargin: 0, ignoreClick: true, backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2, system: true
+        title: "info", _fontSize: "25px", _xMargin: 0, _yMargin: 0, ignoreClick: true, backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2, system: true
     }) as any as Doc
 
 
@@ -660,11 +661,12 @@ export class CurrentUserUtils {
         ];
         return docProtoData.map(data => Docs.Create.FontIconDocument({
             _nativeWidth: 10, _nativeHeight: 10, _width: 10, _height: 10, title: data.title, icon: data.icon,
-            dropAction: data.pointerDown ? "copy" : undefined, ignoreClick: data.ignoreClick,
+            _dropAction: data.pointerDown ? "copy" : undefined, ignoreClick: data.ignoreClick,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined,
             clipboard: data.clipboard,
             onPointerUp: data.pointerUp ? ScriptField.MakeScript(data.pointerUp) : undefined, onPointerDown: data.pointerDown ? ScriptField.MakeScript(data.pointerDown) : undefined,
-            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory, system: true
+            backgroundColor: data.backgroundColor,
+            _removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory, system: true
         }));
     }
 
@@ -689,13 +691,13 @@ export class CurrentUserUtils {
     static setupMobileUploadDoc(userDoc: Doc) {
         // const addButton = Docs.Create.FontIconDocument({ onDragStart: ScriptField.MakeScript('addWebToMobileUpload()'), title: "Add Web Doc to Upload Collection", icon: "plus", backgroundColor: "black" })
         const webDoc = Docs.Create.WebDocument("https://www.britannica.com/biography/Miles-Davis", {
-            title: "Upload Images From the Web", _chromeStatus: "enabled", _lockedPosition: true, system: true
+            title: "Upload Images From the Web", _lockedPosition: true, system: true
         });
         const uploadDoc = Docs.Create.StackingDocument([], {
-            title: "Mobile Upload Collection", backgroundColor: "white", _lockedPosition: true, system: true
+            title: "Mobile Upload Collection", backgroundColor: "white", _lockedPosition: true, system: true, _chromeHidden: true,
         });
         return Docs.Create.StackingDocument([webDoc, uploadDoc], {
-            _width: screen.width, _lockedPosition: true, title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray", system: true
+            _width: screen.width, _lockedPosition: true, title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray", system: true, _chromeHidden: true,
         });
     }
 
@@ -715,20 +717,21 @@ export class CurrentUserUtils {
         if (doc.myCreators === undefined) {
             doc.myCreators = new PrefetchProxy(Docs.Create.StackingDocument([creatorBtns, templateBtns], {
                 title: "all Creators", _yMargin: 0, _autoHeight: true, _xMargin: 0, _fitWidth: true,
-                _width: 500, _height: 300, ignoreClick: true, _lockedPosition: true, system: true
+                _width: 500, _height: 300, ignoreClick: true, _lockedPosition: true, system: true, _chromeHidden: true,
             }));
         }
         // setup a color picker
         if (doc.myColorPicker === undefined) {
             const color = Docs.Create.ColorDocument({
-                title: "color picker", _width: 300, dropAction: "alias", _hideContextMenu: true, _stayInCollection: true, _forceActive: true, removeDropProperties: new List<string>(["dropAction", "_stayInCollection", "_hideContextMenu", "forceActive"]), system: true
+                title: "color picker", _width: 220, _dropAction: "alias", _hideContextMenu: true, _stayInCollection: true, _forceActive: true, _removeDropProperties: new List<string>(["dropAction", "_stayInCollection", "_hideContextMenu", "forceActive"]), system: true
             });
             doc.myColorPicker = new PrefetchProxy(color);
         }
 
         if (doc.myTools === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                title: "My Tools", _width: 500, _yMargin: 20, ignoreClick: true, _lockedPosition: true, _forceActive: true, system: true, _stayInCollection: true, _hideContextMenu: true,
+                title: "My Tools", _width: 500, _yMargin: 20, ignoreClick: true, _lockedPosition: true, _forceActive: true,
+                system: true, _stayInCollection: true, _hideContextMenu: true, _chromeHidden: true,
             })) as any as Doc;
 
             doc.myTools = toolsStack;
@@ -856,16 +859,16 @@ export class CurrentUserUtils {
     })) as any as Doc
 
     static ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
-        ...opts, dropAction: "alias", removeDropProperties: new List<string>(["dropAction", "stayInCollection"]), _nativeWidth: 40, _nativeHeight: 40, _width: 40, _height: 40, system: true
+        ...opts, _dropAction: "alias", _removeDropProperties: new List<string>(["_dropAction", "stayInCollection"]), _nativeWidth: 40, _nativeHeight: 40, _width: 40, _height: 40, system: true
     })) as any as Doc
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupDockedButtons(doc: Doc) {
         if (doc["dockedBtn-undo"] === undefined) {
-            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), dontUndo: true, _stayInCollection: true, dropAction: "alias", _hideContextMenu: true, removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
+            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
         }
         if (doc["dockedBtn-redo"] === undefined) {
-            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), dontUndo: true, _stayInCollection: true, dropAction: "alias", _hideContextMenu: true, removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
+            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
         }
         if (doc.dockedBtns === undefined) {
             doc.dockedBtns = CurrentUserUtils.blist({ title: "docked buttons", ignoreClick: true }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc]);
@@ -906,9 +909,8 @@ export class CurrentUserUtils {
             if (!sharedDocs) {
                 sharedDocs = Docs.Create.StackingDocument([], {
                     title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15,
-                    _showTitle: "title", ignoreClick: true, _lockedPosition: true,
+                    _showTitle: "title", ignoreClick: true, _lockedPosition: true, "acl-Public": SharingPermissions.Add, "_acl-Public": SharingPermissions.Add, _chromeHidden: true,
                 }, sharingDocumentId + "outer", sharingDocumentId);
-                (sharedDocs as Doc)["acl-Public"] = Doc.GetProto(sharedDocs as Doc)["acl-Public"] = SharingPermissions.Add;
             }
             if (sharedDocs instanceof Doc) {
                 sharedDocs.userColor = sharedDocs.userColor || "rgb(202, 202, 202)";
@@ -922,13 +924,13 @@ export class CurrentUserUtils {
         if (doc.myImportDocs === undefined) {
             doc.myImportDocs = new PrefetchProxy(Docs.Create.StackingDocument([], {
                 title: "My ImportDocuments", _forceActive: true, ignoreClick: true, _showTitle: "title", _stayInCollection: true, _hideContextMenu: true, childLimitHeight: 0,
-                childDropAction: "alias", _autoHeight: true, _yMargin: 50, _gridGap: 15, _lockedPosition: true, system: true
+                childDropAction: "alias", _autoHeight: true, _yMargin: 50, _gridGap: 15, _lockedPosition: true, system: true, _chromeHidden: true,
             }));
         }
         if (doc.myImportPanel === undefined) {
             const uploads = Cast(doc.myImportDocs, Doc, null);
             const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _stayInCollection: true, _hideContextMenu: true, title: "Import", icon: "upload", system: true });
-            doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, _stayInCollection: true, _hideContextMenu: true, _lockedPosition: true, system: true }));
+            doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, _chromeHidden: true, _stayInCollection: true, _hideContextMenu: true, _lockedPosition: true, system: true }));
         }
     }
 

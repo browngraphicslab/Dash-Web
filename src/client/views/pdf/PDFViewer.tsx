@@ -55,7 +55,7 @@ interface IViewerProps extends FieldViewProps {
     setPdfViewer: (view: PDFViewer) => void;
     ContentScaling?: () => number;
     sidebarWidth: () => number;
-    anchorMenuClick: (anchor: Doc) => void;
+    anchorMenuClick?: (anchor: Doc) => void;
 }
 
 /**
@@ -391,7 +391,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 AnchorMenu.Instance.Status = "marquee";
                 Array.from(this._savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
                 this._savedAnnotations.clear();
-                this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
+                this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "htmlAnnotation", { "pointer-events": "none" });
                 document.addEventListener("pointerup", this.onSelectEnd);
                 document.addEventListener("pointermove", this.onSelectMove);
             }
@@ -532,13 +532,13 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 ContentScaling={this.contentZoom}
                 bringToFront={emptyFunction}
                 whenActiveChanged={this.whenActiveChanged}
-                childPointerEvents={true}
                 removeDocument={this.removeDocument}
                 moveDocument={this.moveDocument}
                 addDocument={this.addDocument}
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.overlayTransform}
-                renderDepth={this.props.renderDepth + 1} />
+                renderDepth={this.props.renderDepth + 1}
+                childPointerEvents={true} />
         </div>;
     }
     @computed get pdfViewerDiv() {

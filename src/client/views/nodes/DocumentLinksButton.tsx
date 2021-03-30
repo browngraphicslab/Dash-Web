@@ -31,7 +31,6 @@ interface DocumentLinksButtonProps {
     AlwaysOn?: boolean;
     InMenu?: boolean;
     StartLink?: boolean;
-    links: Doc[];
 }
 @observer
 export class DocumentLinksButton extends React.Component<DocumentLinksButtonProps, {}> {
@@ -225,7 +224,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         }
     }));
 
-
     @action clearLinks() {
         DocumentLinksButton.StartLink = undefined;
         DocumentLinksButton.StartLinkView = undefined;
@@ -233,15 +231,13 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
     @computed get filteredLinks() {
         const results = [] as Doc[];
-        Array.from(new Set<Doc>(this.props.links)).forEach(link => {
-            if (!DocUtils.FilterDocs([link], this.props.View.props.docFilters(), []).length) {
-                if (DocUtils.FilterDocs([link.anchor2 as Doc], this.props.View.props.docFilters(), []).length) {
-                    results.push(link);
-                }
-                if (DocUtils.FilterDocs([link.anchor1 as Doc], this.props.View.props.docFilters(), []).length) {
-                    results.push(link);
-                }
-            } else results.push(link);
+        const filters = this.props.View.props.docFilters();
+        Array.from(new Set<Doc>(this.props.View.allLinks)).forEach(link => {
+            if (DocUtils.FilterDocs([link], filters, []).length ||
+                DocUtils.FilterDocs([link.anchor2 as Doc], filters, []).length ||
+                DocUtils.FilterDocs([link.anchor1 as Doc], filters, []).length) {
+                results.push(link);
+            }
         });
         return results;
     }
@@ -296,12 +292,12 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
         return !Array.from(this.filteredLinks).length && !this.props.AlwaysOn ? (null) :
             this.props.InMenu && (DocumentLinksButton.StartLink || this.props.StartLink) ?
-                <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
+                <Tooltip title={<div className="dash-tooltip">{title}</div>}>
                     {this.linkButtonInner}
                 </Tooltip>
                 :
                 !DocumentLinksButton.LinkEditorDocView && !this.props.InMenu ?
-                    <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
+                    <Tooltip title={<div className="dash-tooltip">{title}</div>}>
                         {this.linkButtonInner}
                     </Tooltip>
                     : this.linkButtonInner;

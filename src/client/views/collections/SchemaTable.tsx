@@ -559,8 +559,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             onPointerDown={this.props.onPointerDown} onClick={this.props.onClick} onWheel={e => this.props.active(true) && e.stopPropagation()}
             onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
             {this.reactTable}
-            {this.props.Document._chromeStatus ? <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
-                : undefined}
+            {this.props.Document._chromeHidden ? undefined : <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>}
             {!this._showDoc ? (null) :
                 <div className="collectionSchemaView-documentPreview"
                     style={{

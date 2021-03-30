@@ -72,13 +72,14 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
     const isBackground = () => StrListCast(doc?._layerTags).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
+    const showTitle = () => props?.styleProvider?.(doc, props, StyleProp.ShowTitle);
 
     switch (property.split(":")[0]) {
         case StyleProp.TreeViewIcon: return doc ? Doc.toIcon(doc) : "question";
         case StyleProp.DocContents: return undefined;
         case StyleProp.WidgetColor: return isAnnotated ? "lightBlue" : darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
-        case StyleProp.HideLinkButton: return isAnchor || props?.dontRegisterView || ((!selected || doc?.type === DocumentType.PDFANNO) && (doc?.isLinkButton || doc?.hideLinkButton));
+        case StyleProp.HideLinkButton: return props?.dontRegisterView || (!selected && (doc?.isLinkButton || doc?.hideLinkButton));
         case StyleProp.ShowTitle: return doc && !doc.presentationTargetDoc && StrCast(doc._showTitle,
             !Doc.IsSystem(doc) && doc.type === DocumentType.RTF ?
                 (doc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") : "") || "";
@@ -92,7 +93,8 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
         case StyleProp.Hidden: return BoolCast(doc?._hidden);
         case StyleProp.BorderRounding: return StrCast(doc?._borderRounding);
         case StyleProp.TitleHeight: return 15;
-        case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) || doc?.type === DocumentType.RTF) && doc?._showTitle && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
+        case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) ||
+            doc?.type === DocumentType.RTF) && showTitle() && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
         case StyleProp.BackgroundColor: {
             if (isAnchor && docProps) return "transparent";
             if (isCaption) return "rgba(0,0,0 ,0.4)";
@@ -120,6 +122,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                 case DocumentType.LINK: return "transparent";
                 case DocumentType.WEB:
                 case DocumentType.PDF:
+                case DocumentType.SCREENSHOT:
                 case DocumentType.VID: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.COL:
                     if (StrCast(Doc.LayoutField(doc)).includes("SliderBox")) break;

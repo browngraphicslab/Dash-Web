@@ -26,7 +26,7 @@ interface CMVFieldRowProps {
     rows: () => number;
     headings: () => object[];
     Document: Doc;
-    chromeStatus: string;
+    chromeHidden?: boolean;
     heading: string;
     headingObject: SchemaHeaderField | undefined;
     docList: Doc[];
@@ -190,7 +190,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @action
     headerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         if (e.button === 0 && !e.ctrlKey) {
-            setupMoveUpEvents(this, e, this.headerMove, emptyFunction, e => !this.props.chromeStatus && this.collapseSection(e));
+            setupMoveUpEvents(this, e, this.headerMove, emptyFunction, e => !this.props.chromeHidden && this.collapseSection(e));
             this._createAliasSelected = false;
         }
     }
@@ -254,8 +254,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @computed get contentLayout() {
         const rows = Math.max(1, Math.min(this.props.docList.length, Math.floor((this.props.parent.props.PanelWidth() - 2 * this.props.parent.xMargin) / (this.props.parent.columnWidth + this.props.parent.gridGap))));
-        const chromeStatus = this.props.chromeStatus;
-        const showChrome = (chromeStatus !== 'view-mode' && chromeStatus);
+        const showChrome = !this.props.chromeHidden;
         const stackPad = showChrome ? `0px ${this.props.parent.xMargin}px` : `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px 0px ${this.props.parent.xMargin}px `;
         return this.collapsed ? (null) :
             <div style={{ position: "relative" }}>
@@ -288,7 +287,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     }
 
     @computed get headingView() {
-        const noChrome = !this.props.chromeStatus;
+        const noChrome = this.props.chromeHidden;
         const key = this.props.pivotField;
         const evContents = this.heading ? this.heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
         const editableHeaderView = <EditableView

@@ -61,7 +61,6 @@ import { RichTextRules } from "./RichTextRules";
 import { schema } from "./schema_rts";
 import { SummaryView } from "./SummaryView";
 import applyDevTools = require("prosemirror-dev-tools");
-
 import React = require("react");
 const translateGoogleApi = require("translate-google-api");
 
@@ -113,7 +112,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _downEvent: any;
     private _downX = 0;
     private _downY = 0;
-    private _break = false;
+    private _break = true;
     public ProseRef?: HTMLDivElement;
     public get EditorView() { return this._editorView; }
     public get SidebarKey() { return this.fieldKey + "-sidebar"; }
@@ -125,8 +124,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @computed get scrollHeight() { return NumCast(this.rootDoc[this.fieldKey + "-scrollHeight"]); }
     @computed get sidebarHeight() { return NumCast(this.rootDoc[this.SidebarKey + "-height"]); }
     @computed get titleHeight() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin) || 0; }
-    @computed get _recording() { return this.dataDoc?.audioState === "recording"; }
-    set _recording(value) { this.dataDoc.audioState = value ? "recording" : undefined; }
+    @computed get _recording() { return this.dataDoc?.mediaState === "recording"; }
+    set _recording(value) {
+        !this.dataDoc.recordingSource && (this.dataDoc.mediaState = value ? "recording" : undefined);
+    }
     @computed get config() {
         this._keymap = buildKeymap(schema, this.props);
         this._rules = new RichTextRules(this.props.Document, this);
@@ -250,6 +251,18 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 json?.replace(/"selection":.*/, "") : json?.replace(/"selection":"\"storedMarks\""/, "\"storedMarks\"");
 
             if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) {
+                const accumTags = [] as string[];
+                state.tr.doc.nodesBetween(0, state.doc.content.size, (node: any, pos: number, parent: any) => {
+                    if (node.type === schema.nodes.dashField && node.attrs.fieldKey.startsWith("#")) {
+                        accumTags.push(node.attrs.fieldKey);
+                    }
+                });
+                const curTags = Object.keys(this.dataDoc).filter(key => key.startsWith("#"));
+                const added = accumTags.filter(tag => !curTags.includes(tag));
+                const removed = curTags.filter(tag => !accumTags.includes(tag));
+                removed.forEach(r => this.dataDoc[r] = undefined);
+                added.forEach(a => this.dataDoc[a] = a);
+
                 let unchanged = true;
                 if (this._applyingChange !== this.fieldKey && removeSelection(json) !== removeSelection(curProto?.Data)) {
                     this._applyingChange = this.fieldKey;
@@ -291,11 +304,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     insertTime = () => {
         let linkTime;
         let linkAnchor;
+        let link;
         DocListCast(this.dataDoc.links).forEach((l, i) => {
             const anchor = (l.anchor1 as Doc).annotationOn ? l.anchor1 as Doc : (l.anchor2 as Doc).annotationOn ? (l.anchor2 as Doc) : undefined;
-            if (anchor && (anchor.annotationOn as Doc).audioState === "recording") {
+            if (anchor && (anchor.annotationOn as Doc).mediaState === "recording") {
                 linkTime = NumCast(anchor._timecodeToShow /* audioStart */);
                 linkAnchor = anchor;
+                link = l;
             }
         });
         if (this._editorView && linkTime) {
@@ -622,6 +637,19 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this._downX = this._downY = Number.NaN;
     }
 
+    breakupDictation = () => {
+        if (this._editorView && this._recording) {
+            this.stopDictation(true);
+            this._break = true;
+            const state = this._editorView.state;
+            const to = state.selection.to;
+            const updated = TextSelection.create(state.doc, to, to);
+            this._editorView.dispatch(state.tr.setSelection(updated).insertText("\n", to));
+            if (this._recording) {
+                this.recordDictation();
+            }
+        }
+    }
     recordDictation = () => {
         DictationManager.Controls.listen({
             interimHandler: this.setDictationContent,
@@ -635,28 +663,30 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     stopDictation = (abort: boolean) => DictationManager.Controls.stop(!abort);
 
     setDictationContent = (value: string) => {
-        if (this._editorView) {
-            const state = this._editorView.state;
-            const now = Date.now();
-            let mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(now / 1000) });
-            if (!this._break && state.selection.to !== state.selection.from) {
-                for (let i = state.selection.from; i <= state.selection.to; i++) {
-                    const pos = state.doc.resolve(i);
-                    const um = Array.from(pos.marks()).find(m => m.type === schema.marks.user_mark);
-                    if (um) {
-                        mark = um;
-                        break;
-                    }
-                }
+        if (this._editorView && this._recordingStart) {
+            if (this._break) {
+                const textanchor = Docs.Create.TextanchorDocument({ title: "dictation anchor" });
+                this.addDocument(textanchor);
+                const link = DocUtils.MakeLinkToActiveAudio(textanchor, false).lastElement();
+                link && (Doc.GetProto(link).isDictation = true);
+                if (!link) return;
+                const audioanchor = Cast(link.anchor2, Doc, null);
+                if (!audioanchor) return;
+                audioanchor.backgroundColor = "tan";
+                const audiotag = this._editorView.state.schema.nodes.audiotag.create({
+                    timeCode: NumCast(audioanchor._timecodeToShow),
+                    audioId: audioanchor[Id],
+                    textId: textanchor[Id]
+                });
+                Doc.GetProto(textanchor).title = "dictation:" + audiotag.attrs.timeCode;
+                const tr = this._editorView.state.tr.insert(this._editorView.state.doc.content.size, audiotag);
+                const tr2 = tr.setSelection(TextSelection.create(tr.doc, tr.doc.content.size));
+                this._editorView.dispatch(tr.setSelection(TextSelection.create(tr2.doc, tr2.doc.content.size)));
             }
-            const from = state.selection.from;
+            const from = this._editorView.state.selection.from;
             this._break = false;
-            if (this.props.Document.recordingStart) {
-                const recordingStart = DateCast(this.props.Document.recordingStart)?.date.getTime();
-                value = "" + (mark.attrs.modified * 1000 - recordingStart) / 1000 + value;
-            }
-            const tr = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
-            this._editorView.dispatch(tr.setSelection(TextSelection.create(tr.doc, from, from + value.length + 1)));
+            const tr = this._editorView.state.tr.insertText(value);
+            this._editorView.dispatch(tr.setSelection(TextSelection.create(tr.doc, from, tr.doc.content.size)).scrollIntoView());
         }
     }
 
@@ -667,7 +697,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const splitter = state.schema.marks.splitter.create({ id: Utils.GenerateGuid() });
             let tr = state.tr.addMark(sel.from, sel.to, splitter);
             if (sel.from !== sel.to) {
-                const anchor = anchorDoc ?? Docs.Create.TextanchorDocument();
+                const anchor = anchorDoc ?? Docs.Create.TextanchorDocument({ title: this._editorView?.state.doc.textBetween(sel.from, sel.to) });
                 const href = targetHref ?? Utils.prepend("/doc/" + anchor[Id]);
                 if (anchor !== anchorDoc) this.addDocument(anchor);
                 tr.doc.nodesBetween(sel.from, sel.to, (node: any, pos: number, parent: any) => {
@@ -681,7 +711,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 this.dataDoc[ForceServerWrite] = this.dataDoc[UpdatingFromServer] = true;  // need to allow permissions for adding links to readonly/augment only documents
                 this._editorView!.dispatch(tr.removeMark(sel.from, sel.to, splitter));
                 this.dataDoc[UpdatingFromServer] = this.dataDoc[ForceServerWrite] = false;
-                Doc.GetProto(anchor).title = this._editorView?.state.doc.textBetween(sel.from, sel.to);
                 return anchor;
             }
             return anchorDoc ?? this.rootDoc;
@@ -689,14 +718,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return anchorDoc ?? this.rootDoc;
     }
 
-    scrollFocus = (doc: Doc, smooth: boolean) => {
-        const anchorId = doc[Id];
+    scrollFocus = (textAnchor: Doc, smooth: boolean) => {
+        const textAnchorId = textAnchor[Id];
         const findAnchorFrag = (frag: Fragment, editor: EditorView) => {
             const nodes: Node[] = [];
             let hadStart = start !== 0;
             frag.forEach((node, index) => {
                 const examinedNode = findAnchorNode(node, editor);
-                if (examinedNode?.node.textContent) {
+                if (examinedNode?.node && (examinedNode.node.textContent || examinedNode.node.type === this._editorView?.state.schema.nodes.audiotag)) {
                     nodes.push(examinedNode.node);
                     !hadStart && (start = index + examinedNode.start);
                     hadStart = true;
@@ -705,31 +734,38 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             return { frag: Fragment.fromArray(nodes), start };
         };
         const findAnchorNode = (node: Node, editor: EditorView) => {
+            if (node.type === this._editorView?.state.schema.nodes.audiotag) {
+                if (node.attrs.textId === textAnchorId) {
+                    return { node, start: 0 };
+                }
+                return undefined;
+            }
             if (!node.isText) {
                 const content = findAnchorFrag(node.content, editor);
                 return { node: node.copy(content.frag), start: content.start };
             }
             const marks = [...node.marks];
             const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.linkAnchor);
-            return linkIndex !== -1 && marks[linkIndex].attrs.allAnchors.find((item: { href: string }) => anchorId === item.href.replace(/.*\/doc\//, "")) ? { node, start: 0 } : undefined;
+            return linkIndex !== -1 && marks[linkIndex].attrs.allAnchors.find((item: { href: string }) => textAnchorId === item.href.replace(/.*\/doc\//, "")) ? { node, start: 0 } : undefined;
         };
 
         let start = 0;
-        if (this._editorView && anchorId) {
+        if (this._editorView && textAnchorId) {
             const editor = this._editorView;
             const ret = findAnchorFrag(editor.state.doc.content, editor);
 
-            if (ret.frag.size > 2 && ret.start >= 0) {
+            const content = (ret.frag as any)?.content;
+            if ((ret.frag.size > 2 || (content?.length && content[0].type === this._editorView.state.schema.nodes.audiotag)) && ret.start >= 0) {
                 smooth && (this._focusSpeed = 500);
                 let selection = TextSelection.near(editor.state.doc.resolve(ret.start)); // default to near the start
                 if (ret.frag.firstChild) {
                     selection = TextSelection.between(editor.state.doc.resolve(ret.start), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
                 }
                 editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
-                const escAnchorId = anchorId[0] >= '0' && anchorId[0] <= '9' ? `\\3${anchorId[0]} ${anchorId.substr(1)}` : anchorId;
-                addStyleSheetRule(FormattedTextBox._highlightStyleSheet, `${escAnchorId}`, { background: "yellow" });
+                const escAnchorId = textAnchorId[0] >= '0' && textAnchorId[0] <= '9' ? `\\3${textAnchorId[0]} ${textAnchorId.substr(1)}` : textAnchorId;
+                addStyleSheetRule(FormattedTextBox._highlightStyleSheet, `${escAnchorId}`, { background: "yellow", transform: "scale(3)", "transform-origin": "left bottom" });
                 setTimeout(() => this._focusSpeed = undefined, this._focusSpeed);
-                setTimeout(() => clearStyleSheetRules(FormattedTextBox._highlightStyleSheet), Math.max(this._focusSpeed || 0, 1500));
+                setTimeout(() => clearStyleSheetRules(FormattedTextBox._highlightStyleSheet), Math.max(this._focusSpeed || 0, 3000));
             }
         }
 
@@ -748,9 +784,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
         this.props.contentsActive?.(this.active);
         this._cachedLinks = DocListCast(this.Document.links);
+        this._disposers.breakupDictation = reaction(() => DocumentManager.Instance.RecordingEvent, this.breakupDictation);
         this._disposers.autoHeight = reaction(() => this.autoHeight, autoHeight => autoHeight && this.tryUpdateScrollHeight());
-        this._disposers.autoHeight = reaction(() => ({ scrollHeight: this.scrollHeight, width: NumCast(this.layoutDoc._width) }),
-            ({ width, scrollHeight }) => width && this.autoHeight && this.resetNativeHeight(scrollHeight)
+        this._disposers.scrollHeight = reaction(() => ({ scrollHeight: this.scrollHeight, autoHeight: this.autoHeight, width: NumCast(this.layoutDoc._width) }),
+            ({ width, scrollHeight, autoHeight }) => width && autoHeight && this.resetNativeHeight(scrollHeight)
         );
         this._disposers.componentHeights = reaction(  // set the document height when one of the component heights changes and autoHeight is on
             () => ({ sidebarHeight: this.sidebarHeight, textHeight: this.textHeight, autoHeight: this.autoHeight }),
@@ -817,7 +854,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         this._disposers.selected = reaction(() => this.props.isSelected(),
             action((selected) => {
-                this._recording = false;
                 if (RichTextMenu.Instance?.view === this._editorView && !selected) {
                     RichTextMenu.Instance?.updateMenu(undefined, undefined, undefined);
                 }
@@ -826,14 +862,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (!this.props.dontRegisterView) {
             this._disposers.record = reaction(() => this._recording,
                 () => {
+                    this.stopDictation(true);
                     if (this._recording) {
-                        setTimeout(action(() => {
-                            this.stopDictation(true);
-                            setTimeout(() => this.recordDictation(), 500);
-                        }), 500);
-                    } else setTimeout(() => this.stopDictation(true), 0);
-                }
+                        this.recordDictation();
+                    }
+                },
             );
+            if (this._recording) setTimeout(() => this.recordDictation());
         }
         var quickScroll: string | undefined = "";
         this._disposers.scroll = reaction(() => NumCast(this.layoutDoc._scrollTop),
@@ -1034,11 +1069,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this._editorView = new EditorView(this.ProseRef, {
                 state: rtfField?.Data ? EditorState.fromJSON(config, JSON.parse(rtfField.Data)) : EditorState.create(config),
                 handleScrollToSelection: (editorView) => {
-                    const docPos = editorView.coordsAtPos(editorView.state.selection.from);
+                    const docPos = editorView.coordsAtPos(editorView.state.selection.to);
                     const viewRect = self._ref.current!.getBoundingClientRect();
                     const scrollRef = self._scrollRef.current;
-                    if ((docPos.top < viewRect.top || docPos.top > viewRect.bottom) && scrollRef) {
-                        const scrollPos = scrollRef.scrollTop + (docPos.top - viewRect.top) * self.props.ScreenToLocalTransform().Scale;
+                    if ((docPos.bottom < viewRect.top || docPos.bottom > viewRect.bottom) && scrollRef) {
+                        const scrollPos = scrollRef.scrollTop + (docPos.bottom - viewRect.top) * self.props.ScreenToLocalTransform().Scale;
                         if (this._focusSpeed !== undefined) {
                             scrollPos && smoothScroll(this._focusSpeed, scrollRef, scrollPos);
                         } else {
@@ -1107,26 +1142,26 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if ((e.target as any).tagName === "AUDIOTAG") {
             e.preventDefault();
             e.stopPropagation();
-            const time = (e.target as any)?.dataset?.timecode || 0;
-            const audioid = (e.target as any)?.dataset?.audioid || 0;
-            DocServer.GetRefField(audioid).then(anchor => {
+            DocServer.GetRefField((e.target as any)?.dataset?.audioid || 0).then(anchor => {
                 if (anchor instanceof Doc) {
+                    const timecode = NumCast(anchor.timecodeToShow, 0);
                     const audiodoc = anchor.annotationOn as Doc;
-                    audiodoc._triggerAudio = Number(time);
-                    !DocumentManager.Instance.getDocumentView(audiodoc) && this.props.addDocTab(audiodoc, "add:bottom");
+                    const func = () => {
+                        const docView = DocumentManager.Instance.getDocumentView(audiodoc);
+                        if (!docView) {
+                            this.props.addDocTab(audiodoc, "add:bottom");
+                            setTimeout(func);
+                        }
+                        else docView.ComponentView?.playFrom?.(timecode, Cast(anchor.timecodeToHide, "number", null)); // bcz: would be nice to find the next audio tag in the doc and play until that
+                    };
+                    func();
                 }
             });
         }
         if (this._recording && !e.ctrlKey && e.button === 0) {
-            this.stopDictation(true);
-            this._break = true;
-            const state = this._editorView!.state;
-            const to = state.selection.to;
-            const updated = TextSelection.create(state.doc, to, to);
-            this._editorView!.dispatch(this._editorView!.state.tr.setSelection(updated).insertText("\n", to));
+            this.breakupDictation();
             e.preventDefault();
             e.stopPropagation();
-            if (this._recording) setTimeout(() => this.recordDictation(), 500);
         }
         this._downX = e.clientX;
         this._downY = e.clientY;
@@ -1239,10 +1274,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             e.stopPropagation();
             return;
         }
-        this.props.isSelected(true) && ((e.nativeEvent as any).formattedHandled = true);
-
         if (this.props.isSelected(true)) { // if text box is selected, then it consumes all click events
-            // e.stopPropagation();  // bcz: not sure why this was here.  We need to allow the DocumentView to get clicks to process doubleClicks
+            (e.nativeEvent as any).formattedHandled = true;
+            if (this.ProseRef?.children[0] !== e.nativeEvent.target) e.stopPropagation(); // if you double click on text, then it will be selected instead of sending a double click to DocumentView & opening a lightbox.  Also,if a text box has isLinkButton, this will prevent link following if you've selected the document to edit it.
+            // e.stopPropagation();  // bcz: not sure why this was here.  We need to allow the DocumentView to get clicks to process doubleClicks (see above comment)
             this.hitBulletTargets(e.clientX, e.clientY, !this._editorView?.state.selection.empty || this._forceUncollapse, false, this._forceDownNode, e.shiftKey);
         }
         this._forceUncollapse = !(this._editorView!.root as any).getSelection().isCollapsed;
@@ -1383,14 +1418,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
     tryUpdateScrollHeight() {
         if (!LightboxView.LightboxDoc || LightboxView.IsLightboxDocView(this.props.docViewPath())) {
-            const proseHeight = this.ProseRef?.scrollHeight || 0;
-            const scrollHeight = this.ProseRef && Math.min(NumCast(this.layoutDoc.docMaxAutoHeight, proseHeight), proseHeight);
-            if (scrollHeight && this.props.renderDepth && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
-                const setScrollHeight = () => this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight;
-                if (this.rootDoc === this.layoutDoc.doc || this.layoutDoc.resolvedDataDoc) {
-                    setScrollHeight();
-                } else setTimeout(setScrollHeight, 10); // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
-            }
+            setTimeout(() => { // bcz: don't know why this is needed, but without it, the size of the textbox is too big as it includes the size of the title header.  after the timeout, the size seems to get computed correctly.
+                const proseHeight = this.ProseRef?.scrollHeight || 0;
+                const scrollHeight = this.ProseRef && Math.min(NumCast(this.layoutDoc.docMaxAutoHeight, proseHeight), proseHeight);
+                if (scrollHeight && this.props.renderDepth && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
+                    const setScrollHeight = () => this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight;
+                    if (this.rootDoc === this.layoutDoc.doc || this.layoutDoc.resolvedDataDoc) {
+                        setScrollHeight();
+                    } else setTimeout(setScrollHeight, 10); // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
+                }
+            });
         }
     }
     fitToBox = () => this.props.Document._fitToBox;
@@ -1427,7 +1464,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 PanelWidth={this.sidebarWidth}
                 xMargin={0}
                 yMargin={0}
-                chromeStatus={"enabled"}
                 scaleField={this.SidebarKey + "-scale"}
                 isAnnotationOverlay={false}
                 select={emptyFunction}

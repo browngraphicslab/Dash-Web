@@ -12,7 +12,6 @@ import { UndoManager } from "../client/util/UndoManager";
 import { intersectRect, Utils } from "../Utils";
 import { DateField } from "./DateField";
 import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
-import { InkTool } from "./InkField";
 import { List } from "./List";
 import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
@@ -85,6 +84,7 @@ export const DataSym = Symbol("Data");
 export const LayoutSym = Symbol("Layout");
 export const FieldsSym = Symbol("Fields");
 export const AclSym = Symbol("Acl");
+export const DirectLinksSym = Symbol("DirectLinks");
 export const AclUnset = Symbol("AclUnset");
 export const AclPrivate = Symbol("AclOwnerOnly");
 export const AclReadonly = Symbol("AclReadOnly");
@@ -92,6 +92,7 @@ export const AclAddonly = Symbol("AclAddonly");
 export const AclEdit = Symbol("AclEdit");
 export const AclAdmin = Symbol("AclAdmin");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
+export const Initializing = Symbol("Initializing");
 export const ForceServerWrite = Symbol("ForceServerWrite");
 export const CachedUpdates = Symbol("Cached updates");
 
@@ -184,9 +185,11 @@ export class Doc extends RefField {
     @observable private ___fields: any = {};
     @observable private ___fieldKeys: any = {};
     @observable public [AclSym]: { [key: string]: symbol };
+    @observable public [DirectLinksSym]: Set<Doc> = new Set();
 
     private [UpdatingFromServer]: boolean = false;
     private [ForceServerWrite]: boolean = false;
+    public [Initializing]: boolean = false;
 
     private [Update] = (diff: any) => {
         (!this[UpdatingFromServer] || this[ForceServerWrite]) && DocServer.UpdateField(this[Id], diff);
@@ -369,7 +372,8 @@ export namespace Doc {
      * @param fields the fields to project onto the target. Its type signature defines a mapping from some string key
      * to a potentially undefined field, where each entry in this mapping is optional. 
      */
-    export function assign<K extends string>(doc: Doc, fields: Partial<Record<K, Opt<Field>>>, skipUndefineds: boolean = false) {
+    export function assign<K extends string>(doc: Doc, fields: Partial<Record<K, Opt<Field>>>, skipUndefineds: boolean = false, isInitializing = false) {
+        isInitializing && (doc[Initializing] = true);
         for (const key in fields) {
             if (fields.hasOwnProperty(key)) {
                 const value = fields[key];
@@ -378,6 +382,7 @@ export namespace Doc {
                 }
             }
         }
+        isInitializing && (doc[Initializing] = false);
         return doc;
     }
 
@@ -777,10 +782,12 @@ export namespace Doc {
     export function MakeDelegate(doc: Opt<Doc>, id?: string, title?: string): Opt<Doc> {
         if (doc) {
             const delegate = new Doc(id, true);
+            delegate[Initializing] = true;
             delegate.proto = doc;
             delegate.author = Doc.CurrentUserEmail;
             if (!Doc.IsSystem(doc)) Doc.AddDocToList(doc[DataSym], "aliases", delegate);
             title && (delegate.title = title);
+            delegate[Initializing] = false;
             return delegate;
         }
         return undefined;
@@ -1080,6 +1087,7 @@ export namespace Doc {
             if (!docFilters.length && modifiers === "match" && value === undefined) {
                 container[filterField] = undefined;
             } else if (modifiers !== "remove") {
+                !append && (docFilters.length = 0);
                 docFilters.push(key + ":" + value + ":" + modifiers);
                 container[filterField] = new List<string>(docFilters);
             }

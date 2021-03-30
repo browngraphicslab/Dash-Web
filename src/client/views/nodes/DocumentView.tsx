@@ -85,6 +85,7 @@ export interface DocComponentView {
     menuControls?: () => JSX.Element; // controls to display in the top menu bar when the document is selected.
     getKeyFrameEditing?: () => boolean; // whether the document is in keyframe editing mode (if it is, then all hidden documents that are not active at the keyframe time will still be shown)
     setKeyFrameEditing?: (set: boolean) => void; // whether the document is in keyframe editing mode (if it is, then all hidden documents that are not active at the keyframe time will still be shown)
+    playFrom?: (time: number, endTime?: number) => void;
 }
 export interface DocumentViewSharedProps {
     renderDepth: number;
@@ -101,6 +102,7 @@ export interface DocumentViewSharedProps {
     layerProvider: undefined | ((doc: Doc, assign?: boolean) => boolean);
     styleProvider: Opt<StyleProviderFunc>;
     focus: DocFocusFunc;
+    fitWidth?: () => boolean;
     docFilters: () => string[];
     docRangeFilters: () => string[];
     searchFilterDocs: () => Doc[];
@@ -158,7 +160,8 @@ export interface DocumentViewInternalProps extends DocumentViewProps {
 @observer
 export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps, Document>(Document) {
     @observable _animateScalingTo = 0;
-    @observable _audioState = 0;
+    @observable _mediaState = 0;
+    @observable _pendingDoubleClick = false;
     private _downX: number = 0;
     private _downY: number = 0;
     private _firstX: number = -1;
@@ -171,7 +174,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
     protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
-    _componentView: Opt<DocComponentView>;
+    _componentView: Opt<DocComponentView>; // needs to be accessed from DocumentView wrapper class
 
     private get topMost() { return this.props.renderDepth === 0; }
     private get active() { return this.props.isSelected(true) || this.props.parentActive(true); }
@@ -292,7 +295,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if (e.cancelBubble && this.active) {
             this.removeMoveListeners();
         }
-        else if (!e.cancelBubble && (this.props.isSelected(true) || this.props.parentActive(true) || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+        else if (!e.cancelBubble && (this.active || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
             const touch = me.touchEvent.changedTouches.item(0);
             if (touch && (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3)) {
                 if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler)) {
@@ -342,7 +345,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                             Doc.SetNativeWidth(layoutDoc, actualdW / (layoutDoc._width || 1) * Doc.NativeWidth(layoutDoc));
                         }
                         layoutDoc._width = actualdW;
-                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._height = nheight / nwidth * layoutDoc._width;
+                        if (fixedAspect && !this.props.DocumentView().fitWidth) layoutDoc._height = nheight / nwidth * layoutDoc._width;
                         else layoutDoc._height = actualdH;
                     }
                     else {
@@ -350,7 +353,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                             Doc.SetNativeHeight(layoutDoc, actualdH / (layoutDoc._height || 1) * Doc.NativeHeight(doc));
                         }
                         layoutDoc._height = actualdH;
-                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._width = nwidth / nheight * layoutDoc._height;
+                        if (fixedAspect && !this.props.DocumentView().fitWidth) layoutDoc._width = nwidth / nheight * layoutDoc._height;
                         else layoutDoc._width = actualdW;
                     }
                 } else {
@@ -483,10 +486,9 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
-                    const ctrlPressed = e.ctrlKey || e.shiftKey;
-                    if (this.props.Document.type === DocumentType.WEB) {
-                        this._timeout = setTimeout(() => { this._timeout = undefined; this.props.select(ctrlPressed); }, 350);
-                    } else this.props.select(ctrlPressed);
+                    runInAction(() => this._pendingDoubleClick = true);
+                    this._timeout = setTimeout(action(() => { this._pendingDoubleClick = false; this._timeout = undefined; }), 350);
+                    this.props.select(e.ctrlKey || e.shiftKey);
                 }
                 preventDefault = false;
             }
@@ -530,7 +532,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (this.props.isSelected(true) || this.props.parentActive(true) || this.layoutDoc.onDragStart) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+        else if (!e.cancelBubble && (this.active || this.layoutDoc.onDragStart) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);
@@ -560,9 +562,9 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     @undoBatch @action
     toggleFollowLink = (location: Opt<string>, zoom: boolean, setPushpin: boolean): void => {
         this.Document.ignoreClick = false;
-        this.Document.isLinkButton = !this.Document.isLinkButton;
-        setPushpin && (this.Document.isPushpin = this.Document.isLinkButton);
-        if (this.Document.isLinkButton && !this.onClickHandler) {
+        this.Document._isLinkButton = !this.Document._isLinkButton;
+        setPushpin && (this.Document.isPushpin = this.Document._isLinkButton);
+        if (this.Document._isLinkButton && !this.onClickHandler) {
             this.Document.followLinkZoom = zoom;
             this.Document.followLinkLocation = location;
         } else {
@@ -572,13 +574,13 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     @undoBatch @action
     toggleTargetOnClick = (): void => {
         this.Document.ignoreClick = false;
-        this.Document.isLinkButton = true;
+        this.Document._isLinkButton = true;
         this.Document.isPushpin = true;
     }
     @undoBatch @action
     followLinkOnClick = (location: Opt<string>, zoom: boolean,): void => {
         this.Document.ignoreClick = false;
-        this.Document.isLinkButton = true;
+        this.Document._isLinkButton = true;
         this.Document.isPushpin = false;
         this.Document.followLinkZoom = zoom;
         this.Document.followLinkLocation = location;
@@ -586,14 +588,14 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     @undoBatch @action
     selectOnClick = (): void => {
         this.Document.ignoreClick = false;
-        this.Document.isLinkButton = false;
+        this.Document._isLinkButton = false;
         this.Document.isPushpin = false;
         this.Document.onClick = this.layoutDoc.onClick = undefined;
     }
     @undoBatch
     noOnClick = (): void => {
         this.Document.ignoreClick = false;
-        this.Document.isLinkButton = false;
+        this.Document._isLinkButton = false;
     }
 
     @undoBatch deleteClicked = () => this.props.removeDocument?.(this.props.Document);
@@ -632,7 +634,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         }
         this.Document.followLinkLocation = "inPlace";
         this.Document.followLinkZoom = true;
-        this.Document.isLinkButton = true;
+        this.Document._isLinkButton = true;
     }
 
     @action
@@ -723,7 +725,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             (this.rootDoc._viewType !== CollectionViewType.Docking || !Doc.UserDoc().noviceMode) && moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this.props.DocumentView()), icon: "users" });
             if (!Doc.UserDoc().noviceMode) {
                 moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
-                moreItems.push({ description: `${this.Document._chromeStatus ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus ? undefined : "enabled"), icon: "project-diagram" });
+                moreItems.push({ description: `${this.Document._chromeHidden ? "Show" : "Hide"} Chrome`, event: () => this.Document._chromeHidden = !this.Document._chromeHidden, icon: "project-diagram" });
 
                 if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
                     moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
@@ -772,7 +774,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 style={{ height: 25, position: "absolute", top: 10, left: 10 }}
             >
                 <FontAwesomeIcon className="documentView-audioFont"
-                    style={{ color: [DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
+                    style={{ color: [DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._mediaState] }}
                     icon={!DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]).length ? "microphone" : "file-audio"} size="sm" />
             </div>;
         return <div className="documentView-contentsView"
@@ -793,9 +795,9 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 onClick={this.onClickFunc}
                 focus={this.focus}
                 layoutKey={this.finalLayoutKey} />
-            {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
+            {this.layoutDoc.hideAllLinks ? (null) : this.allLinkEndpoints}
             {this.hideLinkButton ? (null) :
-                <DocumentLinksButton View={this.props.DocumentView()} links={this.allLinks} Offset={[this.topMost ? 0 : -15, undefined, undefined, this.topMost ? 10 : -20]} />}
+                <DocumentLinksButton View={this.props.DocumentView()} Offset={[this.topMost ? 0 : -15, undefined, undefined, this.topMost ? 10 : -20]} />}
 
             {audioView}
         </div>;
@@ -816,11 +818,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     }
     @computed get directLinks() { TraceMobx(); return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }
     @computed get allLinks() { TraceMobx(); return LinkManager.Instance.getAllRelatedLinks(this.rootDoc); }
-    @computed get allAnchors() {
+    @computed get allLinkEndpoints() {  // the small blue dots that mark the endpoints of links
         TraceMobx();
         if (this.props.LayoutTemplateString?.includes(LinkAnchorBox.name)) return null;
         if (this.layoutDoc.presBox || this.rootDoc.type === DocumentType.LINK || this.props.dontRegisterView) return (null);
-
         // need to use allLinks for RTF since embedded linked text anchors are not rendered with DocumentViews.  All other documents render their anchors with nested DocumentViews so we just need to render the directLinks here
         const filtered = DocUtils.FilterDocs(this.rootDoc.type === DocumentType.RTF ? this.allLinks : this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden);
         return filtered.map((link, i) =>
@@ -841,7 +842,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     onPointerEnter = () => {
         const self = this;
         const audioAnnos = DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]);
-        if (audioAnnos && audioAnnos.length && this._audioState === 0) {
+        if (audioAnnos && audioAnnos.length && this._mediaState === 0) {
             const anno = audioAnnos[Math.floor(Math.random() * audioAnnos.length)];
             anno.data instanceof AudioField && new Howl({
                 src: [anno.data.url.href],
@@ -850,10 +851,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 loop: false,
                 volume: 0.5,
                 onend: function () {
-                    runInAction(() => self._audioState = 0);
+                    runInAction(() => self._mediaState = 0);
                 }
             });
-            this._audioState = 1;
+            this._mediaState = 1;
         }
     }
     recordAudioAnnotation = () => {
@@ -878,11 +879,11 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     }
                 }
             };
-            runInAction(() => self._audioState = 2);
+            runInAction(() => self._mediaState = 2);
             recorder.start();
             setTimeout(() => {
                 recorder.stop();
-                runInAction(() => self._audioState = 0);
+                runInAction(() => self._mediaState = 0);
                 gumStream.getAudioTracks()[0].stop();
             }, 5000);
         });
@@ -1002,6 +1003,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     get ComponentView() { return this.docView?._componentView; }
     get allLinks() { return this.docView?.allLinks || []; }
     get LayoutFieldKey() { return this.docView?.LayoutFieldKey || "layout"; }
+    get fitWidth() { return this.props.fitWidth?.() || this.layoutDoc.fitWidth; }
 
     @computed get docViewPath() { return this.props.docViewPath ? [...this.props.docViewPath(), this] : [this]; }
     @computed get layoutDoc() { return Doc.Layout(this.Document, this.props.LayoutTemplate?.()); }
@@ -1013,13 +1015,13 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         return this.docView?._componentView?.reverseNativeScaling?.() ? 0 :
             returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions));
     }
-    @computed get shouldNotScale() { return (this.layoutDoc._fitWidth && !this.nativeWidth) || [CollectionViewType.Docking, CollectionViewType.Tree].includes(this.Document._viewType as any); }
+    @computed get shouldNotScale() { return (this.fitWidth && !this.nativeWidth) || [CollectionViewType.Docking, CollectionViewType.Tree].includes(this.Document._viewType as any); }
     @computed get effectiveNativeWidth() { return this.shouldNotScale ? 0 : (this.nativeWidth || NumCast(this.layoutDoc.width)); }
     @computed get effectiveNativeHeight() { return this.shouldNotScale ? 0 : (this.nativeHeight || NumCast(this.layoutDoc.height)); }
     @computed get nativeScaling() {
         if (this.shouldNotScale) return 1;
         const minTextScale = this.Document.type === DocumentType.RTF ? 0.1 : 0;
-        if (this.layoutDoc._fitWidth || this.props.PanelHeight() / this.effectiveNativeHeight > this.props.PanelWidth() / this.effectiveNativeWidth) {
+        if (this.fitWidth || this.props.PanelHeight() / this.effectiveNativeHeight > this.props.PanelWidth() / this.effectiveNativeWidth) {
             return Math.max(minTextScale, this.props.PanelWidth() / this.effectiveNativeWidth);  // width-limited or fitWidth
         }
         return Math.max(minTextScale, this.props.PanelHeight() / this.effectiveNativeHeight); // height-limited or unscaled
@@ -1035,7 +1037,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get Xshift() { return this.effectiveNativeWidth ? (this.props.PanelWidth() - this.effectiveNativeWidth * this.nativeScaling) / 2 : 0; }
     @computed get Yshift() { return this.effectiveNativeWidth && this.effectiveNativeHeight && Math.abs(this.Xshift) < 0.001 ? (this.props.PanelHeight() - this.effectiveNativeHeight * this.nativeScaling) / 2 : 0; }
     @computed get centeringX() { return this.props.dontCenter?.includes("x") ? 0 : this.Xshift; }
-    @computed get centeringY() { return this.props.Document._fitWidth || this.props.dontCenter?.includes("y") ? 0 : this.Yshift; }
+    @computed get centeringY() { return this.fitWidth || this.props.dontCenter?.includes("y") ? 0 : this.Yshift; }
 
     toggleNativeDimensions = () => this.docView && Doc.toggleNativeDimensions(this.layoutDoc, this.docView.ContentScale, this.props.PanelWidth(), this.props.PanelHeight());
     contentsActive = () => this.docView?.contentsActive();
@@ -1108,16 +1110,16 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     render() {
         TraceMobx();
-        const xshift = this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) <= 0.001 ? this.props.PanelWidth() : undefined;
-        const yshift = this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Yshift) <= 0.001 ? this.props.PanelHeight() : undefined;
+        const xshift = () => (this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) <= 0.001 ? this.props.PanelWidth() : undefined);
+        const yshift = () => (this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Yshift) <= 0.001 ? this.props.PanelHeight() : undefined);
         return (<div className="contentFittingDocumentView">
             {!this.props.Document || !this.props.PanelWidth() ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
                     style={{
                         position: this.props.Document.isInkMask ? "absolute" : undefined,
                         transform: `translate(${this.centeringX}px, ${this.centeringY}px)`,
-                        width: xshift ?? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%`,
-                        height: yshift ?? (this.props.Document._fitWidth ? `${this.panelHeight}px` :
+                        width: xshift() ?? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%`,
+                        height: yshift() ?? (this.fitWidth ? `${this.panelHeight}px` :
                             `${100 * this.effectiveNativeHeight / this.effectiveNativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%`),
                     }}>
                     <DocumentViewInternal {...this.props}

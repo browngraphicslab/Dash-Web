@@ -18,7 +18,7 @@ export enum DocumentType {
     LABEL = "label",            // simple text label
     BUTTON = "button",          // onClick button
     WEBCAM = "webcam",          // webcam
-    PDFANNO = "pdfanno",        // pdf text selection (could be just a collection?)
+    HTMLANCHOR = "htmlanchor",  // text selection anchor in PDF/Web
     DATE = "date",              // calendar view of a date
     SCRIPTING = "script",       // script editor
     EQUATION = "equation",      // equation editor

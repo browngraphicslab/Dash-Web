@@ -94,7 +94,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         setupMoveUpEvents(this, e, e => this.onBackgroundMove(true, e), (e) => { }, action((e) => {
             !this._edtingTitle && (this._accumulatedTitle = this._titleControlString.startsWith("#") ? this.selectionTitle : this._titleControlString);
             this._edtingTitle = true;
-            setTimeout(() => this._keyinput.current!.focus(), 0);
+            this._keyinput.current && setTimeout(this._keyinput.current.focus);
         }));
     }
 
@@ -103,13 +103,12 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     @action
     onBackgroundMove = (dragTitle: boolean, e: PointerEvent): boolean => {
         const dragDocView = SelectionManager.Views()[0];
-        const dragData = new DragManager.DocumentDragData(SelectionManager.Views().map(dv => dv.props.Document));
         const { left, top } = dragDocView.getBounds() || { left: 0, top: 0 };
-        dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.ContentScale()).transformDirection(e.x - left, e.y - top);
+        const dragData = new DragManager.DocumentDragData(SelectionManager.Views().map(dv => dv.props.Document), dragDocView.props.dropAction);
+        dragData.offset = dragDocView.props.ScreenToLocalTransform().transformDirection(e.x - left, e.y - top);
         dragData.moveDocument = dragDocView.props.moveDocument;
         dragData.isSelectionMove = true;
         dragData.canEmbed = dragTitle;
-        dragData.dropAction = dragDocView.props.dropAction;
         this._hidden = this.Interacting = true;
         DragManager.StartDocumentDrag(SelectionManager.Views().map(dv => dv.ContentDiv!), dragData, e.x, e.y, {
             dragComplete: action(e => {
@@ -228,7 +227,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
         const first = SelectionManager.Views()[0];
-        let thisPt = { thisX: e.clientX - this._offX, thisY: e.clientY - this._offY };
+        let thisPt = { x: e.clientX - this._offX, y: e.clientY - this._offY };
         var fixedAspect = Doc.NativeAspect(first.layoutDoc);
         InkStrokeProperties.Instance?._lock && SelectionManager.Views().filter(dv => dv.rootDoc.type === DocumentType.INK)
             .forEach(dv => fixedAspect = Doc.NativeAspect(dv.rootDoc));
@@ -250,10 +249,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             thisPt = DragManager.snapDrag(e, -this._offX, -this._offY, this._offX, this._offY);
         }
 
-        move[0] = thisPt.thisX - this._snapX;
-        move[1] = thisPt.thisY - this._snapY;
-        this._snapX = thisPt.thisX;
-        this._snapY = thisPt.thisY;
+        move[0] = thisPt.x - this._snapX;
+        move[1] = thisPt.y - this._snapY;
+        this._snapX = thisPt.x;
+        this._snapY = thisPt.y;
         let dragBottom = false, dragRight = false, dragBotRight = false;
         let dX = 0, dY = 0, dW = 0, dH = 0;
         switch (this._resizeHdlId) {
@@ -433,7 +432,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             if (node.className === "mainView-mainContent") inMainMenuPanel = true;
         }
         const leftBounds = inMainMenuPanel ? 0 : this.props.boundsLeft;
-        const topBounds = this.props.boundsTop;
+        const topBounds = LightboxView.LightboxDoc ? 0 : this.props.boundsTop;
         bounds.x = Math.max(leftBounds, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(topBounds, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
         const borderRadiusDraggerWidth = 15;

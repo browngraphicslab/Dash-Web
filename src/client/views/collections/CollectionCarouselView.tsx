@@ -109,7 +109,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     render() {
         return <div className="collectionCarouselView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget}>
             {this.content}
-            {this.props.Document._chromeStatus !== "replaced" ? this.buttons : (null)}
+            {!this.props.Document._chromeHidden ? (null) : this.buttons}
         </div>;
     }
 }

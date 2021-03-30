@@ -172,7 +172,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
             <div className="carousel-wrapper" style={{ transform: `translateX(${translateX}px)` }}>
                 {this.content}
             </div>
-            {this.props.Document._chromeStatus !== "replaced" ? this.buttons : (null)}
+            {this.props.Document._chromeHidden ? (null) : this.buttons}
             <div className="dot-bar">
                 {this.dots}
             </div>

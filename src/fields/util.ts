@@ -1,5 +1,5 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, DataSym, DocListCast, AclAdmin, HeightSym, WidthSym, updateCachedAcls, AclUnset, DocListCastAsync, ForceServerWrite } from "./Doc";
+import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, DataSym, DocListCast, AclAdmin, HeightSym, WidthSym, updateCachedAcls, AclUnset, DocListCastAsync, ForceServerWrite, Initializing } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
@@ -23,7 +23,6 @@ const tracing = false;
 export function TraceMobx() {
     tracing && trace();
 }
-
 
 export interface GetterResult {
     value: FieldResult;
@@ -96,9 +95,12 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         } else {
             DocServer.registerDocWithCachedUpdate(receiver, prop as string, curValue);
         }
-        (!receiver[UpdatingFromServer] || receiver[ForceServerWrite]) && UndoManager.AddEvent({
+        !receiver[Initializing] && (!receiver[UpdatingFromServer] || receiver[ForceServerWrite]) && UndoManager.AddEvent({
             redo: () => receiver[prop] = value,
-            undo: () => receiver[prop] = curValue
+            undo: () => {
+                // console.log("Undo: " + prop + " = " + curValue); // bcz: uncomment to log undo
+                receiver[prop] = curValue;
+            }
         });
         return true;
     }
@@ -162,7 +164,7 @@ export function GetEffectiveAcl(target: any, user?: string): symbol {
 }
 
 function getPropAcl(target: any, prop: string | symbol | number) {
-    if (prop === UpdatingFromServer || target[UpdatingFromServer] || prop === AclSym) return AclAdmin;  // requesting the UpdatingFromServer prop or AclSym must always go through to keep the local DB consistent
+    if (prop === UpdatingFromServer || prop === Initializing || target[UpdatingFromServer] || prop === AclSym) return AclAdmin;  // requesting the UpdatingFromServer prop or AclSym must always go through to keep the local DB consistent
     if (prop && DocServer.PlaygroundFields?.includes(prop.toString())) return AclEdit; // playground props are always editable
     return GetEffectiveAcl(target);
 }
@@ -274,8 +276,6 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
     dataDocChanged && updateCachedAcls(dataDoc);
 }
 
-const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
-    "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
     const effectiveAcl = getPropAcl(target, prop);
@@ -285,10 +285,6 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
     // if (typeof prop === "string" && prop.startsWith("acl") && !["Can Edit", "Can Augment", "Can View", "Not Shared", undefined].includes(value)) return true;
 
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && prop.startsWith("_")) {
-        // if (!prop.startsWith("_")) {
-        //     console.log(prop + " is deprecated - switch to _" + prop);
-        //     prop = "_" + prop;
-        // }
         if (!prop.startsWith("__")) prop = prop.substring(1);
         if (target.__LAYOUT__) {
             target.__LAYOUT__[prop] = value;
@@ -380,6 +376,7 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
                             lastValue = ObjectField.MakeCopy(receiver[prop]);
                         },
                         undo: action(() => {
+                            // console.log("undo $add: " + prop, diff.items) // bcz: uncomment to log undo 
                             diff.items.forEach((item: any) => {
                                 const ind = receiver[prop].indexOf(item.value ? item.value() : item);
                                 ind !== -1 && receiver[prop].splice(ind, 1);
@@ -397,6 +394,7 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
                                 lastValue = ObjectField.MakeCopy(receiver[prop]);
                             }),
                             undo: () => {
+                                // console.log("undo $rem: " + prop, diff.items) // bcz: uncomment to log undo 
                                 diff.items.forEach((item: any) => {
                                     const ind = (prevValue as List<any>).indexOf(item.value ? item.value() : item);
                                     ind !== -1 && receiver[prop].indexOf(item.value ? item.value() : item) === -1 && receiver[prop].splice(ind, 0, item);
@@ -410,6 +408,7 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
                                 lastValue = ObjectField.MakeCopy(receiver[prop]);
                             },
                             undo: () => {
+                                // console.log("undo list: " + prop, receiver[prop]) // bcz: uncomment to log undo 
                                 receiver[prop] = ObjectField.MakeCopy(prevValue as List<any>);
                                 lastValue = ObjectField.MakeCopy(receiver[prop]);
                             }

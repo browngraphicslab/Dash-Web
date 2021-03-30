@@ -45,8 +45,6 @@ export const documentSchema = createSchema({
     _showAudio: "boolean",      // whether to show the audio record icon on documents
     _freeformLOD: "boolean",    // whether to enable LOD switching for CollectionFreeFormViews
     _pivotField: "string",      // specifies which field key should be used as the timeline/pivot axis
-    _replacedChrome: "string",  // what the default chrome is replaced with. Currently only supports the value of 'replaced' for PresBox's.
-    _chromeStatus: "string",    // determines the state of the collection chrome. values allowed are 'replaced', 'enabled', 'disabled', 'collapsed'
     _columnsFill: "boolean",    // whether documents in a stacking view column should be sized to fill the column
     _columnsSort: "string",     // how a document should be sorted "ascending", "descending", undefined (none)   
     _columnsHideIfEmpty: "boolean",   // whether empty stacking view column headings should be hidden

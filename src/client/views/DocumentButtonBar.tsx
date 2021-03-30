@@ -184,6 +184,18 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             </div></Tooltip>;
     }
     @computed
+    get followLinkButton() {
+        const targetDoc = this.view0?.props.Document;
+        return !targetDoc ? (null) : <Tooltip title={
+            <div className="dash-tooltip">{"follow primary link on click"}</div>}>
+            <div className="documentButtonBar-linker"
+                style={{ color: targetDoc.isLinkButton ? "black" : "white", backgroundColor: targetDoc.isLinkButton ? "white" : "black" }}
+                onClick={undoBatch(e => this.props.views().map(view => view?.docView?.toggleFollowLink(undefined, false, false)))}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="hand-point-right" />
+            </div>
+        </Tooltip>;
+    }
+    @computed
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={
@@ -202,7 +214,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         if (targetDoc) {
             TabDocView.PinDoc(targetDoc);
             const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
-            const scrollable: boolean = (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.WEB || targetDoc._viewType === CollectionViewType.Stacking);
+            const scrollable = [DocumentType.PDF, DocumentType.RTF, DocumentType.WEB].includes(targetDoc.type as any) || targetDoc._viewType === CollectionViewType.Stacking;
             const pannable: boolean = ((targetDoc.type === DocumentType.COL && targetDoc._viewType === CollectionViewType.Freeform) || targetDoc.type === DocumentType.IMG);
             if (scrollable) {
                 const scroll = targetDoc._scrollTop;
@@ -231,9 +243,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const presPinWithViewIcon = <img src="/assets/pinWithView.png" style={{ margin: "auto", width: 17, transform: 'translate(0, 1px)' }} />;
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with current view"}</div></>}>
-            <div
-                className="documentButtonBar-linker"
-                onClick={() => this.pinWithView(targetDoc)}>
+            <div className="documentButtonBar-linker" onClick={() => this.pinWithView(targetDoc)}>
                 {presPinWithViewIcon}
             </div>
         </Tooltip>;
@@ -244,8 +254,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Open Sharing Manager"}</div></>}>
             <div className="documentButtonBar-linker" style={{ color: "white" }} onClick={e => SharingManager.Instance.open(this.view0, targetDoc)}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="users"
-                />
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="users" />
             </div></Tooltip >;
     }
 
@@ -343,10 +352,10 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const considerPush = isText && this.considerGoogleDocsPush;
         return <div className="documentButtonBar">
             <div className="documentButtonBar-button">
-                <DocumentLinksButton links={this.view0.allLinks} View={this.view0} AlwaysOn={true} InMenu={true} StartLink={true} />
+                <DocumentLinksButton View={this.view0} AlwaysOn={true} InMenu={true} StartLink={true} />
             </div>
             {DocumentLinksButton.StartLink || !Doc.UserDoc()["documentLinksButton-fullMenu"] ? <div className="documentButtonBar-button">
-                <DocumentLinksButton links={this.view0.allLinks} View={this.view0} AlwaysOn={true} InMenu={true} StartLink={false} />
+                <DocumentLinksButton View={this.view0} AlwaysOn={true} InMenu={true} StartLink={false} />
             </div> : (null)}
             {!Doc.UserDoc()["documentLinksButton-fullMenu"] ? (null) : <div className="documentButtonBar-button">
                 {this.templateButton}
@@ -357,6 +366,9 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             <div className="documentButtonBar-button">
                 {this.contextButton}
             </div> */}
+            {!SelectionManager.Views()?.some(v => v.allLinks.length) ? (null) : <div className="documentButtonBar-button">
+                {this.followLinkButton}
+            </div>}
             <div className="documentButtonBar-button">
                 {this.pinButton}
             </div>

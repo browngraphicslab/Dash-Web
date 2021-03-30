@@ -1,18 +1,18 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked, ObservableMap } from "mobx";
+import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
-import { Dictionary } from "typescript-collections";
-import { Doc, DocListCast, StrListCast } from "../../../fields/Doc";
+import { Doc, DocListCast } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { InkTool } from "../../../fields/InkField";
 import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { VideoField } from "../../../fields/URLField";
+import { AudioField, nullAudio, VideoField } from "../../../fields/URLField";
 import { emptyFunction, formatTime, OmitKeys, returnOne, setupMoveUpEvents, Utils } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -24,10 +24,8 @@ import { DocumentDecorations } from "../DocumentDecorations";
 import { MarqueeAnnotator } from "../MarqueeAnnotator";
 import { StyleProp } from "../StyleProvider";
 import { FieldView, FieldViewProps } from './FieldView';
-import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "./LinkDocPreview";
 import "./VideoBox.scss";
-import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 const path = require('path');
 
 type VideoDocument = makeInterface<[typeof documentSchema]>;
@@ -72,8 +70,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     getAnchor = () => {
         const timecode = Cast(this.layoutDoc._currentTimecode, "number", null);
-        const anchor = CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "_timecodeToShow"/* videoStart */, "_timecodeToHide" /* videoEnd */, timecode ? timecode : undefined) || this.rootDoc;
-        return anchor;
+        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "_timecodeToShow"/* videoStart */, "_timecodeToHide" /* videoEnd */, timecode ? timecode : undefined) || this.rootDoc;
     }
 
     choosePath(url: string) {
@@ -85,13 +82,17 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         Doc.SetNativeWidth(this.dataDoc, this.player!.videoWidth);
         Doc.SetNativeHeight(this.dataDoc, this.player!.videoHeight);
         this.layoutDoc._height = (this.layoutDoc._width || 0) / aspect;
-        this.dataDoc[this.fieldKey + "-duration"] = this.player!.duration;
+        if (Number.isFinite(this.player!.duration)) {
+            this.dataDoc[this.fieldKey + "-duration"] = this.player!.duration;
+        }
     }
 
     @action public Play = (update: boolean = true) => {
         this._playing = true;
         try {
+            this._audioPlayer && this.player && (this._audioPlayer.currentTime = this.player?.currentTime);
             update && this.player?.play();
+            update && this._audioPlayer?.play();
             update && this._youtubePlayer?.playVideo();
             this._youtubePlayer && !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 5));
         } catch (e) {
@@ -107,12 +108,14 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             console.log("Video Seek Exception:", e);
         }
         this.player && (this.player.currentTime = time);
+        this._audioPlayer && (this._audioPlayer.currentTime = time);
     }
 
     @action public Pause = (update: boolean = true) => {
         this._playing = false;
         try {
             update && this.player?.pause();
+            update && this._audioPlayer?.pause();
             update && this._youtubePlayer?.pauseVideo();
             this._youtubePlayer && this._playTimer && clearInterval(this._playTimer);
             this._youtubePlayer?.seekTo(this._youtubePlayer?.getCurrentTime(), true);
@@ -152,8 +155,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             const b = Docs.Create.LabelDocument({
                 x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 1),
                 _width: 150, _height: 50, title: (this.layoutDoc._currentTimecode || 0).toString(),
+                _isLinkButton: true
             });
-            b.isLinkButton = true;
             this.props.addDocument?.(b);
             DocUtils.MakeLink({ doc: b }, { doc: this.rootDoc }, "video snapshot");
             Networking.PostToServer("/youtubeScreenshot", {
@@ -179,11 +182,11 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     private createRealSummaryLink = (relative: string) => {
         const url = this.choosePath(Utils.prepend(relative));
-        const width = this.layoutDoc._width || 0;
+        const width = this.layoutDoc._width || 1;
         const height = this.layoutDoc._height || 0;
         const imageSummary = Docs.Create.ImageDocument(url, {
             _nativeWidth: Doc.NativeWidth(this.layoutDoc), _nativeHeight: Doc.NativeHeight(this.layoutDoc),
-            x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0), isLinkButton: true,
+            x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0), _isLinkButton: true,
             _width: 150, _height: height / width * 150, title: "--snapshot" + (this.layoutDoc._currentTimecode || 0) + " image-"
         });
         Doc.SetNativeWidth(Doc.GetProto(imageSummary), Doc.NativeWidth(this.layoutDoc));
@@ -286,12 +289,21 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     this._videoRef!.srcObject = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
                 }), icon: "expand-arrows-alt"
             });
-            subitems.push({ description: (this.layoutDoc.playOnSelect ? "Don't play" : "Play") + " when link is selected", event: () => this.layoutDoc.playOnSelect = !this.layoutDoc.playOnSelect, icon: "expand-arrows-alt" });
-            subitems.push({ description: (this.layoutDoc.autoPlay ? "Don't auto play" : "Auto play") + " anchors onClick", event: () => this.layoutDoc.autoPlay = !this.layoutDoc.autoPlay, icon: "expand-arrows-alt" });
+            subitems.push({ description: (this.layoutDoc.dontAutoPlayFollowedLinks ? "" : "Don't") + " play when link is selected", event: () => this.layoutDoc.dontAutoPlayFollowedLinks = !this.layoutDoc.dontAutoPlayFollowedLinks, icon: "expand-arrows-alt" });
+            subitems.push({ description: (this.layoutDoc.autoPlayAnchors ? "Don't auto play" : "Auto play") + " anchors onClick", event: () => this.layoutDoc.autoPlayAnchors = !this.layoutDoc.autoPlayAnchors, icon: "expand-arrows-alt" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: subitems, icon: "video" });
         }
     }
 
+    // returns the path of the audio file
+    @computed get audiopath() {
+        const field = Cast(this.props.Document[this.props.fieldKey + '-audio'], AudioField, null);
+        const vfield = Cast(this.dataDoc[this.fieldKey], VideoField, null);
+        return field?.url.href ?? vfield?.url.href ?? "";
+    }
+    // ref for updating time
+    _audioPlayer: HTMLAudioElement | null = null;
+    setAudioRef = (e: HTMLAudioElement | null) => this._audioPlayer = e;
     @computed get content() {
         const field = Cast(this.dataDoc[this.fieldKey], VideoField);
         const interactive = CurrentUserUtils.SelectedTool !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
@@ -308,8 +320,13 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                         onPause={() => this.Pause()}
                         onClick={e => e.preventDefault()}>
                         <source src={field.url.href} type="video/mp4" />
-                    Not supported.
+                        Not supported.
                     </video>
+                    {!this.audiopath || this.audiopath === field.url.href ? (null) :
+                        <audio ref={this.setAudioRef} className={`audiobox-control${this.active() ? "-interactive" : ""}`}>
+                            <source src={this.audiopath} type="audio/mpeg" />
+                        Not supported.
+                    </audio>}
                 </div>
             </div>;
     }
@@ -461,7 +478,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 }
             } else if (seekTimeInSeconds <= this.player.duration) {
                 this.player.currentTime = seekTimeInSeconds;
+                this._audioPlayer && (this._audioPlayer.currentTime = seekTimeInSeconds);
                 this.player.play();
+                this._audioPlayer?.play();
                 runInAction(() => this._playing = true);
                 if (endTime !== this.duration) {
                     this._playRegionTimer = setTimeout(() => this.Pause(), (this._playRegionDuration) * 1000); // use setTimeout to play a specific duration
@@ -473,10 +492,10 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     playLink = (doc: Doc) => {
-        const startTime = this._stackedTimeline.current?.anchorStart(doc) || 0;
+        const startTime = Math.max(0, (this._stackedTimeline.current?.anchorStart(doc) || 0) - .25);
         const endTime = this._stackedTimeline.current?.anchorEnd(doc);
         if (startTime !== undefined) {
-            if (this.layoutDoc.playOnSelect) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);
+            if (!this.layoutDoc.dontAutoPlayFollowedLinks) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);
             else this.Seek(startTime);
         }
     }
@@ -491,6 +510,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         return <div className="videoBox-stackPanel" style={{ transition: this.transition, height: `${100 - this.heightPercent}%` }}>
             <CollectionStackedTimeline ref={this._stackedTimeline} {...this.props}
                 fieldKey={this.annotationKey}
+                mediaPath={this.audiopath}
                 renderDepth={this.props.renderDepth + 1}
                 startTag={"_timecodeToShow" /* videoStart */}
                 endTag={"_timecodeToHide" /* videoEnd */}
@@ -529,7 +549,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     scaling = () => this.props.scaling?.() || 1;
     panelWidth = () => this.props.PanelWidth() * this.heightPercent / 100;
-    panelHeight = () => this.layoutDoc._fitWidth ? this.panelWidth() / Doc.NativeAspect(this.rootDoc) : this.props.PanelHeight() * this.heightPercent / 100;
+    panelHeight = () => this.layoutDoc._fitWidth ? this.panelWidth() / (Doc.NativeAspect(this.rootDoc) || 1) : this.props.PanelHeight() * this.heightPercent / 100;
     screenToLocalTransform = () => {
         const offset = (this.props.PanelWidth() - this.panelWidth()) / 2 / this.scaling();
         return this.props.ScreenToLocalTransform().translate(-offset, 0).scale(100 / this.heightPercent);
@@ -544,7 +564,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             style={{
                 pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined,
                 borderRadius
-            }} >
+            }} onWheel={e => { e.stopPropagation(); e.preventDefault(); }}>
             <div className="videoBox-viewer" onPointerDown={this.marqueeDown} >
                 <div style={{ position: "absolute", transition: this.transition, width: this.panelWidth(), height: this.panelHeight(), top: 0, left: `${(100 - this.heightPercent) / 2}%` }}>
                     <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
