@@ -603,7 +603,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 PanelHeight={() => 18}
                 contextMenuItems={this.contextMenuItems}
                 renderDepth={1}
-                isContentActive={returnFalse}
+                isContentActive={returnTrue}
                 focus={returnTrue}
                 whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
                 bringToFront={emptyFunction}

@@ -165,7 +165,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 DataDoc={undefined}
                 LayoutTemplateString={FormattedTextBox.LayoutString("text")}
                 renderDepth={this.props.renderDepth + 1}
-                isContentActive={returnTrue}
+                isContentActive={() => this.props.isContentActive() || this.props.isSelected()}
                 rootSelected={returnTrue}
                 //dontRegisterView={true}
                 docViewPath={this.props.docViewPath}
