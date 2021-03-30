@@ -1043,7 +1043,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             freezeDimensions={this.props.childFreezeDimensions}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             bringToFront={this.bringToFront}
-            isDocumentActive={() => this.props.isContentActive()}
+            isDocumentActive={this.props.isContentActive}
             dontRegisterView={this.props.dontRegisterView}
             pointerEvents={this.backgroundActive || this.props.childPointerEvents ? "all" :
                 (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? "none" : undefined}

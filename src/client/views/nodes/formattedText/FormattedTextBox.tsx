@@ -1422,9 +1422,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 const proseHeight = this.ProseRef?.scrollHeight || 0;
                 const scrollHeight = this.ProseRef && Math.min(NumCast(this.layoutDoc.docMaxAutoHeight, proseHeight), proseHeight);
                 if (scrollHeight && this.props.renderDepth && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
-                    const setScrollHeight = () => {
-                        this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight;
-                    };
+                    const setScrollHeight = () => this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight;
                     if (this.rootDoc === this.layoutDoc.doc || this.layoutDoc.resolvedDataDoc) {
                         setScrollHeight();
                     } else setTimeout(setScrollHeight, 10); // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...

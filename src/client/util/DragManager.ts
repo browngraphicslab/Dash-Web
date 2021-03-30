@@ -379,12 +379,7 @@ export namespace DragManager {
             if (docsBeingDragged.length) {
                 const pdfBox = dragElement.getElementsByTagName("canvas");
                 const pdfBoxSrc = ele.getElementsByTagName("canvas");
-                Array.from(pdfBox).filter(pb => pb.width && pb.height).map((pb, i) => {
-                    const context = pb.getContext('2d')!;
-                    console.log(getComputedStyle(pb).width);
-                    console.log(getComputedStyle(pdfBoxSrc[i]).width);
-                    context.drawImage(pdfBoxSrc[i], 0, 0);
-                });
+                Array.from(pdfBox).filter(pb => pb.width && pb.height).map((pb, i) => pb.getContext('2d')!.drawImage(pdfBoxSrc[i], 0, 0));
             }
             [dragElement, ...Array.from(dragElement.getElementsByTagName('*'))].forEach(ele =>
                 ele.hasAttribute("style") && ((ele as any).style.pointerEvents = "none"));

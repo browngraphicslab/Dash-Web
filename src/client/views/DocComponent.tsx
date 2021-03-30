@@ -203,10 +203,10 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
                     if (effectiveAcl === AclAddonly) {
                         added.map(doc => {
-                            this.props.layerProvider?.(doc, true);
-                            Doc.AddDocToList(targetDataDoc, annotationKey ?? this.annotationKey, doc);
                             doc.context = this.props.Document;
                             if (annotationKey ?? this._annotationKey) Doc.GetProto(doc).annotationOn = this.props.Document;
+                            this.props.layerProvider?.(doc, true);
+                            Doc.AddDocToList(targetDataDoc, annotationKey ?? this.annotationKey, doc);
                         });
                     }
                     else {
