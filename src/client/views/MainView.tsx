@@ -253,7 +253,7 @@ export class MainView extends React.Component {
             layerProvider={undefined}
             styleProvider={undefined}
             rootSelected={returnTrue}
-            isContentActive={returnFalse}
+            isContentActive={returnTrue}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
             PanelWidth={this.getPWidth}

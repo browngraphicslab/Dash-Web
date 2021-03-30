@@ -309,7 +309,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 DataDoc={!Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
-                isContentActive={returnFalse}
+                isContentActive={returnTrue}
                 PanelWidth={this.PanelWidth}
                 PanelHeight={this.PanelHeight}
                 layerProvider={this.layerProvider}

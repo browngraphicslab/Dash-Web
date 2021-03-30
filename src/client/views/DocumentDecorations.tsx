@@ -475,10 +475,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
                             {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
                                 topBtn("selector", "arrow-alt-circle-up", this.onSelectorClick, "tap to select containing document")}
+                            <div key="rot" className={`documentDecorations-${useRotation ? "rotation" : "borderRadius"}`}
+                                onPointerDown={useRotation ? this.onRotateDown : this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}>{useRotation && "⟲"}</div>
                         </>
                     }
-                    <div key="rot" className={`documentDecorations-${useRotation ? "rotation" : "borderRadius"}`}
-                        onPointerDown={useRotation ? this.onRotateDown : this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}>{useRotation && "⟲"}</div>
                 </div >
                 {seldoc?.Document.type === DocumentType.FONTICON ? (null) : <div className="link-button-container" key="links" style={{ left: bounds.x - this._resizeBorderWidth / 2 + 10, top: bounds.b + this._resizeBorderWidth / 2 }}>
                     <DocumentButtonBar views={SelectionManager.Views} />

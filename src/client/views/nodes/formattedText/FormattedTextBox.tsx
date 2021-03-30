@@ -1238,12 +1238,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props);
     }
-    onPointerWheel = (e: React.WheelEvent): void => {
-        // if a text note is selected and scrollable, stop event to prevent, say, outer collection from zooming.
-        if ((this.props.rootSelected(true) || this.props.isSelected(true)) || e.currentTarget.scrollHeight > e.currentTarget.clientHeight) {
-            e.stopPropagation();
-        }
-    }
+
     onClick = (e: React.MouseEvent): void => {
         if (Math.abs(e.clientX - this._downX) > 4 || Math.abs(e.clientY - this._downY) > 4) {
             this._forceDownNode = undefined;
@@ -1500,6 +1495,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const selPaddingClass = selected && !this.layoutDoc._singleLine && margins >= 10 ? "-selected" : "";
         return (
             <div className="formattedTextBox-cont"
+                onWheel={e => this.isContentActive() && e.stopPropagation()}
                 style={{
                     transform: `scale(${scale})`,
                     transformOrigin: "top left",
@@ -1528,7 +1524,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     onPointerUp={this.onPointerUp}
                     onPointerDown={this.onPointerDown}
                     onMouseUp={this.onMouseUp}
-                    onWheel={this.onPointerWheel}
                     onDoubleClick={this.onDoubleClick}
                 >
                     <div className={`formattedTextBox-outer${selected ? "-selected" : ""}`} ref={this._scrollRef}

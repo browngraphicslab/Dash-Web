@@ -110,13 +110,7 @@ export class CollectionView extends ViewBoxAnnotatableComponent<ViewBoxAnnotatab
         // const imageProtos = children.filter(doc => Cast(doc.data, ImageField)).map(Doc.GetProto);
         // const allTagged = imageProtos.length > 0 && imageProtos.every(image => image.googlePhotosTags);
         // return !allTagged ? (null) : <img id={"google-tags"} src={"/assets/google_tags.png"} />;
-    }
-
-    isContentActive = (outsideReaction?: boolean) => {
-        return this.props.isSelected(outsideReaction) || this._isAnyChildContentActive || this.props.renderDepth === 0 || this.props.rootSelected(outsideReaction) ||
-            (this.props.layerProvider?.(this.rootDoc) !== false && (this.rootDoc.forceActive || this.rootDoc._isGroup))
-            ?
-            true : false;
+        this.isContentActive();
     }
 
     screenToLocalTransform = () => this.props.renderDepth ? this.props.ScreenToLocalTransform() : this.props.ScreenToLocalTransform().scale(this.props.PanelWidth() / this.bodyPanelWidth());

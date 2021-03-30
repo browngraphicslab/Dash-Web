@@ -575,6 +575,8 @@ export class TreeView extends React.Component<TreeViewProps> {
                 Document={this.doc}
                 DataDoc={undefined}
                 scriptContext={this}
+                hideDecorationTitle={this.props.treeView.outlineMode}
+                hideResizeHandles={this.props.treeView.outlineMode}
                 styleProvider={this.titleStyleProvider}
                 layerProvider={this.props.layerProvider}
                 docViewPath={returnEmptyDoclist}
@@ -662,6 +664,8 @@ export class TreeView extends React.Component<TreeViewProps> {
             NativeHeight={!asText && (this.layoutDoc.type === DocumentType.RTF || this.layoutDoc.type === DocumentType.SLIDER) ? this.rtfHeight : undefined}
             fitContentsToDoc={returnTrue}
             hideTitle={asText}
+            hideDecorationTitle={this.props.treeView.outlineMode}
+            hideResizeHandles={this.props.treeView.outlineMode}
             LayoutTemplateString={asText ? FormattedTextBox.LayoutString("text") : undefined}
             focus={asText ? this.refocus : returnFalse}
             dontRegisterView={asText ? undefined : this.props.dontRegisterView}
