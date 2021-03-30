@@ -263,7 +263,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         const y = this._scroll; // required for document decorations to update when the text box container is scrolled
         const { scale, translateX, translateY } = Utils.GetScreenTransform(dref?.ContentDiv || undefined);
         // the document view may center its contents and if so, will prepend that onto the screenToLocalTansform.  so we have to subtract that off 
-        return new Transform(- translateX - (dref?.centeringX || 0), - translateY - (dref?.centeringY || 0), 1).scale(this.props.ScreenToLocalTransform().Scale);
+        return new Transform(- translateX + (dref?.centeringX || 0), - translateY + (dref?.centeringY || 0), 1).scale(this.props.ScreenToLocalTransform().Scale);
     }
     getDocWidth(d?: Doc) {
         if (!d) return 0;
