@@ -604,6 +604,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 contextMenuItems={this.contextMenuItems}
                 renderDepth={1}
                 isContentActive={returnTrue}
+                isDocumentActive={returnTrue}
                 focus={returnTrue}
                 whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
                 bringToFront={emptyFunction}
@@ -677,6 +678,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             renderDepth={this.props.renderDepth + 1}
             rootSelected={returnTrue}
             isContentActive={asText ? returnTrue : returnFalse}
+            isDocumentActive={asText ? returnTrue : returnFalse}
             styleProvider={asText ? this.titleStyleProvider : this.embeddedStyleProvider}
             layerProvider={this.props.layerProvider}
             docViewPath={this.props.treeView.props.docViewPath}
