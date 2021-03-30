@@ -238,6 +238,9 @@ export class PDFBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
             }}>
             <div className="pdfBox-background" />
             <PDFViewer {...this.props}
+                rootDoc={this.rootDoc}
+                layoutDoc={this.layoutDoc}
+                dataDoc={this.dataDoc}
                 pdf={this._pdf!}
                 url={this.pdfUrl!.url.pathname}
                 isContentActive={this.isContentActive}
