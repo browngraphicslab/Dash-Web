@@ -231,7 +231,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             <div className="collectionTreeView-container" onContextMenu={this.onContextMenu}>
                 <div className="collectionTreeView-dropTarget"
                     style={{ background, paddingLeft: paddingX, paddingRight: paddingX, paddingTop, pointerEvents }}
-                    onWheel={(e) => this._mainEle && this._mainEle.scrollHeight > this._mainEle.clientHeight && e.stopPropagation()}
+                    onWheel={e => e.stopPropagation()}
                     onDrop={this.onTreeDrop}
                     ref={this.createTreeDropTarget}>
                     {this.titleBar}
