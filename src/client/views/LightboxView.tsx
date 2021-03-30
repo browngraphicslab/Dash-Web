@@ -5,7 +5,7 @@ import "normalize.css";
 import * as React from 'react';
 import { Doc, DocListCast, Opt } from '../../fields/Doc';
 import { Cast, NumCast, StrCast } from '../../fields/Types';
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnTrue } from '../../Utils';
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnTrue, returnFalse } from '../../Utils';
 import { DocUtils } from '../documents/Documents';
 import { DocumentManager } from '../util/DocumentManager';
 import { LinkManager } from '../util/LinkManager';
@@ -231,6 +231,8 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         DataDoc={undefined}
                         addDocument={undefined}
                         fitContentsToDoc={this.fitToBox}
+                        isDocumentActive={returnFalse}
+                        isContentActive={returnTrue}
                         addDocTab={this.addDocTab}
                         pinToPres={TabDocView.PinDoc}
                         rootSelected={returnTrue}

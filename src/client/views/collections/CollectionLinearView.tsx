@@ -7,7 +7,7 @@ import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { makeInterface } from '../../../fields/Schema';
 import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
-import { emptyFunction, returnTrue, Utils, emptyPath, returnEmptyDoclist } from '../../../Utils';
+import { emptyFunction, returnTrue, Utils, emptyPath, returnEmptyDoclist, returnFalse } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
 import { Transform } from '../../util/Transform';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
@@ -140,6 +140,8 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                             <DocumentView
                                 Document={pair.layout}
                                 DataDoc={pair.data}
+                                isContentActive={returnFalse}
+                                isDocumentActive={returnTrue}
                                 addDocument={this.props.addDocument}
                                 moveDocument={this.props.moveDocument}
                                 addDocTab={this.props.addDocTab}

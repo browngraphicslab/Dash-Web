@@ -274,6 +274,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     docViewPath={returnEmptyDoclist}
                     freezeDimensions={true}
                     dontCenter={"y"}
+                    isDocumentActive={returnFalse}
+                    isContentActive={returnFalse}
                     NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
                     NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
                     PanelWidth={panelWidth}

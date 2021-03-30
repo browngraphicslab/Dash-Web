@@ -84,19 +84,15 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         return false;
     });
     @action
-    addDoc = (doc: Doc | Doc[], relativeTo: Opt<Doc>, before?: boolean): boolean => {
+    addDoc = (docs: Doc | Doc[], relativeTo: Opt<Doc>, before?: boolean): boolean => {
         const doAddDoc = (doc: Doc | Doc[]) =>
-            (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) =>
-                flg && Doc.AddDocToList(this.doc[DataSym], this.props.fieldKey, doc, relativeTo, before, false, false, false), true);
-        if (this.doc.resolvedDataDoc instanceof Promise) {
-            this.doc.resolvedDataDoc.then((resolved: any) => doAddDoc(doc));
-        } else if (relativeTo === undefined) {
-            this.props.addDocument?.(doc);
-        } else {
-            doAddDoc(doc);
-            (doc instanceof Doc ? [doc] : doc).forEach(d => d.context = this.props.Document);
-        }
-        return true;
+            (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => {
+                const res = flg && Doc.AddDocToList(this.doc[DataSym], this.props.fieldKey, doc, relativeTo, before);
+                res && (doc.context = this.props.Document);
+                return res;
+            }, true);
+        if (this.doc.resolvedDataDoc instanceof Promise) return false;
+        return relativeTo === undefined ? this.props.addDocument?.(docs) || false : doAddDoc(docs);
     }
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
@@ -116,7 +112,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     onTreeDrop = (e: React.DragEvent) => this.onExternalDrop(e, {});
 
     @computed get renderClearButton() {
-        return !this.doc.allowClear ? (null) : <div key="toolbar">
+        return !this.doc.treeViewShowClearButton ? (null) : <div key="toolbar">
             <button className="toolbar-button round-button" title="Empty" onClick={undoBatch(action(() => Doc.GetProto(this.doc)[this.props.fieldKey] = undefined))}>
                 <FontAwesomeIcon icon={"trash"} size="sm" />
             </button>
@@ -193,17 +189,14 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         </div>;
     }
     @computed get treeViewtruncateTitleWidth() { return NumCast(this.doc.treeViewTruncateTitleWidth, this.panelWidth()); }
-    truncateTitleWidth = () => this.treeViewtruncateTitleWidth;
+    @computed get treeChildren() { return this.props.childDocuments || this.childDocs; }
     @computed get outlineMode() { return this.doc.treeViewType === "outline"; }
     @computed get fileSysMode() { return this.doc.treeViewType === "fileSystem"; }
+    truncateTitleWidth = () => this.treeViewtruncateTitleWidth;
     onChildClick = () => this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
     whenChildContentsActiveChanged = (isActive: boolean) => { this.props.whenChildContentsActiveChanged(this._isChildActive = isActive); };
     active = (outsideReaction: boolean | undefined) => this.props.isContentActive(outsideReaction) || this._isChildActive;
     panelWidth = () => this.props.PanelWidth() - 20; // bcz: 20 is the 10 + 10 for the left and right padding.
-    @computed get treeChildren() {
-        TraceMobx();
-        return this.props.childDocuments || this.childDocs;
-    }
     @computed get treeViewElements() {
         TraceMobx();
         const dropAction = StrCast(this.doc.childDropAction) as dropActionType;

@@ -2,7 +2,7 @@ import { IReactionDisposer, reaction, observable, action } from "mobx";
 import { NodeSelection } from "prosemirror-state";
 import { Doc, HeightSym, WidthSym } from "../../../../fields/Doc";
 import { Cast, StrCast } from "../../../../fields/Types";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, Utils } from "../../../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, Utils, returnTransparent } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
@@ -166,6 +166,8 @@ export class DashDocViewInternal extends React.Component<IDashDocViewInternal> {
                     addDocument={returnFalse}
                     rootSelected={this._textBox.props.isSelected}
                     removeDocument={this.removeDoc}
+                    isDocumentActive={returnFalse}
+                    isContentActive={this._textBox.props.isContentActive}
                     layerProvider={this._textBox.props.layerProvider}
                     styleProvider={this._textBox.props.styleProvider}
                     docViewPath={this._textBox.props.docViewPath}

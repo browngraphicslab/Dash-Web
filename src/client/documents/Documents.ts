@@ -246,6 +246,7 @@ export class DocumentOptions {
     treeViewHideTitle?: boolean; // whether to hide the top document title of a tree view
     treeViewHideHeader?: boolean; // whether to hide the header for a document in a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
+    treeViewShowClearButton?: boolean; // whether a clear button should be displayed 
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked

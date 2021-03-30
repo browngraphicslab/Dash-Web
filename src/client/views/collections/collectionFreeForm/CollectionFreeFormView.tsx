@@ -36,7 +36,6 @@ import { ActiveArrowEnd, ActiveArrowStart, ActiveDash, ActiveFillColor, ActiveIn
 import { LightboxView } from "../../LightboxView";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocFocusOptions, DocumentView, DocumentViewProps, ViewAdjustment, ViewSpecPrefix } from "../../nodes/DocumentView";
-import { FieldViewProps } from "../../nodes/FieldView";
 import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
 import { PresBox } from "../../nodes/PresBox";

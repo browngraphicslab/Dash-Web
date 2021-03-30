@@ -870,6 +870,8 @@ export class GestureOverlay extends Touchable {
                 ScreenToLocalTransform={this.screenToLocalTransform}
                 PanelWidth={this.return300}
                 PanelHeight={this.return300}
+                isDocumentActive={returnFalse}
+                isContentActive={returnFalse}
                 renderDepth={0}
                 styleProvider={returnEmptyString}
                 layerProvider={undefined}

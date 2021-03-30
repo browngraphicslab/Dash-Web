@@ -15,7 +15,7 @@ import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
 import { ImageField } from "../../../fields/URLField";
 import { GetEffectiveAcl } from "../../../fields/util";
-import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse } from "../../../Utils";
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue } from "../../../Utils";
 import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
@@ -559,15 +559,15 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             onPointerDown={this.props.onPointerDown} onClick={this.props.onClick} onWheel={e => this.props.active(true) && e.stopPropagation()}
             onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
             {this.reactTable}
-            {this.props.Document._chromeHidden ? undefined : <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>}
+            {this.props.Document._chromeHidden ? undefined : <div className="collectionSchemaView-addRow" onClick={this.createRow}>+ new</div>}
             {!this._showDoc ? (null) :
-                <div className="collectionSchemaView-documentPreview"
+                <div className="collectionSchemaView-documentPreview" ref="overlay"
                     style={{
                         position: "absolute", width: 150, height: 150,
                         background: "dimGray", display: "block", top: 0, left: 0,
                         transform: `translate(${this._showDocPos[0]}px, ${this._showDocPos[1] - 180}px)`
-                    }}
-                    ref="overlay"><DocumentView
+                    }} >
+                    <DocumentView
                         Document={this._showDoc}
                         DataDoc={this._showDataDoc}
                         styleProvider={DefaultStyleProvider}
@@ -576,7 +576,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         freezeDimensions={true}
                         focus={DocUtils.DefaultFocus}
                         renderDepth={this.props.renderDepth}
-                        rootSelected={() => false}
+                        rootSelected={returnFalse}
+                        isContentActive={returnTrue}
+                        isDocumentActive={returnFalse}
                         PanelWidth={() => 150}
                         PanelHeight={() => 150}
                         ScreenToLocalTransform={this.getPreviewTransform}

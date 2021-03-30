@@ -190,6 +190,8 @@ export class OverlayView extends React.Component {
                     PanelHeight={returnOne}
                     ScreenToLocalTransform={Transform.Identity}
                     renderDepth={1}
+                    isDocumentActive={returnTrue}
+                    isContentActive={returnFalse}
                     whenChildContentsActiveChanged={emptyFunction}
                     focus={DocUtils.DefaultFocus}
                     styleProvider={DefaultStyleProvider}
