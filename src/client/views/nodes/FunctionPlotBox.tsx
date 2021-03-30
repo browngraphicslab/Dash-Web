@@ -80,7 +80,7 @@ export class FunctionPlotBox extends ViewBoxBaseComponent<FieldViewProps, Equati
         TraceMobx();
         return (<div
             style={{
-                pointerEvents: !this.active() ? "all" : undefined,
+                pointerEvents: !this.isContentActive() ? "all" : undefined,
                 width: this.props.PanelWidth(),
                 height: this.props.PanelHeight()
             }}

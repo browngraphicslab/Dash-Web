@@ -75,7 +75,7 @@ export interface DocFocusOptions {
 }
 export type DocAfterFocusFunc = (notFocused: boolean) => Promise<ViewAdjustment>;
 export type DocFocusFunc = (doc: Doc, options?: DocFocusOptions) => void;
-export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
+export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => any;
 export interface DocComponentView {
     getAnchor?: () => Doc; // returns an Anchor Doc that represents the current state of the doc's componentview (e.g., the current playhead location of a an audio/video box)
     scrollFocus?: (doc: Doc, smooth: boolean) => Opt<number>; // returns the duration of the focus
@@ -110,7 +110,7 @@ export interface DocumentViewSharedProps {
     whenChildContentsActiveChanged: (isActive: boolean) => void;
     rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
     addDocTab: (doc: Doc, where: string) => boolean;
-    filterAddDocument?: (doc: []) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
+    filterAddDocument?: (doc: Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     addDocument?: (doc: Doc | Doc[]) => boolean;
     removeDocument?: (doc: Doc | Doc[]) => boolean;
     moveDocument?: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
@@ -132,7 +132,7 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     hideDecorationTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
     treeViewDoc?: Doc;
     isDocumentActive?: () => boolean | undefined; // whether a document should handle pointer events
-    isContentActive?: () => boolean | undefined; // whether a document should handle pointer events
+    isContentActive: () => boolean | undefined; // whether a document should handle pointer events
     contentPointerEvents?: string; // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
     radialMenu?: String[];
     LayoutTemplateString?: string;
@@ -763,6 +763,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     setContentView = (view: { getAnchor?: () => Doc, forward?: () => boolean, back?: () => boolean }) => this._componentView = view;
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
+    isContentActive = (outsideReaction?: boolean) => this.props.isContentActive() ? true : false;
     @computed get contents() {
         TraceMobx();
         const audioView = !this.layoutDoc._showAudio ? (null) :
@@ -786,6 +787,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 scaling={this.contentScaling}
                 PanelHeight={this.panelHeight}
                 setHeight={this.setHeight}
+                isContentActive={this.isContentActive}
                 contentsActive={this.setContentsActive}
                 ScreenToLocalTransform={this.screenToLocal}
                 rootSelected={this.rootSelected}
@@ -804,7 +806,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && (doc.hidden = true), true)
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
-    anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
+    anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any => {
         return property !== StyleProp.LinkSource ? this.props.styleProvider?.(doc, props, property + ":anchor") : this.props.Document; // pass the LinkSource to the LinkAnchorBox
     }
     @computed get directLinks() { TraceMobx(); return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }

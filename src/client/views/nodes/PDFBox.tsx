@@ -252,10 +252,10 @@ export class PDFBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
             />
             <SidebarAnnos ref={this._sidebarRef}
                 {...this.props}
-                annotationsActive={this.annotationsActive}
                 rootDoc={this.rootDoc}
                 layoutDoc={this.layoutDoc}
                 dataDoc={this.dataDoc}
+                whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
                 sidebarAddDocument={this.sidebarAddDocument}
                 moveDocument={this.moveDocument}
                 removeDocument={this.removeDocument}

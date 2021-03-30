@@ -64,7 +64,7 @@ export function ViewBoxBaseComponent<P extends ViewBoxBaseProps, T>(schemaCtor: 
 
         lookupField = (field: string) => ScriptCast(this.layoutDoc.lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field, container: this.props.ContainingCollectionDoc }).result;
 
-        active = (outsideReaction?: boolean) => this.props.layerProvider?.(this.props.Document) !== false && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !Doc.SelectedTool();  // bcz: inking state shouldn't affect static tools 
+        isContentActive = (outsideReaction?: boolean) => this.props.layerProvider?.(this.props.Document) !== false && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !Doc.SelectedTool();  // bcz: inking state shouldn't affect static tools 
         protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
@@ -228,11 +228,9 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         }
 
         whenChildContentsActiveChanged = action((isActive: boolean) => this.props.whenChildContentsActiveChanged(this._isAnyChildContentActive = isActive));
-        isContentActive = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool === InkTool.None &&
-            (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isAnyChildContentActive || this.props.renderDepth === 0 || this.props.rootSelected(outsideReaction)) ? true : false)
-        annotationsActive = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool !== InkTool.None ||
+        isContentActive = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool !== InkTool.None ||
             (this.props.layerProvider?.(this.props.Document) !== false && this.props.isContentActive?.()) ||
-            (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isAnyChildContentActive || this.props.renderDepth === 0) ? true : false)
+            (this.props.isContentActive?.() || this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isAnyChildContentActive || this.props.renderDepth === 0 || this.props.rootSelected(outsideReaction)) ? true : false)
     }
     return Component;
 }

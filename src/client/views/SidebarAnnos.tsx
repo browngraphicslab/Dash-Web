@@ -22,7 +22,6 @@ interface ExtraProps {
     layoutDoc: Doc;
     rootDoc: Doc;
     dataDoc: Doc;
-    annotationsActive: (outsideReaction: boolean) => boolean;
     whenChildContentsActiveChanged: (isActive: boolean) => void;
     ScreenToLocalTransform: () => Transform;
     sidebarAddDocument: (doc: (Doc | Doc[]), suffix: string) => boolean;
@@ -120,7 +119,6 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
                         scaleField={this.sidebarKey() + "-scale"}
                         isAnnotationOverlay={false}
                         select={emptyFunction}
-                        isContentActive={this.props.annotationsActive}
                         scaling={returnOne}
                         whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
                         childHideDecorationTitle={returnTrue}

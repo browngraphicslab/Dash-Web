@@ -501,7 +501,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
     }
 
     playing = () => this._playing;
-    isActiveChild = () => this._isAnyChildContentActive;
     timelineWhenChildContentsActiveChanged = action((isActive: boolean) => this.props.whenChildContentsActiveChanged(this._isAnyChildContentActive = isActive));
     timelineScreenToLocal = () => this.props.ScreenToLocalTransform().scale(this.scaling()).translate(0, -this.heightPercent / 100 * this.props.PanelHeight());
     setAnchorTime = (time: number) => this.player!.currentTime = this.layoutDoc._currentTimecode = time;
@@ -523,7 +522,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
                 whenChildContentsActiveChanged={this.timelineWhenChildContentsActiveChanged}
                 removeDocument={this.removeDocument}
                 ScreenToLocalTransform={this.timelineScreenToLocal}
-                isChildActive={this.isActiveChild}
                 Play={this.Play}
                 Pause={this.Pause}
                 isContentActive={this.isContentActive}
@@ -572,7 +570,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
                         isAnnotationOverlay={true}
                         annotationLayerHostsContent={true}
                         select={emptyFunction}
-                        isContentActive={this.annotationsActive}
+                        isContentActive={this.isContentActive}
                         scaling={returnOne}
                         docFilters={this.timelineDocFilter}
                         PanelWidth={this.panelWidth}

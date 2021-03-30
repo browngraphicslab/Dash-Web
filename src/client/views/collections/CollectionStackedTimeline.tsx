@@ -32,7 +32,6 @@ export type CollectionStackedTimelineProps = {
     playFrom: (seekTimeInSeconds: number, endTime?: number) => void;
     playing: () => boolean;
     setTime: (time: number) => void;
-    isChildActive: () => boolean;
     startTag: string;
     endTag: string;
     mediaPath: string;
@@ -145,7 +144,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                     e.shiftKey && CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.props.fieldKey, this.props.startTag, this.props.endTag, this.currentTime);
                     !wasPlaying && doubleTap && this.props.Play();
                 },
-                this.props.isSelected(true) || this.props.isChildActive(), undefined,
+                this.props.isSelected(true) || this.props.isContentActive(), undefined,
                 () => !wasPlaying && this.props.setTime((clientX - rect.x) / rect.width * this.duration));
         }
     }
@@ -244,6 +243,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                 Document={dictation}
                 PanelHeight={this.dictationHeight}
                 isAnnotationOverlay={true}
+                isDocumentActive={returnFalse}
                 select={emptyFunction}
                 scaling={returnOne}
                 xMargin={25}
@@ -274,7 +274,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         const overlaps: { anchorStartTime: number, anchorEndTime: number, level: number }[] = [];
         const drawAnchors = this.childDocs.map(anchor => ({ level: this.getLevel(anchor, overlaps), anchor }));
         const maxLevel = overlaps.reduce((m, o) => Math.max(m, o.level), 0) + 2;
-        const isActive = this.props.isChildActive() || this.props.isSelected(false);
+        const isActive = this.props.isContentActive() || this.props.isSelected(false);
         return <div className="collectionStackedTimeline" ref={(timeline: HTMLDivElement | null) => this._timeline = timeline}
             onClick={e => isActive && StopEvent(e)} onPointerDown={e => isActive && this.onPointerDownTimeline(e)}>
             {drawAnchors.map(d => {
@@ -323,7 +323,6 @@ interface StackedTimelineAnchorProps {
     toTimeline: (screen_delta: number, width: number) => number;
     playLink: (linkDoc: Doc) => void;
     setTime: (time: number) => void;
-    isChildActive: () => boolean;
     startTag: string;
     endTag: string;
     renderDepth: number;
@@ -395,6 +394,7 @@ class StackedTimelineAnchor extends React.Component<StackedTimelineAnchorProps> 
                 renderDepth={this.props.renderDepth + 1}
                 LayoutTemplate={undefined}
                 LayoutTemplateString={LabelBox.LayoutString("data")}
+                isDocumentActive={returnFalse}
                 PanelWidth={() => width}
                 PanelHeight={() => height}
                 ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-x, -y)}

@@ -358,7 +358,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 select={emptyFunction}
-                isContentActive={this.annotationsActive}
+                isContentActive={this.isContentActive}
                 whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}>
                 {this.contentFunc}
             </CollectionFreeFormView>

@@ -1467,7 +1467,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 scaleField={this.SidebarKey + "-scale"}
                 isAnnotationOverlay={false}
                 select={emptyFunction}
-                isContentActive={this.annotationsActive}
+                isContentActive={this.isContentActive}
                 scaling={this.sidebarContentScaling}
                 whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
                 removeDocument={this.sidebarRemDocument}

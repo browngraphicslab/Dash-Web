@@ -511,7 +511,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             e.preventDefault();
         }
     }
-    titleStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
+    titleStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
         if (!doc || doc !== this.doc) return this.props?.treeView?.props.styleProvider?.(doc, props, property); // properties are inherited from the CollectionTreeView, not the hierarchical parent in the treeView
 
         switch (property.split(":")[0]) {
@@ -527,7 +527,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             case StyleProp.Decorations: return (null);
         }
     }
-    embeddedStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
+    embeddedStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
         if (property.startsWith(StyleProp.Decorations)) return (null);
         return this.props?.treeView?.props.styleProvider?.(doc, props, property); // properties are inherited from the CollectionTreeView, not the hierarchical parent in the treeView
     }
@@ -603,6 +603,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 PanelHeight={() => 18}
                 contextMenuItems={this.contextMenuItems}
                 renderDepth={1}
+                isContentActive={returnFalse}
                 focus={returnTrue}
                 whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
                 bringToFront={emptyFunction}
@@ -675,6 +676,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             ScreenToLocalTransform={this.docTransform}
             renderDepth={this.props.renderDepth + 1}
             rootSelected={returnTrue}
+            isContentActive={returnFalse}
             styleProvider={asText ? this.titleStyleProvider : this.embeddedStyleProvider}
             layerProvider={this.props.layerProvider}
             docViewPath={this.props.treeView.props.docViewPath}

@@ -253,6 +253,7 @@ export class MainView extends React.Component {
             layerProvider={undefined}
             styleProvider={undefined}
             rootSelected={returnTrue}
+            isContentActive={returnFalse}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
             PanelWidth={this.getPWidth}
@@ -348,6 +349,7 @@ export class MainView extends React.Component {
                         PanelWidth={this.flyoutWidthFunc}
                         PanelHeight={this.getContentsHeight}
                         renderDepth={0}
+                        isContentActive={returnTrue}
                         scriptContext={CollectionDockingView.Instance.props.Document}
                         focus={DocUtils.DefaultFocus}
                         whenChildContentsActiveChanged={emptyFunction}
@@ -381,6 +383,7 @@ export class MainView extends React.Component {
                 focus={DocUtils.DefaultFocus}
                 styleProvider={DefaultStyleProvider}
                 layerProvider={undefined}
+                isContentActive={returnTrue}
                 whenChildContentsActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}

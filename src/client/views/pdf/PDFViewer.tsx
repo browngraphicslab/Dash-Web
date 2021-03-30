@@ -528,7 +528,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 PanelWidth={this.panelWidth}
                 dropAction={"alias"}
                 select={emptyFunction}
-                isContentActive={this.annotationsActive}
+                isContentActive={this.isContentActive}
                 ContentScaling={this.contentZoom}
                 bringToFront={emptyFunction}
                 whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
@@ -555,7 +555,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     render() {
         TraceMobx();
         return <div className="pdfViewer-content">
-            <div className={`pdfViewerDash${this.annotationsActive() ? "-interactive" : ""}`} ref={this._mainCont}
+            <div className={`pdfViewerDash${this.isContentActive() ? "-interactive" : ""}`} ref={this._mainCont}
                 onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 style={{
                     overflowX: this._zoomed !== 1 ? "scroll" : undefined,

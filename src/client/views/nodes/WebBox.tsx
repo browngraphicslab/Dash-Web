@@ -464,7 +464,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
         const inactiveLayer = this.props.layerProvider?.(this.layoutDoc) === false;
         const scale = this.props.scaling?.() || 1;
         return (
-            <div className="webBox" ref={this._mainCont} style={{ pointerEvents: this.annotationsActive() ? "all" : this.isContentActive() || SnappingManager.GetIsDragging() ? undefined : "none" }} >
+            <div className="webBox" ref={this._mainCont} style={{ pointerEvents: this.isContentActive() ? "all" : this.isContentActive() || SnappingManager.GetIsDragging() ? undefined : "none" }} >
                 <div className={`webBox-container`}
                     style={{ pointerEvents: inactiveLayer ? "none" : undefined }}
                     onContextMenu={this.specificContextMenu}>
@@ -531,7 +531,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
                 <SidebarAnnos ref={this._sidebarRef}
                     {...this.props}
                     fieldKey={this.annotationKey}
-                    annotationsActive={this.annotationsActive}
                     rootDoc={this.rootDoc}
                     layoutDoc={this.layoutDoc}
                     dataDoc={this.dataDoc}

@@ -334,7 +334,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
             whenChildContentsActiveChanged={this.timelineWhenChildContentsActiveChanged}
             removeDocument={this.removeDocument}
             ScreenToLocalTransform={this.timelineScreenToLocal}
-            isChildActive={this.isActiveChild}
             Play={this.Play}
             Pause={this.Pause}
             isContentActive={this.isContentActive}

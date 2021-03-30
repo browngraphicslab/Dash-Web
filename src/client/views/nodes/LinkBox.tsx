@@ -17,7 +17,7 @@ const LinkDocument = makeInterface(documentSchema);
 export class LinkBox extends ViewBoxBaseComponent<FieldViewProps, LinkDocument>(LinkDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(LinkBox, fieldKey); }
     render() {
-        return <div className={`linkBox-container${this.active() ? "-interactive" : ""}`}
+        return <div className={`linkBox-container${this.isContentActive() ? "-interactive" : ""}`}
             style={{ background: this.props.styleProvider?.(this.props.Document, this.props, StyleProp.BackgroundColor) }} >
 
             <CollectionTreeView {...this.props}

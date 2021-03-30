@@ -196,7 +196,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         });
     }
 
-    styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
+    styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
         if (property === StyleProp.Opacity && doc) {
             if (this.props.childOpacity) {
                 return this.props.childOpacity();
@@ -207,6 +207,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         }
         return this.props.styleProvider?.(doc, props, property);
     }
+    isContentActive = () => this.props.isSelected() || this.props.isContentActive();
     getDisplayDoc(doc: Doc, width: () => number) {
         const dataDoc = (!doc.isTemplateDoc && !doc.isTemplateForField && !doc.PARAMS) ? undefined : this.props.DataDoc;
         const height = () => this.getDocHeight(doc);
@@ -224,6 +225,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             layerProvider={this.props.layerProvider}
             docViewPath={this.props.docViewPath}
             fitWidth={this.props.childFitWidth}
+            isContentActive={returnFalse}
+            isDocumentActive={this.isContentActive}
             LayoutTemplate={this.props.childLayoutTemplate}
             LayoutTemplateString={this.props.childLayoutString}
             freezeDimensions={this.props.childFreezeDimensions}

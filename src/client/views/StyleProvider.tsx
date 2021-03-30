@@ -54,13 +54,13 @@ function toggleBackground(doc: Doc) {
 }
 
 export function testDocProps(toBeDetermined: any): toBeDetermined is DocumentViewProps {
-    return (toBeDetermined?.active) ? undefined : toBeDetermined;
+    return (toBeDetermined?.isContentActive) ? undefined : toBeDetermined;
 }
 
 //
 // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
 // 
-export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string): any {
+export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any {
     const docProps = testDocProps(props) ? props : undefined;
     const selected = property.includes(":selected");
     const isCaption = property.includes(":caption");
@@ -96,18 +96,11 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             if (isCaption) return "rgba(0,0,0 ,0.4)";
             if (Doc.UserDoc().renderStyle === "comic") return "transparent";
             let docColor: Opt<string> = StrCast(doc?._backgroundColor);
-            if (!docProps) {
-                if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
-                switch (doc?.type) {
-                    case DocumentType.FONTICON: return docColor || "black";
-                    case DocumentType.LINK: return docColor || "lightblue";
-                    default: undefined;
-                }
-            }
+            if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
             switch (doc?.type) {
                 case DocumentType.PRESELEMENT: docColor = docColor || (darkScheme() ? "" : ""); break;
                 case DocumentType.PRES: docColor = docColor || (darkScheme() ? "#3e3e3e" : "white"); break;
-                case DocumentType.FONTICON: docColor = undefined; break;
+                case DocumentType.FONTICON: docColor = docColor || "black"; break;
                 case DocumentType.RTF: docColor = docColor || (darkScheme() ? "#2d2d2d" : "#f1efeb"); break;
                 case DocumentType.FILTER: docColor = docColor || (darkScheme() ? "#2d2d2d" : "rgba(105, 105, 105, 0.432)"); break;
                 case DocumentType.INK: docColor = doc?.isInkMask ? "rgba(0,0,0,0.7)" : undefined; break;
@@ -115,7 +108,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                 case DocumentType.EQUATION: docColor = docColor || "transparent"; break;
                 case DocumentType.LABEL: docColor = docColor || (doc.annotationOn !== undefined ? "rgba(128, 128, 128, 0.18)" : undefined); break;
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
-                case DocumentType.LINK: return "transparent";
+                case DocumentType.LINK: return docColor || "lightblue";
                 case DocumentType.WEB:
                 case DocumentType.PDF:
                 case DocumentType.SCREENSHOT:

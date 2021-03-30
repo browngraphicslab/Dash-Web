@@ -223,6 +223,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             LayoutTemplateString={this.props.childLayoutString}
             freezeDimensions={this.props.childFreezeDimensions}
             renderDepth={this.props.renderDepth + 1}
+            isContentActive={returnFalse}
             PanelWidth={width}
             PanelHeight={height}
             rootSelected={this.rootSelected}

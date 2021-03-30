@@ -78,7 +78,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     // embedWidth = () => this.props.PanelWidth();
     // embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
     embedWidth = (): number => this.props.PanelWidth() - 35;
-    styleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
+    styleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
         if (property === StyleProp.Opacity) return 1;
         return this.props.styleProvider?.(doc, props, property);
     }
@@ -98,6 +98,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     rootSelected={returnTrue}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
+                    isContentActive={this.props.isContentActive}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
                     PanelWidth={this.embedWidth}

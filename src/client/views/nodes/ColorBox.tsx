@@ -50,7 +50,7 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
 
     render() {
         const scaling = Math.min(this.layoutDoc.fitWidth ? 10000 : this.props.PanelHeight() / this.rootDoc[HeightSym](), this.props.PanelWidth() / this.rootDoc[WidthSym]());
-        return <div className={`colorBox-container${this.active() ? "-interactive" : ""}`}
+        return <div className={`colorBox-container${this.isContentActive() ? "-interactive" : ""}`}
             onPointerDown={e => e.button === 0 && !e.ctrlKey && e.stopPropagation()} onClick={e => e.stopPropagation()}
             style={{ transform: `scale(${scaling})`, width: `${100 * scaling}%`, height: `${100 * scaling}%` }} >
 

@@ -420,7 +420,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
     }
 
-    getClusterColor = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
+    getClusterColor = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => {
         let styleProp = this.props.styleProvider?.(doc, props, property);  // bcz: check 'props'  used to be renderDepth + 1
         if (property !== StyleProp.BackgroundColor) return styleProp;
         const cluster = NumCast(doc?.cluster);
@@ -1005,6 +1005,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         };
     }
 
+    isContentActive = () => this.props.isSelected() || this.props.isContentActive();
+
     getChildDocView(entry: PoolData) {
         const childLayout = entry.pair.layout;
         const childData = entry.pair.data;
@@ -1028,6 +1030,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             docFilters={this.freeformDocFilters}
             docRangeFilters={this.freeformRangeDocFilters}
             searchFilterDocs={this.searchFilterDocs}
+            isContentActive={this.isAnnotationOverlay ? this.props.isContentActive : returnFalse}
+            isDocumentActive={this.isContentActive}
             focus={this.focusDocument}
             addDocTab={this.addDocTab}
             addDocument={this.props.addDocument}
@@ -1043,7 +1047,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             freezeDimensions={this.props.childFreezeDimensions}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             bringToFront={this.bringToFront}
-            isDocumentActive={this.props.isContentActive}
             dontRegisterView={this.props.dontRegisterView}
             pointerEvents={this.backgroundActive || this.props.childPointerEvents ? "all" :
                 (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? "none" : undefined}

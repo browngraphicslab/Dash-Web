@@ -309,6 +309,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 DataDoc={!Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
+                isContentActive={returnFalse}
                 PanelWidth={this.PanelWidth}
                 PanelHeight={this.PanelHeight}
                 layerProvider={this.layerProvider}
@@ -367,7 +368,7 @@ interface TabMinimapViewProps {
 }
 @observer
 export class TabMinimapView extends React.Component<TabMinimapViewProps> {
-    static miniStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
+    static miniStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any => {
         if (doc) {
             switch (property.split(":")[0]) {
                 default: return DefaultStyleProvider(doc, props, property);
