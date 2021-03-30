@@ -54,7 +54,7 @@ function toggleBackground(doc: Doc) {
 }
 
 export function testDocProps(toBeDetermined: any): toBeDetermined is DocumentViewProps {
-    return (toBeDetermined?.isContentActive) ? undefined : toBeDetermined;
+    return (toBeDetermined?.isContentActive) ? toBeDetermined : undefined;
 }
 
 //
