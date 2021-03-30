@@ -2,7 +2,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import { runInAction } from 'mobx';
-import { Doc, Opt, StrListCast, LayoutSym } from "../../fields/Doc";
+import { Doc, Opt, StrListCast } from "../../fields/Doc";
 import { List } from '../../fields/List';
 import { listSpec } from '../../fields/Schema';
 import { BoolCast, Cast, NumCast, StrCast } from "../../fields/Types";
@@ -12,8 +12,7 @@ import { SnappingManager } from '../util/SnappingManager';
 import { UndoManager } from '../util/UndoManager';
 import { CollectionViewType } from './collections/CollectionView';
 import { MainView } from './MainView';
-import { DocumentViewProps, DocumentView } from "./nodes/DocumentView";
-import { FieldViewProps } from './nodes/FieldView';
+import { DocumentViewProps } from "./nodes/DocumentView";
 import "./StyleProvider.scss";
 import React = require("react");
 import Color = require('color');
@@ -92,7 +91,6 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) ||
             doc?.type === DocumentType.RTF) && showTitle() && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
         case StyleProp.BackgroundColor: {
-            if (isAnchor && docProps) return "transparent";
             if (isCaption) return "rgba(0,0,0 ,0.4)";
             if (Doc.UserDoc().renderStyle === "comic") return "transparent";
             let docColor: Opt<string> = StrCast(doc?._backgroundColor);
@@ -108,7 +106,8 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
                 case DocumentType.EQUATION: docColor = docColor || "transparent"; break;
                 case DocumentType.LABEL: docColor = docColor || (doc.annotationOn !== undefined ? "rgba(128, 128, 128, 0.18)" : undefined); break;
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
-                case DocumentType.LINK: return docColor || "lightblue";
+                case DocumentType.LINKANCHOR: docColor = isAnchor ? "lightblue" : "transparent"; break;
+                case DocumentType.LINK: docColor = docColor || "transparent"; break;
                 case DocumentType.WEB:
                 case DocumentType.PDF:
                 case DocumentType.SCREENSHOT:
@@ -152,7 +151,6 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
             }
         }
         case StyleProp.PointerEvents:
-            if (isAnchor && docProps) return "none";
             if (props?.pointerEvents === "none") return "none";
             const layer = doc && props?.layerProvider?.(doc);
             if (opacity() === 0 || (doc?.type === DocumentType.INK && !docProps?.treeViewDoc) || doc?.isInkMask) return "none";

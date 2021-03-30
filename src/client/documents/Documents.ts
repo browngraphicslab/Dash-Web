@@ -367,13 +367,10 @@ export namespace Docs {
             [DocumentType.LINK, {
                 layout: { view: LinkBox, dataField: defaultDataKey },
                 options: {
-                    childDontRegisterViews: true, _isLinkButton: true, treeViewHideTitle: true,
-                    treeViewOpen: true, _height: 150, description: "",
+                    childDontRegisterViews: true, _isLinkButton: true, _height: 150, description: "",
                     backgroundColor: "lightblue", // lightblue is default color for linking dot and link documents text comment area
-                    treeViewExpandedView: "fields", _removeDropProperties: new List(["_layerTags", "isLinkButton"]),
                     links: ComputedField.MakeFunction("links(self)") as any,
-                    linkBoxExcludedKeys: new List(["treeViewExpandedView", "aliases", "treeViewHideTitle", "_removeDropProperties",
-                        "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "creationDate", "author"])
+                    _removeDropProperties: new List(["_layerTags", "isLinkButton"]),
                 }
             }],
             [DocumentType.LINKDB, {

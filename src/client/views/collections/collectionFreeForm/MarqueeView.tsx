@@ -366,7 +366,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         newCollection._width = this.Bounds.width;
         newCollection._height = this.Bounds.height;
         newCollection._isGroup = makeGroup;
-        newCollection.forceActive = true;
+        newCollection.forceActive = makeGroup;
         newCollection.x = this.Bounds.left;
         newCollection.y = this.Bounds.top;
         selected.forEach(d => d.context = newCollection);

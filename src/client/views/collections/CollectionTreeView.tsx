@@ -27,6 +27,8 @@ import { TreeView } from "./TreeView";
 import React = require("react");
 
 export type collectionTreeViewProps = {
+    treeViewExpandedView?: "fields" | "layout" | "links" | "data";
+    treeViewOpen?: boolean;
     treeViewHideTitle?: boolean;
     treeViewHideHeaderFields?: boolean;
     treeViewSkipFields?: string[]; // prevents specific fields from being displayed (see LinkBox)
@@ -38,7 +40,7 @@ export type collectionTreeViewProps = {
 export class CollectionTreeView extends CollectionSubView<Document, Partial<collectionTreeViewProps>>(Document) {
     private treedropDisposer?: DragManager.DragDropDisposer;
     private _mainEle?: HTMLDivElement;
-
+    MainEle = () => this._mainEle;
     @computed get doc() { return this.props.Document; }
     @computed get dataDoc() { return this.props.DataDoc || this.doc; }
     @computed get treeViewtruncateTitleWidth() { return NumCast(this.doc.treeViewTruncateTitleWidth, this.panelWidth()); }
@@ -110,7 +112,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
         }
     }
-    outerXf = () => Utils.GetScreenTransform(this._mainEle!);
     onTreeDrop = (e: React.DragEvent) => this.onExternalDrop(e, {});
 
     @undoBatch
@@ -128,13 +129,8 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 height={"auto"}
                 GetValue={() => StrCast(this.dataDoc.title)}
                 SetValue={undoBatch((value: string, shift: boolean, enter: boolean) => {
-                    if (enter) {
-                        switch (this.props.Document.treeViewType) {
-                            case "outline": this.makeTextCollection(childDocs); break;
-                            case "fileSystem": break;
-                        }
-                    }
-                    this.dataDoc.title = value
+                    if (enter && this.props.Document.treeViewType === "outline") this.makeTextCollection(childDocs);
+                    this.dataDoc.title = value;
                     return true;
                 })} />;
     }
@@ -181,11 +177,33 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         const dropAction = StrCast(this.doc.childDropAction) as dropActionType;
         const addDoc = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => this.addDoc(doc, relativeTo, before);
         const moveDoc = (d: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => this.props.moveDocument?.(d, target, addDoc) || false;
-        return TreeView.GetChildElements(this.treeChildren, this, this.doc, this.props.DataDoc, this.props.fieldKey, this.props.ContainingCollectionDoc, undefined, addDoc, this.remove,
-            moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.styleProvider, returnTrue, this.props.ScreenToLocalTransform,
-            this.outerXf, this.props.isContentActive, this.panelWidth, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
-            BoolCast(this.doc.treeViewPreventOpen), [], this.props.onCheckedClick,
-            this.onChildClick, this.props.treeViewSkipFields, true, this.props.whenChildContentsActiveChanged, this.props.dontRegisterView || Cast(this.props.Document.childDontRegisterViews, "boolean", null), this);
+        return TreeView.GetChildElements(
+            this.treeChildren,
+            this,
+            this,
+            this.doc,
+            this.props.DataDoc,
+            this.props.ContainingCollectionDoc,
+            undefined,
+            addDoc,
+            this.remove,
+            moveDoc,
+            dropAction,
+            this.props.addDocTab,
+            this.props.styleProvider,
+            this.props.ScreenToLocalTransform,
+            this.props.isContentActive,
+            this.panelWidth,
+            this.props.renderDepth,
+            () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
+            BoolCast(this.doc.treeViewPreventOpen),
+            [],
+            this.props.onCheckedClick,
+            this.onChildClick,
+            this.props.treeViewSkipFields,
+            true,
+            this.props.whenChildContentsActiveChanged,
+            this.props.dontRegisterView || Cast(this.props.Document.childDontRegisterViews, "boolean", null));
     }
     @computed get titleBar() {
         const hideTitle = this.props.treeViewHideTitle || this.doc.treeViewHideTitle;
