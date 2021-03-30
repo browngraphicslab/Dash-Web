@@ -88,7 +88,6 @@ export class TreeView extends React.Component<TreeViewProps> {
     private _treedropDisposer?: DragManager.DragDropDisposer;
     private _tref = React.createRef<HTMLDivElement>();
     private _docRef: Opt<DocumentView>;
-    private _editMaxWidth: number | string = 0;
     private _selDisposer: Opt<IReactionDisposer>;
 
     set treeViewOpen(c: boolean) {
@@ -535,7 +534,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             }
         }
     }
-    titleWidth = () => Math.max(60, Math.min(this.props.treeView.truncateTitleWidth(), this.props.panelWidth() - treeBulletWidth()))
+    titleWidth = () => Math.max(20, Math.min(this.props.treeView.truncateTitleWidth(), this.props.panelWidth() - treeBulletWidth()))
 
     /**
      * Renders the EditableView title element for placement into the tree.
@@ -627,11 +626,10 @@ export class TreeView extends React.Component<TreeViewProps> {
         </>;
     }
 
-    renderBulletHeader = (contents: JSX.Element) => {
+    renderBulletHeader = (contents: JSX.Element, editing: boolean) => {
         return <>
-            <div className={`treeView-header` + (this._editMaxWidth ? "-editing" : "")} key="titleheader"
+            <div className={`treeView-header` + (editing ? "-editing" : "")} key="titleheader"
                 ref={this._header}
-                style={{ maxWidth: this._editMaxWidth }}
                 onClick={this.ignoreEvent}
                 onPointerDown={this.ignoreEvent}
                 onPointerEnter={this.onPointerEnter}
@@ -708,29 +706,18 @@ export class TreeView extends React.Component<TreeViewProps> {
 
     render() {
         TraceMobx();
-        if (this.props.renderedIds.indexOf(this.doc[Id]) !== -1) return "<" + this.doc.title + ">";
-        if (this._editTitle) { // find containing CollectionTreeView and set our maximum width so the containing tree view won't have to scroll
-            let par: any = this._header?.current;
-            while (par && par.className !== "collectionTreeView-dropTarget") par = par.parentNode;
-            if (par) {
-                const par_rect = (par as HTMLElement).getBoundingClientRect();
-                const my_recct = this._docRef?.ContentDiv?.getBoundingClientRect();
-                this._editMaxWidth = Math.max(100, par_rect.right - (my_recct?.left || 0));
-            }
-        }
-        else this._editMaxWidth = "";
-
         const hideTitle = this.doc.treeViewHideHeader || this.props.treeView.outlineMode;
-        return <div className={`treeView-container${this._dref?.contentsActive() ? "-active" : ""}`}
-            ref={this.createTreeDropTarget}
-            onPointerDown={e => this.props.isContentActive(true) && SelectionManager.DeselectAll()}
-            onKeyDown={this.onKeyDown}>
-            <li className="collection-child">
-                {hideTitle && this.doc.type !== DocumentType.RTF ?
-                    this.renderEmbeddedDocument(false) :
-                    this.renderBulletHeader(hideTitle ? this.renderDocumentAsHeader : this.renderTitleAsHeader)}
-            </li>
-        </div>;
+        return this.props.renderedIds.indexOf(this.doc[Id]) !== -1 ? "<" + this.doc.title + ">" : // just print the title of documents we've previously rendered in this hierarchical path to avoid cycles
+            <div className={`treeView-container${this.props.isContentActive() ? "-active" : ""}`}
+                ref={this.createTreeDropTarget}
+                onPointerDown={e => this.props.isContentActive(true) && SelectionManager.DeselectAll()}
+                onKeyDown={this.onKeyDown}>
+                <li className="collection-child">
+                    {hideTitle && this.doc.type !== DocumentType.RTF ?
+                        this.renderEmbeddedDocument(false) :
+                        this.renderBulletHeader(hideTitle ? this.renderDocumentAsHeader : this.renderTitleAsHeader, this._editTitle)}
+                </li>
+            </div>;
     }
 
     public static sortDocs(childDocs: Doc[], criterion: string | undefined) {

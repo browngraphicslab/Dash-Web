@@ -782,7 +782,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     componentDidMount() {
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
-        this.props.contentsActive?.(this.isContentActive);
         this._cachedLinks = DocListCast(this.Document.links);
         this._disposers.breakupDictation = reaction(() => DocumentManager.Instance.RecordingEvent, this.breakupDictation);
         this._disposers.autoHeight = reaction(() => this.autoHeight, autoHeight => autoHeight && this.tryUpdateScrollHeight());

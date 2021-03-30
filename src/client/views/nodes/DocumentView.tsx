@@ -106,7 +106,6 @@ export interface DocumentViewSharedProps {
     docFilters: () => string[];
     docRangeFilters: () => string[];
     searchFilterDocs: () => Doc[];
-    contentsActive?: (setActive: () => boolean) => void;
     whenChildContentsActiveChanged: (isActive: boolean) => void;
     rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
     addDocTab: (doc: Doc, where: string) => boolean;
@@ -761,8 +760,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     onClickFunc = () => this.onClickHandler;
     setHeight = (height: number) => this.layoutDoc._height = height;
     setContentView = (view: { getAnchor?: () => Doc, forward?: () => boolean, back?: () => boolean }) => this._componentView = view;
-    @observable contentsActive: () => boolean = returnFalse;
-    @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
     isContentActive = (outsideReaction?: boolean) => this.props.isContentActive() ? true : false;
     @computed get contents() {
         TraceMobx();
@@ -788,7 +785,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 PanelHeight={this.panelHeight}
                 setHeight={this.setHeight}
                 isContentActive={this.isContentActive}
-                contentsActive={this.setContentsActive}
                 ScreenToLocalTransform={this.screenToLocal}
                 rootSelected={this.rootSelected}
                 onClick={this.onClickFunc}
@@ -1033,7 +1029,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get centeringY() { return this.fitWidth || this.props.dontCenter?.includes("y") ? 0 : this.Yshift; }
 
     toggleNativeDimensions = () => this.docView && Doc.toggleNativeDimensions(this.layoutDoc, this.docView.ContentScale, this.props.PanelWidth(), this.props.PanelHeight());
-    contentsActive = () => this.docView?.contentsActive();
     focus = (doc: Doc, options?: DocFocusOptions) => this.docView?.focus(doc, options);
     getBounds = () => {
         if (!this.docView || !this.docView.ContentDiv || this.docView.props.renderDepth === 0 || this.docView.props.treeViewDoc || Doc.AreProtosEqual(this.props.Document, Doc.UserDoc())) {
