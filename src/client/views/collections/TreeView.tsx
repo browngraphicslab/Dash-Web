@@ -676,7 +676,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             ScreenToLocalTransform={this.docTransform}
             renderDepth={this.props.renderDepth + 1}
             rootSelected={returnTrue}
-            isContentActive={returnFalse}
+            isContentActive={asText ? returnTrue : returnFalse}
             styleProvider={asText ? this.titleStyleProvider : this.embeddedStyleProvider}
             layerProvider={this.props.layerProvider}
             docViewPath={this.props.treeView.props.docViewPath}
