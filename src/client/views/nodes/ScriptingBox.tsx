@@ -29,7 +29,7 @@ type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentS
 const ScriptingDocument = makeInterface(ScriptingSchema, documentSchema);
 
 @observer
-export class ScriptingBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ScriptingDocument>(ScriptingDocument, "annotations") {
+export class ScriptingBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ScriptingDocument>(ScriptingDocument) {
 
     private dropDisposer?: DragManager.DragDropDisposer;
     protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer | undefined;

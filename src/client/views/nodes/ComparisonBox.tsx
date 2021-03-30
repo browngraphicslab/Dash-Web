@@ -21,7 +21,7 @@ type ComparisonDocument = makeInterface<[typeof comparisonSchema, typeof documen
 const ComparisonDocument = makeInterface(comparisonSchema, documentSchema);
 
 @observer
-export class ComparisonBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ComparisonDocument>(ComparisonDocument, "annotations") {
+export class ComparisonBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ComparisonDocument>(ComparisonDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ComparisonBox, fieldKey); }
     protected _multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
     private _disposers: (DragManager.DragDropDisposer | undefined)[] = [undefined, undefined];

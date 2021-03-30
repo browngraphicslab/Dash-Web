@@ -46,7 +46,7 @@ const uploadIcons = {
 };
 
 @observer
-export class ImageBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ImageDocument>(ImageDocument, "annotations") {
+export class ImageBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ImageDocument>(ImageDocument) {
     protected _multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ImageBox, fieldKey); }
     private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();

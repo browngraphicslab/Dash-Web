@@ -39,7 +39,7 @@ type WebDocument = makeInterface<[typeof documentSchema]>;
 const WebDocument = makeInterface(documentSchema);
 
 @observer
-export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, WebDocument>(WebDocument, "annotations") {
+export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, WebDocument>(WebDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();

@@ -29,7 +29,7 @@ type AudioDocument = makeInterface<[typeof documentSchema]>;
 const AudioDocument = makeInterface(documentSchema);
 
 @observer
-export class AudioBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, AudioDocument>(AudioDocument, "annotations") {
+export class AudioBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, AudioDocument>(AudioDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(AudioBox, fieldKey); }
     public static Enabled = false;
     static playheadWidth = 30; // width of playhead
@@ -320,6 +320,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
     @computed get renderTimeline() {
         return <CollectionStackedTimeline ref={this._stackedTimeline} {...this.props}
             fieldKey={this.annotationKey}
+            dictationKey={this.fieldKey + "-dictation"}
             mediaPath={this.path}
             renderDepth={this.props.renderDepth + 1}
             startTag={"_timecodeToShow" /* audioStart */}

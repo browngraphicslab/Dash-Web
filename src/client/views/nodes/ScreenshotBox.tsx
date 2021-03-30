@@ -33,7 +33,7 @@ type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
 const ScreenshotDocument = makeInterface(documentSchema);
 
 @observer
-export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ScreenshotDocument>(ScreenshotDocument, "annotations") {
+export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ScreenshotBox, fieldKey); }
     private _videoRef = React.createRef<HTMLVideoElement>();
     private _audioRec: any;

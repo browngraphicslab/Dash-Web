@@ -35,6 +35,7 @@ export type CollectionStackedTimelineProps = {
     startTag: string;
     endTag: string;
     mediaPath: string;
+    dictationKey: string;
 };
 
 @observer
@@ -237,7 +238,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     timelineContentHeight = () => this.props.PanelHeight() * 2 / 3;
     dictationScreenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(0, -this.timelineContentHeight());
     @computed get renderDictation() {
-        const dictation = Cast(this.dataDoc[this.props.fieldKey.replace("annotations", "dictation")], Doc, null);
+        const dictation = Cast(this.dataDoc[this.props.dictationKey], Doc, null);
         return !dictation ? (null) : <div style={{ position: "absolute", height: this.dictationHeight(), top: this.timelineContentHeight(), background: "tan" }}>
             <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
                 Document={dictation}

@@ -32,7 +32,7 @@ type VideoDocument = makeInterface<[typeof documentSchema]>;
 const VideoDocument = makeInterface(documentSchema);
 
 @observer
-export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, VideoDocument>(VideoDocument, "annotations") {
+export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, VideoDocument>(VideoDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(VideoBox, fieldKey); }
     static _youtubeIframeCounter: number = 0;
     static Instance: VideoBox;
@@ -509,6 +509,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
         return <div className="videoBox-stackPanel" style={{ transition: this.transition, height: `${100 - this.heightPercent}%` }}>
             <CollectionStackedTimeline ref={this._stackedTimeline} {...this.props}
                 fieldKey={this.annotationKey}
+                dictationKey={this.fieldKey + "-dictation"}
                 mediaPath={this.audiopath}
                 renderDepth={this.props.renderDepth + 1}
                 startTag={"_timecodeToShow" /* videoStart */}

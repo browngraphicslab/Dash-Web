@@ -28,7 +28,7 @@ type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, t
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
 
 @observer
-export class PDFBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, PdfDocument>(PdfDocument, "annotations") {
+export class PDFBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, PdfDocument>(PdfDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PDFBox, fieldKey); }
     private _searchString: string = "";
     private _initialScrollTarget: Opt<Doc>;

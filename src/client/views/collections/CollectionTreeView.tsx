@@ -37,12 +37,19 @@ export type collectionTreeViewProps = {
 @observer
 export class CollectionTreeView extends CollectionSubView<Document, Partial<collectionTreeViewProps>>(Document) {
     private treedropDisposer?: DragManager.DragDropDisposer;
-    private _isChildActive = false;
     private _mainEle?: HTMLDivElement;
-    public _uniqueId = Utils.GenerateGuid();
 
-    @computed get doc() { TraceMobx(); return this.props.Document; }
+    @computed get doc() { return this.props.Document; }
     @computed get dataDoc() { return this.props.DataDoc || this.doc; }
+    @computed get treeViewtruncateTitleWidth() { return NumCast(this.doc.treeViewTruncateTitleWidth, this.panelWidth()); }
+    @computed get treeChildren() { return this.props.childDocuments || this.childDocs; }
+    @computed get outlineMode() { return this.doc.treeViewType === "outline"; }
+    @computed get fileSysMode() { return this.doc.treeViewType === "fileSystem"; }
+
+    componentWillUnmount() {
+        super.componentWillUnmount();
+        this.treedropDisposer?.();
+    }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this.treedropDisposer?.();
@@ -52,19 +59,13 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     protected onInternalPreDrop = (e: Event, de: DragManager.DropEvent, targetAction: dropActionType) => {
         const dragData = de.complete.docDragData;
         if (dragData) {
-            if (targetAction && !dragData.draggedDocuments.some(d => d.context === this.doc && this.childDocs.includes(d))) {
-                dragData.dropAction = targetAction;
-            } else dragData.dropAction = this.doc === dragData?.treeViewDoc ? "same" : dragData.dropAction;
+            const isInTree = () => dragData.draggedDocuments.some(d => d.context === this.doc && this.childDocs.includes(d));
+            dragData.dropAction = targetAction && !isInTree() ? targetAction : this.doc === dragData?.treeViewDoc ? "same" : dragData.dropAction;
         }
     }
 
-    componentWillUnmount() {
-        super.componentWillUnmount();
-        this.treedropDisposer?.();
-    }
-
-    @undoBatch
-    remove = action((doc: Doc | Doc[]): boolean => {
+    @action
+    remove = (doc: Doc | Doc[]): boolean => {
         const docs = doc instanceof Doc ? [doc] : doc;
         const targetDataDoc = this.doc[DataSym];
         const value = DocListCast(targetDataDoc[this.props.fieldKey]);
@@ -82,7 +83,8 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             return true;
         }
         return false;
-    });
+    }
+
     @action
     addDoc = (docs: Doc | Doc[], relativeTo: Opt<Doc>, before?: boolean): boolean => {
         const doAddDoc = (doc: Doc | Doc[]) =>
@@ -111,47 +113,34 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);
     onTreeDrop = (e: React.DragEvent) => this.onExternalDrop(e, {});
 
-    @computed get renderClearButton() {
-        return !this.doc.treeViewShowClearButton ? (null) : <div key="toolbar">
-            <button className="toolbar-button round-button" title="Empty" onClick={undoBatch(action(() => Doc.GetProto(this.doc)[this.props.fieldKey] = undefined))}>
-                <FontAwesomeIcon icon={"trash"} size="sm" />
-            </button>
-        </div >;
-    }
-
     @undoBatch
-    makeTextCollection = action((childDocs: Doc[]) => {
+    makeTextCollection = (childDocs: Doc[]) => {
         Doc.SetInPlace(this.doc, "editTitle", undefined, false);
-        const bullet = TreeView.makeTextBullet();
-        bullet.context = this.doc;
-        this.addDoc(bullet, childDocs.length ? childDocs[0] : undefined, true);
-    });
+        this.addDoc(TreeView.makeTextBullet(), childDocs.length ? childDocs[0] : undefined, true);
+    }
 
     editableTitle = (childDocs: Doc[]) => {
-        return !this.dataDoc ? (null) : <EditableView
-            contents={this.dataDoc.title}
-            editing={false}
-            display={"block"}
-            maxHeight={72}
-            height={"auto"}
-            GetValue={() => StrCast(this.dataDoc.title)}
-            SetValue={undoBatch((value: string, shift: boolean, enter: boolean) => {
-                if (enter) {
-                    switch (this.props.Document.treeViewType) {
-                        case "outline": this.makeTextCollection(childDocs); break;
-                        case "fileSystem": break;
+        return !this.dataDoc ? (null) :
+            <EditableView
+                contents={this.dataDoc.title}
+                display={"block"}
+                maxHeight={72}
+                height={"auto"}
+                GetValue={() => StrCast(this.dataDoc.title)}
+                SetValue={undoBatch((value: string, shift: boolean, enter: boolean) => {
+                    if (enter) {
+                        switch (this.props.Document.treeViewType) {
+                            case "outline": this.makeTextCollection(childDocs); break;
+                            case "fileSystem": break;
+                        }
                     }
-                }
-                return Doc.SetInPlace(this.dataDoc, "title", value, false);
-            })} />;
+                    this.dataDoc.title = value
+                    return true;
+                })} />;
     }
 
-
-    rtfWidth = () => Math.min(this.layoutDoc?.[WidthSym](), this.props.PanelWidth() - 20);
-    rtfOutlineHeight = () => Math.min(this.layoutDoc?.[HeightSym](), (StrCast(this.layoutDoc?._fontSize) ? Number(StrCast(this.layoutDoc?._fontSize, "32px").replace("px", "")) : NumCast(this.layoutDoc?._fontSize)) * 2);
-    titleTransform = () => this.props.ScreenToLocalTransform().translate(-NumCast(this.doc._xPadding, 10), -NumCast(this.doc._yPadding, 20));
     documentTitle = (childDocs: Doc[]) => {
-        return <div style={{ display: "inline-block", width: "100%", height: this.rtfOutlineHeight() }} key={this.doc[Id]}
+        return <div style={{ display: "inline-block", width: "100%", height: this.documentTitleHeight() }} key={this.doc[Id]}
             onKeyDown={e => {
                 e.stopPropagation();
                 e.key === "Enter" && this.makeTextCollection(childDocs);
@@ -161,16 +150,15 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 DataDoc={undefined}
                 LayoutTemplateString={FormattedTextBox.LayoutString("text")}
                 renderDepth={this.props.renderDepth + 1}
-                isContentActive={() => this.props.isContentActive() || this.props.isSelected()}
+                isContentActive={this.isContentActive}
                 rootSelected={returnTrue}
-                //dontRegisterView={true}
                 docViewPath={this.props.docViewPath}
                 styleProvider={this.props.styleProvider}
                 layerProvider={this.props.layerProvider}
-                PanelWidth={this.rtfWidth}
-                PanelHeight={this.rtfOutlineHeight}
-                NativeWidth={this.rtfWidth}
-                NativeHeight={this.rtfOutlineHeight}
+                PanelWidth={this.documentTitleWidth}
+                PanelHeight={this.documentTitleHeight}
+                NativeWidth={this.documentTitleWidth}
+                NativeHeight={this.documentTitleHeight}
                 focus={this.props.focus}
                 ScreenToLocalTransform={this.titleTransform}
                 docFilters={returnEmptyFilter}
@@ -188,15 +176,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             />
         </div>;
     }
-    @computed get treeViewtruncateTitleWidth() { return NumCast(this.doc.treeViewTruncateTitleWidth, this.panelWidth()); }
-    @computed get treeChildren() { return this.props.childDocuments || this.childDocs; }
-    @computed get outlineMode() { return this.doc.treeViewType === "outline"; }
-    @computed get fileSysMode() { return this.doc.treeViewType === "fileSystem"; }
-    truncateTitleWidth = () => this.treeViewtruncateTitleWidth;
-    onChildClick = () => this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
-    whenChildContentsActiveChanged = (isActive: boolean) => { this.props.whenChildContentsActiveChanged(this._isChildActive = isActive); };
-    active = (outsideReaction: boolean | undefined) => this.props.isContentActive(outsideReaction) || this._isChildActive;
-    panelWidth = () => this.props.PanelWidth() - 20; // bcz: 20 is the 10 + 10 for the left and right padding.
     @computed get treeViewElements() {
         TraceMobx();
         const dropAction = StrCast(this.doc.childDropAction) as dropActionType;
@@ -204,26 +183,41 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         const moveDoc = (d: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => this.props.moveDocument?.(d, target, addDoc) || false;
         return TreeView.GetChildElements(this.treeChildren, this, this.doc, this.props.DataDoc, this.props.fieldKey, this.props.ContainingCollectionDoc, undefined, addDoc, this.remove,
             moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.styleProvider, returnTrue, this.props.ScreenToLocalTransform,
-            this.outerXf, this.active, this.panelWidth, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
+            this.outerXf, this.props.isContentActive, this.panelWidth, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
             BoolCast(this.doc.treeViewPreventOpen), [], this.props.onCheckedClick,
-            this.onChildClick, this.props.treeViewSkipFields, true, this.whenChildContentsActiveChanged, this.props.dontRegisterView || Cast(this.props.Document.childDontRegisterViews, "boolean", null), this);
+            this.onChildClick, this.props.treeViewSkipFields, true, this.props.whenChildContentsActiveChanged, this.props.dontRegisterView || Cast(this.props.Document.childDontRegisterViews, "boolean", null), this);
     }
     @computed get titleBar() {
         const hideTitle = this.props.treeViewHideTitle || this.doc.treeViewHideTitle;
         return hideTitle ? (null) : (this.doc.treeViewType === "outline" ? this.documentTitle : this.editableTitle)(this.treeChildren);
     }
+
+    @computed get renderClearButton() {
+        return !this.doc.treeViewShowClearButton ? (null) : <div key="toolbar">
+            <button className="toolbar-button round-button" title="Empty" onClick={undoBatch(action(() => Doc.GetProto(this.doc)[this.props.fieldKey] = undefined))}>
+                <FontAwesomeIcon icon={"trash"} size="sm" />
+            </button>
+        </div >;
+    }
+
+    paddingX = () => NumCast(this.doc._xPadding, 15);
+    documentTitleWidth = () => Math.min(this.layoutDoc?.[WidthSym](), this.panelWidth());
+    documentTitleHeight = () => Math.min(this.layoutDoc?.[HeightSym](), (StrCast(this.layoutDoc?._fontSize) ? Number(StrCast(this.layoutDoc?._fontSize, "32px").replace("px", "")) : NumCast(this.layoutDoc?._fontSize)) * 2);
+    titleTransform = () => this.props.ScreenToLocalTransform().translate(-NumCast(this.doc._xPadding, 10), -NumCast(this.doc._yPadding, 20));
+    truncateTitleWidth = () => this.treeViewtruncateTitleWidth;
+    onChildClick = () => this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
+    panelWidth = () => this.props.PanelWidth() - 2 * this.paddingX();
+    isContentActive = () => this.props.isContentActive() || this.props.isSelected();
     render() {
         TraceMobx();
-        if (!(this.doc instanceof Doc)) return (null);
-        const background = this.props.styleProvider?.(this.doc, this.props, StyleProp.BackgroundColor);
-        const paddingX = `${NumCast(this.doc._xPadding, 15)}px`;
-        const paddingTop = `${NumCast(this.doc._yPadding, 20)}px`;
-        const pointerEvents = !this.props.isContentActive() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined;
+        const background = () => this.props.styleProvider?.(this.doc, this.props, StyleProp.BackgroundColor);
+        const paddingTop = () => `${NumCast(this.doc._yPadding, 20)}px`;
+        const pointerEvents = () => !this.props.isContentActive() && !SnappingManager.GetIsDragging() ? "none" : undefined;
 
-        return !this.treeChildren ? (null) : (
+        return !(this.doc instanceof Doc) || !this.treeChildren ? (null) :
             <div className="collectionTreeView-container" onContextMenu={this.onContextMenu}>
                 <div className="collectionTreeView-dropTarget"
-                    style={{ background, paddingLeft: paddingX, paddingRight: paddingX, paddingTop, pointerEvents }}
+                    style={{ background: background(), paddingLeft: `${this.paddingX()}px`, paddingRight: `${this.paddingX()}px`, paddingTop: paddingTop(), pointerEvents: pointerEvents() }}
                     onWheel={e => e.stopPropagation()}
                     onDrop={this.onTreeDrop}
                     ref={this.createTreeDropTarget}>
@@ -233,7 +227,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                         {this.treeViewElements}
                     </ul>
                 </div >
-            </div>
-        );
+            </div>;
     }
 }
