@@ -911,6 +911,7 @@ export class CurrentUserUtils {
                     title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15,
                     _showTitle: "title", ignoreClick: true, _lockedPosition: true, "acl-Public": SharingPermissions.Add, "_acl-Public": SharingPermissions.Add, _chromeHidden: true,
                 }, sharingDocumentId + "outer", sharingDocumentId);
+                (sharedDocs as Doc)["acl-Public"] = (sharedDocs as Doc)[DataSym]["acl-Public"] = SharingPermissions.Add;
             }
             if (sharedDocs instanceof Doc) {
                 sharedDocs.userColor = sharedDocs.userColor || "rgb(202, 202, 202)";
