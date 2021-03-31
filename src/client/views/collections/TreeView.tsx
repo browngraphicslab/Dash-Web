@@ -457,27 +457,29 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     @computed get headerElements() {
-        return (Doc.IsSystem(this.doc) && Doc.UserDoc().noviceMode) || this.props.treeViewHideHeaderFields() ? (null) :
-            <>
+        return this.props.treeViewHideHeaderFields() ? (null)
+            : Doc.IsSystem(this.doc) ?
                 <FontAwesomeIcon key="bars" icon="bars" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />
-                <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
-                    onPointerDown={action(() => {
-                        if (this.props.treeView.fileSysMode) {
-                            this.doc.treeViewExpandedView = this.doc.isFolder ? this.fieldKey : this.treeViewExpandedView === "layout" ? "aliases" :
-                                this.treeViewExpandedView === "aliases" && !Doc.UserDoc().noviceMode ? "fields" : "layout";
-                        } else if (this.treeViewOpen) {
-                            this.doc.treeViewExpandedView = this.treeViewLockExpandedView ? this.doc.treeViewExpandedView :
-                                this.treeViewExpandedView === this.fieldKey ? (Doc.UserDoc().noviceMode || this.props.treeView.outlineMode ? "layout" : "fields") :
-                                    this.treeViewExpandedView === "fields" && this.layoutDoc ? "layout" :
-                                        this.treeViewExpandedView === "layout" && DocListCast(this.doc.links).length ? "links" :
-                                            (this.treeViewExpandedView === "links" || this.treeViewExpandedView === "layout") && DocListCast(this.doc[this.fieldKey + "-annotations"]).length ? "annotations" :
-                                                this.childDocs ? this.fieldKey : (Doc.UserDoc().noviceMode || this.props.treeView.outlineMode ? "layout" : "fields");
-                        }
-                        this.treeViewOpen = true;
-                    })}>
-                    {this.treeViewExpandedView}
-                </span>
-            </>;
+                : <>
+                    <FontAwesomeIcon key="bars" icon="bars" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />
+                    <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
+                        onPointerDown={action(() => {
+                            if (this.props.treeView.fileSysMode) {
+                                this.doc.treeViewExpandedView = this.doc.isFolder ? this.fieldKey : this.treeViewExpandedView === "layout" ? "aliases" :
+                                    this.treeViewExpandedView === "aliases" && !Doc.UserDoc().noviceMode ? "fields" : "layout";
+                            } else if (this.treeViewOpen) {
+                                this.doc.treeViewExpandedView = this.treeViewLockExpandedView ? this.doc.treeViewExpandedView :
+                                    this.treeViewExpandedView === this.fieldKey ? (Doc.UserDoc().noviceMode || this.props.treeView.outlineMode ? "layout" : "fields") :
+                                        this.treeViewExpandedView === "fields" && this.layoutDoc ? "layout" :
+                                            this.treeViewExpandedView === "layout" && DocListCast(this.doc.links).length ? "links" :
+                                                (this.treeViewExpandedView === "links" || this.treeViewExpandedView === "layout") && DocListCast(this.doc[this.fieldKey + "-annotations"]).length ? "annotations" :
+                                                    this.childDocs ? this.fieldKey : (Doc.UserDoc().noviceMode || this.props.treeView.outlineMode ? "layout" : "fields");
+                            }
+                            this.treeViewOpen = true;
+                        })}>
+                        {this.treeViewExpandedView}
+                    </span>
+                </>;
     }
 
     showContextMenu = (e: React.MouseEvent) => simulateMouseClick(this._docRef?.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
@@ -510,6 +512,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                     {StrCast(doc?.title)}
                 </div>;
             case StyleProp.Decorations: return (null);
+            default: return this.props?.treeView?.props.styleProvider?.(doc, props, property);
         }
     }
     embeddedStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
@@ -535,6 +538,9 @@ export class TreeView extends React.Component<TreeViewProps> {
      */
     @computed
     get renderTitle() {
+        if (this.props.document.title === "MARYKAY") {
+            console.log();
+        }
         TraceMobx();
         const view = this._editTitle ? <EditableView key="_editTitle"
             oneLine={true}
@@ -593,11 +599,12 @@ export class TreeView extends React.Component<TreeViewProps> {
                 renderDepth={1}
                 isContentActive={this.props.isContentActive}
                 isDocumentActive={this.props.isContentActive}
-                focus={returnTrue}
+                focus={this.refocus}
                 whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
                 bringToFront={emptyFunction}
                 cantBrush={this.props.treeView.props.cantBrush}
-                dontRegisterView={BoolCast(this.props.treeView.props.Document.childDontRegisterViews)}
+                hideLinkButton={BoolCast(this.props.treeView.props.Document.childHideLinkButton)}
+                dontRegisterView={BoolCast(this.props.treeView.props.Document.childDontRegisterViews, this.props.dontRegisterView)}
                 docFilters={returnEmptyFilter}
                 docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
@@ -645,6 +652,9 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     renderEmbeddedDocument = (asText: boolean) => {
+        if (this.props.document.title === "MARYKAY") {
+            console.log();
+        }
         const layout = StrCast(Doc.LayoutField(this.layoutDoc));
         const isExpandable = layout.includes(FormattedTextBox.name) || layout.includes(SliderBox.name);
         const panelWidth = asText || isExpandable ? this.rtfWidth : this.expandPanelWidth;
@@ -656,19 +666,20 @@ export class TreeView extends React.Component<TreeViewProps> {
             PanelHeight={panelHeight}
             NativeWidth={!asText && (this.layoutDoc.type === DocumentType.RTF || this.layoutDoc.type === DocumentType.SLIDER) ? this.rtfWidth : undefined}
             NativeHeight={!asText && (this.layoutDoc.type === DocumentType.RTF || this.layoutDoc.type === DocumentType.SLIDER) ? this.rtfHeight : undefined}
-            fitContentsToDoc={returnTrue}
-            hideTitle={asText}
-            hideDecorationTitle={this.props.treeView.outlineMode}
-            hideResizeHandles={this.props.treeView.outlineMode}
             LayoutTemplateString={asText ? FormattedTextBox.LayoutString("text") : undefined}
-            focus={asText ? this.refocus : returnFalse}
-            dontRegisterView={asText ? undefined : this.props.dontRegisterView}
-            ScreenToLocalTransform={this.docTransform}
-            renderDepth={this.props.renderDepth + 1}
-            rootSelected={returnTrue}
             isContentActive={asText ? this.props.isContentActive : returnFalse}
             isDocumentActive={asText ? this.props.isContentActive : returnFalse}
             styleProvider={asText ? this.titleStyleProvider : this.embeddedStyleProvider}
+            hideTitle={asText}
+            fitContentsToDoc={returnTrue}
+            hideDecorationTitle={this.props.treeView.outlineMode}
+            hideResizeHandles={this.props.treeView.outlineMode}
+            focus={this.refocus}
+            hideLinkButton={BoolCast(this.props.treeView.props.Document.childHideLinkButton)}
+            dontRegisterView={BoolCast(this.props.treeView.props.Document.childDontRegisterViews, this.props.dontRegisterView)}
+            ScreenToLocalTransform={this.docTransform}
+            renderDepth={this.props.renderDepth + 1}
+            rootSelected={returnTrue}
             layerProvider={returnTrue}
             docViewPath={this.props.treeView.props.docViewPath}
             docFilters={returnEmptyFilter}

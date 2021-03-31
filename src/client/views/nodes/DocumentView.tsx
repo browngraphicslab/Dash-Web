@@ -119,6 +119,7 @@ export interface DocumentViewSharedProps {
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     dropAction?: dropActionType;
     dontRegisterView?: boolean;
+    hideLinkButton?: boolean;
     ignoreAutoHeight?: boolean;
     cantBrush?: boolean; // whether the document doesn't show brush highlighting
     pointerEvents?: string;

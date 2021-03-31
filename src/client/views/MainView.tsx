@@ -228,7 +228,7 @@ export class MainView extends React.Component {
     createNewPresentation = async () => {
         if (!await this.userDoc.myPresentations) {
             this.userDoc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "PRESENTATION TRAILS", _height: 100, _forceActive: true, boxShadow: "0 0", _lockedPosition: true, treeViewOpen: true, system: true
+                title: "PRESENTATION TRAILS", childDontRegisterViews: true, _height: 100, _forceActive: true, boxShadow: "0 0", _lockedPosition: true, treeViewOpen: true, system: true
             }));
         }
         const pres = Docs.Create.PresDocument(new List<Doc>(),
