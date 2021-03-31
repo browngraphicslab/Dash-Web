@@ -601,6 +601,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
                 bringToFront={emptyFunction}
                 cantBrush={this.props.treeView.props.cantBrush}
+                hideLinkButton={BoolCast(this.props.treeView.props.Document.childHideLinkButton)}
                 dontRegisterView={BoolCast(this.props.treeView.props.Document.childDontRegisterViews, this.props.dontRegisterView)}
                 docFilters={returnEmptyFilter}
                 docRangeFilters={returnEmptyFilter}
@@ -672,6 +673,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             hideDecorationTitle={this.props.treeView.outlineMode}
             hideResizeHandles={this.props.treeView.outlineMode}
             focus={this.refocus}
+            hideLinkButton={BoolCast(this.props.treeView.props.Document.childHideLinkButton)}
             dontRegisterView={BoolCast(this.props.treeView.props.Document.childDontRegisterViews, this.props.dontRegisterView)}
             ScreenToLocalTransform={this.docTransform}
             renderDepth={this.props.renderDepth + 1}

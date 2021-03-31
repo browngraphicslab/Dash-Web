@@ -175,6 +175,7 @@ export class DocumentOptions {
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children
     childDontRegisterViews?: boolean;
+    childHideLinkButton?: boolean; // hide link buttons on all children
     hideLinkButton?: boolean; // whether the blue link counter button should be hidden
     hideAllLinks?: boolean; // whether all individual blue anchor dots should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template

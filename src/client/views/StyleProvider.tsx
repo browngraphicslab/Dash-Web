@@ -74,7 +74,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         case StyleProp.DocContents: return undefined;
         case StyleProp.WidgetColor: return isAnnotated ? "lightBlue" : darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
-        case StyleProp.HideLinkButton: return props?.dontRegisterView || props?.hideLinkButton || (!selected && (doc?.isLinkButton || doc?.hideLinkButton));
+        case StyleProp.HideLinkButton: return props?.hideLinkButton || (!selected && (doc?.isLinkButton || doc?.hideLinkButton));
         case StyleProp.ShowTitle: return doc && !doc.presentationTargetDoc && StrCast(doc._showTitle,
             !Doc.IsSystem(doc) && doc.type === DocumentType.RTF ?
                 (doc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") : "") || "";
