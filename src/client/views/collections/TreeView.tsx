@@ -457,27 +457,29 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     @computed get headerElements() {
-        return (Doc.IsSystem(this.doc) && Doc.UserDoc().noviceMode) || this.props.treeViewHideHeaderFields() ? (null) :
-            <>
+        return this.props.treeViewHideHeaderFields() ? (null)
+            : Doc.IsSystem(this.doc) ?
                 <FontAwesomeIcon key="bars" icon="bars" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />
-                <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
-                    onPointerDown={action(() => {
-                        if (this.props.treeView.fileSysMode) {
-                            this.doc.treeViewExpandedView = this.doc.isFolder ? this.fieldKey : this.treeViewExpandedView === "layout" ? "aliases" :
-                                this.treeViewExpandedView === "aliases" && !Doc.UserDoc().noviceMode ? "fields" : "layout";
-                        } else if (this.treeViewOpen) {
-                            this.doc.treeViewExpandedView = this.treeViewLockExpandedView ? this.doc.treeViewExpandedView :
-                                this.treeViewExpandedView === this.fieldKey ? (Doc.UserDoc().noviceMode || this.props.treeView.outlineMode ? "layout" : "fields") :
-                                    this.treeViewExpandedView === "fields" && this.layoutDoc ? "layout" :
-                                        this.treeViewExpandedView === "layout" && DocListCast(this.doc.links).length ? "links" :
-                                            (this.treeViewExpandedView === "links" || this.treeViewExpandedView === "layout") && DocListCast(this.doc[this.fieldKey + "-annotations"]).length ? "annotations" :
-                                                this.childDocs ? this.fieldKey : (Doc.UserDoc().noviceMode || this.props.treeView.outlineMode ? "layout" : "fields");
-                        }
-                        this.treeViewOpen = true;
-                    })}>
-                    {this.treeViewExpandedView}
-                </span>
-            </>;
+                : <>
+                    <FontAwesomeIcon key="bars" icon="bars" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />
+                    <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
+                        onPointerDown={action(() => {
+                            if (this.props.treeView.fileSysMode) {
+                                this.doc.treeViewExpandedView = this.doc.isFolder ? this.fieldKey : this.treeViewExpandedView === "layout" ? "aliases" :
+                                    this.treeViewExpandedView === "aliases" && !Doc.UserDoc().noviceMode ? "fields" : "layout";
+                            } else if (this.treeViewOpen) {
+                                this.doc.treeViewExpandedView = this.treeViewLockExpandedView ? this.doc.treeViewExpandedView :
+                                    this.treeViewExpandedView === this.fieldKey ? (Doc.UserDoc().noviceMode || this.props.treeView.outlineMode ? "layout" : "fields") :
+                                        this.treeViewExpandedView === "fields" && this.layoutDoc ? "layout" :
+                                            this.treeViewExpandedView === "layout" && DocListCast(this.doc.links).length ? "links" :
+                                                (this.treeViewExpandedView === "links" || this.treeViewExpandedView === "layout") && DocListCast(this.doc[this.fieldKey + "-annotations"]).length ? "annotations" :
+                                                    this.childDocs ? this.fieldKey : (Doc.UserDoc().noviceMode || this.props.treeView.outlineMode ? "layout" : "fields");
+                            }
+                            this.treeViewOpen = true;
+                        })}>
+                        {this.treeViewExpandedView}
+                    </span>
+                </>;
     }
 
     showContextMenu = (e: React.MouseEvent) => simulateMouseClick(this._docRef?.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
