@@ -46,6 +46,7 @@ import { LinkDocPreview } from "./LinkDocPreview";
 import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
+import { ScriptingBox } from "./ScriptingBox";
 const { Howl } = require('howler');
 
 interface Window {
@@ -85,6 +86,7 @@ export interface DocComponentView {
     getKeyFrameEditing?: () => boolean; // whether the document is in keyframe editing mode (if it is, then all hidden documents that are not active at the keyframe time will still be shown)
     setKeyFrameEditing?: (set: boolean) => void; // whether the document is in keyframe editing mode (if it is, then all hidden documents that are not active at the keyframe time will still be shown)
     playFrom?: (time: number, endTime?: number) => void;
+    setFocus?: () => void;
 }
 export interface DocumentViewSharedProps {
     renderDepth: number;
@@ -404,9 +406,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 if (!this._titleRef.current) setTimeout(() => this._titleRef.current?.setIsFocused(true), 0);
                 else if (!this._titleRef.current.setIsFocused(true)) { // if focus didn't change, focus on interior text...
                     this._titleRef.current?.setIsFocused(false);
-                    const any = (this._mainCont.current?.getElementsByClassName("ProseMirror")?.[0] as any);
-                    any.keeplocation = true;
-                    any?.focus();
+                    this._componentView?.setFocus?.();
                 }
             }
         }
@@ -456,7 +456,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     }
                     Doc.UnBrushDoc(this.props.Document);
                 }
-            } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
+            } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes(ScriptingBox.name)) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
                 const func = () => this.onClickHandler.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,

@@ -145,7 +145,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         };
     }
 
-    public static FocusedBox: FormattedTextBox | undefined;
     public static PasteOnLoad: ClipboardEvent | undefined;
     public static SelectOnLoad = "";
     public static DontSelectInitialText = false; // whether initial text should be selected or not
@@ -1224,18 +1223,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             e.stopPropagation();
         }
     }
+    setFocus = () => {
+        const pos = this._editorView?.state.selection.$from.pos || 1;
+        (this.ProseRef?.children?.[0] as any).focus();
+        setTimeout(() => this._editorView?.dispatch(this._editorView?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
+    }
     @action
     onFocused = (e: React.FocusEvent): void => {
-        FormattedTextBox.FocusedBox = this;
         //applyDevTools.applyDevTools(this._editorView);
-
-        // see if we need to preserve the insertion point
-        const prosediv = this.ProseRef?.children?.[0] as any;
-        const keeplocation = prosediv?.keeplocation;
-        prosediv && (prosediv.keeplocation = undefined);
-        const pos = this._editorView?.state.selection.$from.pos || 1;
-        keeplocation && setTimeout(() => this._editorView?.dispatch(this._editorView?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
-
         this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props);
     }
 
