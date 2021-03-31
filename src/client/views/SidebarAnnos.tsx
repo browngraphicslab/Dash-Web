@@ -46,7 +46,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
     anchorMenuClick = (anchor: Doc) => {
         const startup = StrListCast(this.props.rootDoc.docFilters).map(filter => filter.split(":")[0]).join(" ");
         const target = Docs.Create.TextDocument(startup, {
-            title: "anno",
+            title: "-note-",
             annotationOn: this.props.rootDoc, _width: 200, _height: 50, _fitWidth: true, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
             _fontFamily: StrCast(Doc.UserDoc().fontFamily)
         });

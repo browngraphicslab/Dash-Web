@@ -78,13 +78,13 @@ export class TreeView extends React.Component<TreeViewProps> {
     static _editTitleOnLoad: Opt<{ id: string, parent: TreeView | CollectionTreeView | undefined }>;
     static _openTitleScript: Opt<ScriptField | undefined>;
     static _openLevelScript: Opt<ScriptField | undefined>;
-    private _editTitleScript: (() => ScriptField) | undefined;
-    private _openScript: (() => ScriptField) | undefined;
-    private _header?: React.RefObject<HTMLDivElement> = React.createRef();
-    private _treedropDisposer?: DragManager.DragDropDisposer;
+    private _header: React.RefObject<HTMLDivElement> = React.createRef();;
     private _tref = React.createRef<HTMLDivElement>();
     private _docRef: Opt<DocumentView>;
     private _selDisposer: Opt<IReactionDisposer>;
+    private _editTitleScript: (() => ScriptField) | undefined;
+    private _openScript: (() => ScriptField) | undefined;
+    private _treedropDisposer?: DragManager.DragDropDisposer
 
     set treeViewOpen(c: boolean) {
         if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c;
@@ -98,21 +98,21 @@ export class TreeView extends React.Component<TreeViewProps> {
     get defaultExpandedView() { return this.props.treeView.props.treeViewExpandedView || (StrCast(this.doc.treeViewDefaultExpandedView, this.props.treeView.fileSysMode ? (this.doc.isFolder ? "data" : "aliases") : Doc.UserDoc().noviceMode || this.props.treeView.outlineMode ? "layout" : "fields")); }
     get treeViewDefaultExpandedView() { return this.treeViewLockExpandedView ? this.defaultExpandedView : (this.childDocs && !this.props.treeView.fileSysMode ? this.fieldKey : this.defaultExpandedView); }
 
-    @computed get doc() { TraceMobx(); return this.props.document; }
+    @computed get doc() { return this.props.document; }
     @computed get treeViewOpen() { return (!this.props.treeViewPreventOpen && !this.doc.treeViewPreventOpen && Doc.GetT(this.doc, "treeViewOpen", "boolean", true)) || this._overrideTreeViewOpen; }
     @computed get treeViewExpandedView() { return StrCast(this.doc.treeViewExpandedView, this.treeViewDefaultExpandedView); }
     @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.containerCollection.maxEmbedHeight, 200); }
     @computed get dataDoc() { return this.doc[DataSym]; }
     @computed get layoutDoc() { return Doc.Layout(this.doc); }
-    @computed get fieldKey() { TraceMobx(); const splits = StrCast(Doc.LayoutField(this.doc)).split("fieldKey={\'"); return splits.length > 1 ? splits[1].split("\'")[0] : "data"; }
-    @computed get childDocs() { TraceMobx(); return this.childDocList(this.fieldKey); }
+    @computed get fieldKey() { return Doc.LayoutFieldKey(this.doc); }
+    @computed get childDocs() { return this.childDocList(this.fieldKey); }
     @computed get childLinks() { return this.childDocList("links"); }
     @computed get childAliases() { return this.childDocList("aliases"); }
     @computed get childAnnos() { return this.childDocList(this.fieldKey + "-annotations"); }
-    @computed get selected() { return SelectionManager.Views().length && SelectionManager.Views()[0].props.Document === this.props.document; }
+    @computed get selected() { return SelectionManager.Views().lastElement()?.props.Document === this.props.document; }
 
     childDocList(field: string) {
-        const layout = Doc.LayoutField(this.doc) instanceof Doc ? Doc.LayoutField(this.doc) as Doc : undefined;
+        const layout = Cast(Doc.LayoutField(this.doc), Doc, null);
         return (this.props.dataDoc ? DocListCastOrNull(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
             (layout ? DocListCastOrNull(layout[field]) : undefined) || // else if there's a layout doc, display it's fields
             DocListCastOrNull(this.doc[field]); // otherwise use the document's data field
@@ -177,7 +177,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     onPointerEnter = (e: React.PointerEvent): void => {
         this.props.isContentActive(true) && Doc.BrushDoc(this.dataDoc);
         if (e.buttons === 1 && SnappingManager.GetIsDragging()) {
-            this._header!.current!.className = "treeView-header";
+            this._header.current!.className = "treeView-header";
             document.removeEventListener("pointermove", this.onDragMove, true);
             document.removeEventListener("pointerup", this.onDragUp, true);
             document.addEventListener("pointermove", this.onDragMove, true);
@@ -186,8 +186,8 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
     onPointerLeave = (e: React.PointerEvent): void => {
         Doc.UnBrushDoc(this.dataDoc);
-        if (this._header?.current?.className !== "treeView-header-editing") {
-            this._header!.current!.className = "treeView-header";
+        if (this._header.current?.className !== "treeView-header-editing") {
+            this._header.current!.className = "treeView-header";
         }
         document.removeEventListener("pointerup", this.onDragUp, true);
         document.removeEventListener("pointermove", this.onDragMove, true);
@@ -195,13 +195,13 @@ export class TreeView extends React.Component<TreeViewProps> {
     onDragMove = (e: PointerEvent): void => {
         Doc.UnBrushDoc(this.dataDoc);
         const pt = [e.clientX, e.clientY];
-        const rect = this._header!.current!.getBoundingClientRect();
+        const rect = this._header.current!.getBoundingClientRect();
         const before = pt[1] < rect.top + rect.height / 2;
         const inside = pt[0] > Math.min(rect.left + 75, rect.left + rect.width * .75) || (!before && this.treeViewOpen && this.childDocList.length);
-        this._header!.current!.className = "treeView-header";
-        if (inside) this._header!.current!.className += " treeView-header-inside";
-        else if (before) this._header!.current!.className += " treeView-header-above";
-        else if (!before) this._header!.current!.className += " treeView-header-below";
+        this._header.current!.className = "treeView-header";
+        if (inside) this._header.current!.className += " treeView-header-inside";
+        else if (before) this._header.current!.className += " treeView-header-above";
+        else if (!before) this._header.current!.className += " treeView-header-below";
         e.stopPropagation();
     }
 
@@ -238,7 +238,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     @undoBatch
     treeDrop = (e: Event, de: DragManager.DropEvent) => {
         const pt = [de.x, de.y];
-        const rect = this._header!.current!.getBoundingClientRect();
+        const rect = this._header.current!.getBoundingClientRect();
         const before = pt[1] < rect.top + rect.height / 2;
         const inside = this.props.treeView.fileSysMode && !this.doc.isFolder ? false : pt[0] > Math.min(rect.left + 75, rect.left + rect.width * .75) || (!before && this.treeViewOpen && this.childDocList.length);
         if (de.complete.linkDragData) {
@@ -365,7 +365,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         TraceMobx();
         const expandKey = this.treeViewExpandedView;
         if (["links", "annotations", "aliases", this.fieldKey].includes(expandKey)) {
-            const key = expandKey === "annotations" ? this.fieldKey + "-annotations" : expandKey;
+            const key = (expandKey === "annotations" ? `${this.fieldKey}-` : "") + expandKey;
             const remDoc = (doc: Doc | Doc[]) => this.remove(doc, key);
             const localAdd = (doc: Doc, addBefore?: Doc, before?: boolean) => {
                 // if there's a sort ordering specified that can be modified on drop (eg, zorder can be modified, alphabetical can't),
@@ -373,10 +373,9 @@ export class TreeView extends React.Component<TreeViewProps> {
                 const ordering = StrCast(this.doc.treeViewSortCriterion);
                 if (ordering === "Z") {
                     const docs = TreeView.sortDocs(this.childDocs || ([] as Doc[]), ordering);
-                    doc.zIndex = addBefore ? (before ? NumCast(addBefore.zIndex) - 0.5 : NumCast(addBefore.zIndex) + 0.5) : 1000;
+                    doc.zIndex = addBefore ? NumCast(addBefore.zIndex) + (before ? -0.5 : 0.5) : 1000;
                     docs.push(doc);
-                    docs.sort((a, b) => NumCast(a.zIndex) > NumCast(b.zIndex) ? 1 : -1);
-                    docs.forEach((d, i) => d.zIndex = i);
+                    docs.sort((a, b) => NumCast(a.zIndex) > NumCast(b.zIndex) ? 1 : -1).forEach((d, i) => d.zIndex = i);
                 }
                 const added = Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before, false, true);
                 added && (doc.context = this.doc.context);

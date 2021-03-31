@@ -12,7 +12,7 @@ import { makeInterface, listSpec } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, getWordAtPoint, OmitKeys, returnOne, smoothScroll, Utils } from "../../../Utils";
+import { emptyFunction, getWordAtPoint, OmitKeys, returnOne, smoothScroll, Utils, setupMoveUpEvents } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -429,6 +429,20 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
         if (!this.layoutDoc._showSidebar) this.toggleSidebar();
         return this.addDocument(doc, sidebarKey);
     }
+    sidebarBtnDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, (e, down, delta) => {
+            const localDelta = this.props.ScreenToLocalTransform().scale(this.props.scaling?.() || 1).transformDirection(delta[0], delta[1]);
+            const nativeWidth = NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
+            const curNativeWidth = NumCast(this.layoutDoc.nativeWidth, nativeWidth);
+            const ratio = (curNativeWidth + localDelta[0] / (this.props.scaling?.() || 1)) / nativeWidth;
+            if (ratio >= 1) {
+                this.layoutDoc.nativeWidth = nativeWidth * ratio;
+                this.layoutDoc._width = this.layoutDoc[WidthSym]() + localDelta[0];
+                this.layoutDoc._showSidebar = nativeWidth !== this.layoutDoc._nativeWidth;
+            }
+            return false;
+        }, emptyFunction, this.toggleSidebar);
+    }
     toggleSidebar = action(() => {
         const nativeWidth = NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
         const ratio = ((!this.layoutDoc.nativeWidth || this.layoutDoc.nativeWidth === nativeWidth ? 250 : 0) + nativeWidth) / nativeWidth;
@@ -523,11 +537,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
                             annotationLayer={this._annotationLayer.current}
                             mainCont={this._mainCont.current} />}
                 </div >
-                <button className="webBox-overlayButton-sidebar" key="sidebar" title="Toggle Sidebar"
-                    style={{ right: this.sidebarWidth() + 7, display: !this.isContentActive() ? "none" : undefined }}
-                    onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} >
-                    <FontAwesomeIcon style={{ color: "white" }} icon={"chevron-left"} size="sm" />
-                </button>
                 <SidebarAnnos ref={this._sidebarRef}
                     {...this.props}
                     fieldKey={this.annotationKey}
@@ -539,6 +548,11 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
                     removeDocument={this.removeDocument}
                     isContentActive={this.isContentActive}
                 />
+                <button className="webBox-overlayButton-sidebar" key="sidebar" title="Toggle Sidebar"
+                    style={{ display: !this.isContentActive() ? "none" : undefined }}
+                    onPointerDown={this.sidebarBtnDown} >
+                    <FontAwesomeIcon style={{ color: "white" }} icon={"chevron-left"} size="sm" />
+                </button>
             </div>);
     }
 }

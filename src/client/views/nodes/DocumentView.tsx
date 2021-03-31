@@ -457,21 +457,17 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     Doc.UnBrushDoc(this.props.Document);
                 }
             } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
-                const shiftKey = e.shiftKey;
-                const clientX = e.clientX;
-                const clientY = e.clientY;
                 const func = () => this.onClickHandler.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,
                     scriptContext: this.props.scriptContext,
                     thisContainer: this.props.ContainingCollectionDoc,
                     documentView: this.props.DocumentView(),
-                    clientX: clientX,
-                    clientY: clientY,
-                    shiftKey
-                }, console.log);
-                const clickFunc = () => this.props.Document.dontUndo ? func() :
-                    UndoManager.RunInBatch(() => func().result?.select === true ? this.props.select(false) : "", "on click");
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                    shiftKey: e.shiftKey
+                }, console.log).result?.select === true ? this.props.select(false) : "";
+                const clickFunc = () => this.props.Document.dontUndo ? func() : UndoManager.RunInBatch(func, "on click");
                 if (this.onDoubleClickHandler) {
                     this._timeout = setTimeout(() => { this._timeout = undefined; clickFunc(); }, 350);
                 } else clickFunc();

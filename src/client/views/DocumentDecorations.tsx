@@ -191,7 +191,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     X: Math.cos(angle) * (ink.X - pair.X) - Math.sin(angle) * (ink.Y - pair.Y) + pair.X,
                     Y: Math.sin(angle) * (ink.X - pair.X) + Math.cos(angle) * (ink.Y - pair.Y) + pair.Y
                 })) || [];
-                Doc.SetInPlace(pair.doc, "data", new InkField(newPoints), true);
+                Doc.GetProto(pair.doc).data = new InkField(newPoints);
 
                 pair.doc._width = ((xs) => (Math.max(...xs) - Math.min(...xs)))(newPoints.map(p => p.X) || [0]);
                 pair.doc._height = ((ys) => (Math.max(...ys) - Math.min(...ys)))(newPoints.map(p => p.Y) || [0]);
@@ -375,11 +375,11 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         //need to change points for resize, or else rotation/control points will fail.
         this._inkDragDocs.map(oldbds => ({ oldbds, inkPts: Cast(oldbds.doc.data, InkField)?.inkData || [] }))
             .forEach(({ oldbds: { doc, x, y, width, height }, inkPts }) => {
-                Doc.SetInPlace(doc, "data", new InkField(inkPts.map(ipt =>  // (new x — oldx) + newWidth * (oldxpoint /oldWidth)
+                Doc.GetProto(doc).data = new InkField(inkPts.map(ipt =>  // (new x — oldx) + newWidth * (oldxpoint /oldWidth)
                     ({
                         X: (NumCast(doc.x) - x) + NumCast(doc.width) * ipt.X / width,
                         Y: (NumCast(doc.y) - y) + NumCast(doc.height) * ipt.Y / height
-                    }))), true);
+                    })));
                 Doc.SetNativeWidth(doc, undefined);
                 Doc.SetNativeHeight(doc, undefined);
             });

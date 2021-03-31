@@ -353,7 +353,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         if (clone) {
             const cloned = (await Doc.MakeClone(doc));
             Array.from(cloned.map.entries()).map(entry => json = json.replace(entry[0], entry[1][Id]));
-            Doc.SetInPlace(cloned.clone, "dockingConfig", json, true);
+            Doc.GetProto(cloned.clone).dockingConfig = json;
             return cloned.clone;
         }
         const matches = json.match(/\"documentId\":\"[a-z0-9-]+\"/g);
@@ -363,7 +363,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             const origtabdocs = DocListCast(origtab.data);
             const newtab = origtabdocs.length ? Doc.MakeCopy(origtab, true) : Doc.MakeAlias(origtab);
             const newtabdocs = origtabdocs.map(origtabdoc => Doc.MakeAlias(origtabdoc));
-            newtabdocs.length && Doc.SetInPlace(newtab, "data", new List<Doc>(newtabdocs), true);
+            newtabdocs.length && (Doc.GetProto(newtab).data = new List<Doc>(newtabdocs));
             json = json.replace(origtab[Id], newtab[Id]);
             return newtab;
         });

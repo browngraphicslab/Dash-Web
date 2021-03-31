@@ -116,7 +116,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
 
     @undoBatch
     makeTextCollection = (childDocs: Doc[]) => {
-        Doc.SetInPlace(this.doc, "editTitle", undefined, false);
         this.addDoc(TreeView.makeTextBullet(), childDocs.length ? childDocs[0] : undefined, true);
     }
 

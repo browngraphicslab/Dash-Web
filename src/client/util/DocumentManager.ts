@@ -208,7 +208,6 @@ export class DocumentManager {
                                 // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
                                 if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.rootDoc);
                                 if (targetDoc.layout) { // there will no layout for a TEXTANCHOR type document
-                                    // Doc.SetInPlace(targetDoc, "annotationOn", undefined, false);
                                     createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
                                 }
                             } else {
