@@ -96,7 +96,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     get displayName() { return "TreeView(" + this.props.document.title + ")"; }  // this makes mobx trace() statements more descriptive
     get defaultExpandedView() {
         return this.props.treeView.fileSysMode ? (this.doc.isFolder ? this.fieldKey : "aliases") :
-            this.props.treeView.outlineMode || this.childDocs ? this.fieldKey : Doc.UserDoc().noviceMode ? "layout" : "fields";
+            this.props.treeView.outlineMode || this.childDocs ? this.fieldKey : Doc.UserDoc().noviceMode ? "layout" : StrCast(this.props.treeView.doc.treeViewExpandedView, "fields");
     }
 
     @computed get doc() { return this.props.document; }
