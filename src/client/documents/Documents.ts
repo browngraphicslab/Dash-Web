@@ -254,7 +254,6 @@ export class DocumentOptions {
     treeViewTruncateTitleWidth?: number;
     treeViewType?: string; // whether treeview is a Slide, file system, or (default) collection hierarchy
     treeViewLockExpandedView?: boolean; // whether the expanded view can be changed
-    treeViewDefaultExpandedView?: string; // default expanded view
     sidebarColor?: string;  // background color of text sidebar
     sidebarViewType?: string; // collection type of text sidebar
     docMaxAutoHeight?: number; // maximum height for newly created (eg, from pasting) text documents
@@ -888,9 +887,9 @@ export namespace Docs {
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", childDontRegisterViews: true, freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", _fitWidth: true, system: true });
-            const all = TreeDocument([], { title: "Off-Screen Tabs", childDontRegisterViews: true, freezeChildren: "add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List([tabs, all]), { freezeChildren: "remove|add", treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", childDontRegisterViews: true, freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewExpandedView: "data", _fitWidth: true, system: true });
+            const all = TreeDocument([], { title: "Off-Screen Tabs", childDontRegisterViews: true, freezeChildren: "add", treeViewLockExpandedView: true, treeViewExpandedView: "data", system: true });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List([tabs, all]), { freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
         }
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {

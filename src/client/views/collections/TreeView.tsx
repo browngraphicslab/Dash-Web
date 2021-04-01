@@ -94,13 +94,15 @@ export class TreeView extends React.Component<TreeViewProps> {
     @observable _editTitle: boolean = false;
     @observable _dref: DocumentView | undefined | null;
     get displayName() { return "TreeView(" + this.props.document.title + ")"; }  // this makes mobx trace() statements more descriptive
-    get treeViewLockExpandedView() { return this.doc.treeViewLockExpandedView; }
-    get defaultExpandedView() { return this.props.treeView.props.treeViewExpandedView || (StrCast(this.doc.treeViewDefaultExpandedView, this.props.treeView.fileSysMode ? (this.doc.isFolder ? "data" : "aliases") : Doc.UserDoc().noviceMode || this.props.treeView.outlineMode ? "layout" : "fields")); }
-    get treeViewDefaultExpandedView() { return this.treeViewLockExpandedView ? this.defaultExpandedView : (this.childDocs && !this.props.treeView.fileSysMode ? this.fieldKey : this.defaultExpandedView); }
+    get defaultExpandedView() {
+        return this.props.treeView.fileSysMode ? (this.doc.isFolder ? this.fieldKey : "aliases") :
+            this.props.treeView.outlineMode ? "layout" :
+                this.childDocs ? this.fieldKey : Doc.UserDoc().noviceMode ? "layout" : "fields";
+    }
 
     @computed get doc() { return this.props.document; }
     @computed get treeViewOpen() { return (!this.props.treeViewPreventOpen && !this.doc.treeViewPreventOpen && Doc.GetT(this.doc, "treeViewOpen", "boolean", true)) || this._overrideTreeViewOpen; }
-    @computed get treeViewExpandedView() { return StrCast(this.doc.treeViewExpandedView, this.treeViewDefaultExpandedView); }
+    @computed get treeViewExpandedView() { return StrCast(this.doc.treeViewExpandedView, this.defaultExpandedView); }
     @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.containerCollection.maxEmbedHeight, 200); }
     @computed get dataDoc() { return this.doc[DataSym]; }
     @computed get layoutDoc() { return Doc.Layout(this.doc); }
@@ -456,30 +458,29 @@ export class TreeView extends React.Component<TreeViewProps> {
         </div>;
     }
 
+    @action
+    expandNextviewType = () => {
+        if (!this.doc.isFolder && !this.props.treeView.outlineMode && !this.doc.treeViewLockExpandedView) {
+            const next = (modes: any[]) => modes[(modes.indexOf(StrCast(this.doc.treeViewExpandedView)) + 1) % modes.length];
+            const annos = () => DocListCast(this.doc[this.fieldKey + "-annotations"]).length ? "annotations" : "";
+            const links = () => DocListCast(this.doc.links).length ? "links" : "";
+            const children = () => this.childDocs ? this.fieldKey : "";
+            this.doc.treeViewExpandedView = next(this.props.treeView.fileSysMode ?
+                (Doc.UserDoc().noviceMode ? ["layout", "aliases"] : ["layout", "aliases", "fields"]) :
+                (Doc.UserDoc().noviceMode ? [children(), "layout"] : [children(), "fields", "layout", links(), annos()]).filter(mode => mode));
+        }
+        this.treeViewOpen = true;
+    }
+
     @computed get headerElements() {
-        return this.props.treeViewHideHeaderFields() ? (null)
-            : Doc.IsSystem(this.doc) ?
+        return this.props.treeViewHideHeaderFields() || Doc.IsSystem(this.doc) ? (null)
+            : <>
                 <FontAwesomeIcon key="bars" icon="bars" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />
-                : <>
-                    <FontAwesomeIcon key="bars" icon="bars" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />
-                    <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
-                        onPointerDown={action(() => {
-                            if (this.props.treeView.fileSysMode) {
-                                this.doc.treeViewExpandedView = this.doc.isFolder ? this.fieldKey : this.treeViewExpandedView === "layout" ? "aliases" :
-                                    this.treeViewExpandedView === "aliases" && !Doc.UserDoc().noviceMode ? "fields" : "layout";
-                            } else if (this.treeViewOpen) {
-                                this.doc.treeViewExpandedView = this.treeViewLockExpandedView ? this.doc.treeViewExpandedView :
-                                    this.treeViewExpandedView === this.fieldKey ? (Doc.UserDoc().noviceMode || this.props.treeView.outlineMode ? "layout" : "fields") :
-                                        this.treeViewExpandedView === "fields" && this.layoutDoc ? "layout" :
-                                            this.treeViewExpandedView === "layout" && DocListCast(this.doc.links).length ? "links" :
-                                                (this.treeViewExpandedView === "links" || this.treeViewExpandedView === "layout") && DocListCast(this.doc[this.fieldKey + "-annotations"]).length ? "annotations" :
-                                                    this.childDocs ? this.fieldKey : (Doc.UserDoc().noviceMode || this.props.treeView.outlineMode ? "layout" : "fields");
-                            }
-                            this.treeViewOpen = true;
-                        })}>
+                {this.doc.treeViewLockExpandedView ? (null) :
+                    <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView} onPointerDown={this.expandNextviewType}>
                         {this.treeViewExpandedView}
-                    </span>
-                </>;
+                    </span>}
+            </>;
     }
 
     showContextMenu = (e: React.MouseEvent) => simulateMouseClick(this._docRef?.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);

@@ -437,9 +437,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        return <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} ref={this._containerRef}>
-            {this.props.renderDepth > 0 ? "Nested dashboards can't be rendered" : (null)}
-        </div>;
+        return <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} ref={this._containerRef} />;
     }
 }
 
