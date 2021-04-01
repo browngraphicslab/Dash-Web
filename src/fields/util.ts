@@ -24,7 +24,6 @@ export function TraceMobx() {
     tracing && trace();
 }
 
-
 export interface GetterResult {
     value: FieldResult;
     shouldReturn?: boolean;

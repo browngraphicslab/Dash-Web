@@ -85,6 +85,7 @@ export const DataSym = Symbol("Data");
 export const LayoutSym = Symbol("Layout");
 export const FieldsSym = Symbol("Fields");
 export const AclSym = Symbol("Acl");
+export const DirectLinksSym = Symbol("DirectLinks");
 export const AclUnset = Symbol("AclUnset");
 export const AclPrivate = Symbol("AclOwnerOnly");
 export const AclReadonly = Symbol("AclReadOnly");
@@ -185,6 +186,7 @@ export class Doc extends RefField {
     @observable private ___fields: any = {};
     @observable private ___fieldKeys: any = {};
     @observable public [AclSym]: { [key: string]: symbol };
+    @observable public [DirectLinksSym]: Set<Doc> = new Set();
 
     private [UpdatingFromServer]: boolean = false;
     private [ForceServerWrite]: boolean = false;
@@ -427,6 +429,11 @@ export namespace Doc {
         index = allowProtos && index !== -1 ? index : list.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, toFind)) ? i : p, -1);
         return index; // list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind));
     }
+
+    /**
+     * Removes doc from the list of Docs at listDoc[fieldKey]
+     * @returns true if successful, false otherwise.
+     */
     export function RemoveDocFromList(listDoc: Doc, fieldKey: string | undefined, doc: Doc) {
         const key = fieldKey ? fieldKey : Doc.LayoutFieldKey(listDoc);
         if (listDoc[key] === undefined) {
@@ -442,6 +449,11 @@ export namespace Doc {
         }
         return false;
     }
+
+    /**
+     * Adds doc to the list of Docs stored at listDoc[fieldKey].
+     * @returns true if successful, false otherwise.
+     */
     export function AddDocToList(listDoc: Doc, fieldKey: string | undefined, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
         const key = fieldKey ? fieldKey : Doc.LayoutFieldKey(listDoc);
         if (listDoc[key] === undefined) {
@@ -475,9 +487,9 @@ export namespace Doc {
         return false;
     }
 
-    //
-    // Computes the bounds of the contents of a set of documents.
-    //
+    /**
+     * Computes the bounds of the contents of a set of documents.
+     */
     export function ComputeContentBounds(docList: Doc[]) {
         const bounds = docList.reduce((bounds, doc) => {
             const [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)];

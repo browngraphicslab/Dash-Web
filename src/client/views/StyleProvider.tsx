@@ -2,7 +2,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import { runInAction } from 'mobx';
-import { Doc, Opt, StrListCast, LayoutSym } from "../../fields/Doc";
+import { Doc, Opt, StrListCast } from "../../fields/Doc";
 import { List } from '../../fields/List';
 import { listSpec } from '../../fields/Schema';
 import { BoolCast, Cast, NumCast, StrCast } from "../../fields/Types";
@@ -12,8 +12,7 @@ import { SnappingManager } from '../util/SnappingManager';
 import { UndoManager } from '../util/UndoManager';
 import { CollectionViewType } from './collections/CollectionView';
 import { MainView } from './MainView';
-import { DocumentViewProps, DocumentView } from "./nodes/DocumentView";
-import { FieldViewProps } from './nodes/FieldView';
+import { DocumentViewProps } from "./nodes/DocumentView";
 import "./StyleProvider.scss";
 import React = require("react");
 import Color = require('color');
@@ -54,13 +53,13 @@ function toggleBackground(doc: Doc) {
 }
 
 export function testDocProps(toBeDetermined: any): toBeDetermined is DocumentViewProps {
-    return (toBeDetermined?.active) ? undefined : toBeDetermined;
+    return (toBeDetermined?.isContentActive) ? toBeDetermined : undefined;
 }
 
 //
 // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
 // 
-export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string): any {
+export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any {
     const docProps = testDocProps(props) ? props : undefined;
     const selected = property.includes(":selected");
     const isCaption = property.includes(":caption");
@@ -69,12 +68,13 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
     const isBackground = () => StrListCast(doc?._layerTags).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
+    const showTitle = () => props?.styleProvider?.(doc, props, StyleProp.ShowTitle);
 
     switch (property.split(":")[0]) {
         case StyleProp.DocContents: return undefined;
         case StyleProp.WidgetColor: return isAnnotated ? "lightBlue" : darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
-        case StyleProp.HideLinkButton: return props?.dontRegisterView || (!selected && (doc?.isLinkButton || doc?.hideLinkButton));
+        case StyleProp.HideLinkButton: return props?.hideLinkButton || (!selected && (doc?.isLinkButton || doc?.hideLinkButton));
         case StyleProp.ShowTitle: return doc && !doc.presentationTargetDoc && StrCast(doc._showTitle,
             !Doc.IsSystem(doc) && doc.type === DocumentType.RTF ?
                 (doc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") : "") || "";
@@ -88,24 +88,17 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
         case StyleProp.Hidden: return BoolCast(doc?._hidden);
         case StyleProp.BorderRounding: return StrCast(doc?._borderRounding);
         case StyleProp.TitleHeight: return 15;
-        case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) || doc?.type === DocumentType.RTF) && doc?._showTitle && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
+        case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) ||
+            doc?.type === DocumentType.RTF) && showTitle() && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
         case StyleProp.BackgroundColor: {
-            if (isAnchor && docProps) return "transparent";
             if (isCaption) return "rgba(0,0,0 ,0.4)";
             if (Doc.UserDoc().renderStyle === "comic") return "transparent";
             let docColor: Opt<string> = StrCast(doc?._backgroundColor);
-            if (!docProps) {
-                if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
-                switch (doc?.type) {
-                    case DocumentType.FONTICON: return docColor || "black";
-                    case DocumentType.LINK: return docColor || "lightblue";
-                    default: undefined;
-                }
-            }
+            if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
             switch (doc?.type) {
                 case DocumentType.PRESELEMENT: docColor = docColor || (darkScheme() ? "" : ""); break;
                 case DocumentType.PRES: docColor = docColor || (darkScheme() ? "#3e3e3e" : "white"); break;
-                case DocumentType.FONTICON: docColor = undefined; break;
+                case DocumentType.FONTICON: docColor = docColor || "black"; break;
                 case DocumentType.RTF: docColor = docColor || (darkScheme() ? "#2d2d2d" : "#f1efeb"); break;
                 case DocumentType.FILTER: docColor = docColor || (darkScheme() ? "#2d2d2d" : "rgba(105, 105, 105, 0.432)"); break;
                 case DocumentType.INK: docColor = doc?.isInkMask ? "rgba(0,0,0,0.7)" : undefined; break;
@@ -113,9 +106,11 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                 case DocumentType.EQUATION: docColor = docColor || "transparent"; break;
                 case DocumentType.LABEL: docColor = docColor || (doc.annotationOn !== undefined ? "rgba(128, 128, 128, 0.18)" : undefined); break;
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
-                case DocumentType.LINK: return "transparent";
+                case DocumentType.LINKANCHOR: docColor = isAnchor ? "lightblue" : "transparent"; break;
+                case DocumentType.LINK: docColor = docColor || "transparent"; break;
                 case DocumentType.WEB:
                 case DocumentType.PDF:
+                case DocumentType.SCREENSHOT:
                 case DocumentType.VID: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.COL:
                     if (StrCast(Doc.LayoutField(doc)).includes("SliderBox")) break;
@@ -156,7 +151,6 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             }
         }
         case StyleProp.PointerEvents:
-            if (isAnchor && docProps) return "none";
             if (props?.pointerEvents === "none") return "none";
             const layer = doc && props?.layerProvider?.(doc);
             if (opacity() === 0 || (doc?.type === DocumentType.INK && !docProps?.treeViewDoc) || doc?.isInkMask) return "none";

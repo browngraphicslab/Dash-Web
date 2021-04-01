@@ -164,7 +164,8 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
                             layerProvider={this.props.docProps?.layerProvider}
                             docViewPath={returnEmptyDoclist}
                             ScreenToLocalTransform={Transform.Identity}
-                            parentActive={returnFalse}
+                            isDocumentActive={returnFalse}
+                            isContentActive={returnFalse}
                             addDocument={returnFalse}
                             removeDocument={returnFalse}
                             addDocTab={returnFalse}
@@ -179,7 +180,7 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
                             PanelWidth={this.width}
                             PanelHeight={this.height}
                             focus={DocUtils.DefaultFocus}
-                            whenActiveChanged={returnFalse}
+                            whenChildContentsActiveChanged={returnFalse}
                             bringToFront={returnFalse}
                             NativeWidth={Doc.NativeWidth(this._targetDoc) ? () => Doc.NativeWidth(this._targetDoc) : undefined}
                             NativeHeight={Doc.NativeHeight(this._targetDoc) ? () => Doc.NativeHeight(this._targetDoc) : undefined}

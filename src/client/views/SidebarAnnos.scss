@@ -4,7 +4,8 @@
     overflow: auto;
     flex-flow: row;
     flex-wrap: wrap;
-    .sidebarAnnos-filterTag, .sidebarAnnos-filterTag-active {
+    .sidebarAnnos-filterTag, .sidebarAnnos-filterTag-active,
+    .sidebarAnnos-filterUser, .sidebarAnnos-filterUser-active {
         font-weight: bold;
         padding-left: 6;
         padding-right: 6;
@@ -13,6 +14,9 @@
         margin: 2; 
         height: 20;
         background-color: lightgrey;
+    }
+    .sidebarAnnos-filterUser, .sidebarAnnos-filterUser-active {
+        border-radius: 15px;
     }
     .sidebarAnnos-filterTag-active {
         background-color: white;

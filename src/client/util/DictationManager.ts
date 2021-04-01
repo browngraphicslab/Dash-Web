@@ -84,7 +84,13 @@ export namespace DictationManager {
             terminators: string[];
         }
 
+        let pendingListen: Promise<string> | string | undefined;
+
         export const listen = async (options?: Partial<ListeningOptions>) => {
+            if (pendingListen instanceof Promise) return pendingListen.then(pl => innerListen(options));
+            return innerListen(options);
+        };
+        const innerListen = async (options?: Partial<ListeningOptions>) => {
             let results: string | undefined;
 
             const overlay = options?.useOverlay;
@@ -94,7 +100,8 @@ export namespace DictationManager {
             }
 
             try {
-                results = await listenImpl(options);
+                results = await (pendingListen = listenImpl(options));
+                pendingListen = undefined;
                 if (results) {
                     Utils.CopyText(results);
                     if (overlay) {
@@ -106,6 +113,7 @@ export namespace DictationManager {
                     options?.tryExecute && await DictationManager.Commands.execute(results);
                 }
             } catch (e) {
+                console.log(e);
                 if (overlay) {
                     DictationOverlay.Instance.isListening = false;
                     DictationOverlay.Instance.dictatedPhrase = results = `dictation error: ${"error" in e ? e.error : "unknown error"}`;
@@ -146,7 +154,8 @@ export namespace DictationManager {
                 recognizer.onerror = (e: any) => { // e is SpeechRecognitionError but where is that defined? 
                     if (!(indefinite && e.error === "no-speech")) {
                         recognizer.stop();
-                        reject(e);
+                        resolve(e);
+                        //reject(e);
                     }
                 };
 
@@ -158,8 +167,8 @@ export namespace DictationManager {
                         recognizer.abort();
                         return complete();
                     }
-                    handler && handler(current);
-                    isManuallyStopped && complete();
+                    !isManuallyStopped && handler?.(current);
+                    //isManuallyStopped && complete();
                 };
 
                 recognizer.onend = (e: Event) => {
@@ -168,7 +177,7 @@ export namespace DictationManager {
                     }
 
                     if (current) {
-                        sessionResults.push(current);
+                        !isManuallyStopped && sessionResults.push(current);
                         current = undefined;
                     }
                     recognizer.start();
@@ -199,14 +208,7 @@ export namespace DictationManager {
             }
             isListening = false;
             isManuallyStopped = true;
-            salvageSession ? recognizer.stop() : recognizer.abort();
-            // let main = MainView.Instance;
-            // if (main.dictationOverlayVisible) {
-            // main.cancelDictationFade();
-            // main.dictationOverlayVisible = false;
-            // main.dictationSuccess = undefined;
-            // setTimeout(() => main.dictatedPhrase = placeholder, 500);
-            // }
+            recognizer.stop(); // salvageSession ? recognizer.stop() : recognizer.abort();
         };
 
         const synthesize = (e: SpeechRecognitionEvent, delimiter?: string) => {

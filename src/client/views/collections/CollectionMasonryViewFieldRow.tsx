@@ -281,7 +281,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                         gridTemplateColumns: numberRange(rows).reduce((list: string, i: any) => list + ` ${this.props.parent.columnWidth}px`, ""),
                     }}>
                     {this.props.parent.children(this.props.docList)}
-                    {this.props.showHandle && this.props.parent.props.active() ? this.props.parent.columnDragger : (null)}
+                    {this.props.showHandle && this.props.parent.props.isContentActive() ? this.props.parent.columnDragger : (null)}
                 </div>
             </div>;
     }

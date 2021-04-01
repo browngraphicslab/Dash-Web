@@ -10,6 +10,8 @@ import { ScriptField } from '../../fields/ScriptField';
 import { GetEffectiveAcl, SharingPermissions, distributeAcls, denormalizeEmail } from '../../fields/util';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DocUtils } from '../documents/Documents';
+import { returnFalse } from '../../Utils';
+import { UndoManager } from '../util/UndoManager';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
@@ -34,7 +36,7 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
     return Component;
 }
 
-/// FieldViewBoxProps  -  a generic base class for field views that are not annotatable (e.g. AudioBox, FormattedTextBox)
+/// FieldViewBoxProps  -  a generic base class for field views that are not annotatable (e.g. InkingStroke, ColorBox)
 interface ViewBoxBaseProps {
     Document: Doc;
     DataDoc?: Doc;
@@ -42,6 +44,7 @@ interface ViewBoxBaseProps {
     fieldKey: string;
     layerProvider?: (doc: Doc, assign?: boolean) => boolean;
     isSelected: (outsideReaction?: boolean) => boolean;
+    isContentActive: () => boolean;
     renderDepth: number;
     rootSelected: (outsideReaction?: boolean) => boolean;
 }
@@ -62,7 +65,10 @@ export function ViewBoxBaseComponent<P extends ViewBoxBaseProps, T>(schemaCtor: 
 
         lookupField = (field: string) => ScriptCast(this.layoutDoc.lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field, container: this.props.ContainingCollectionDoc }).result;
 
-        active = (outsideReaction?: boolean) => this.props.layerProvider?.(this.props.Document) !== false && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !Doc.SelectedTool();  // bcz: inking state shouldn't affect static tools 
+        isContentActive = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool !== InkTool.None ||
+            (this.props.isContentActive?.() || this.props.Document.forceActive ||
+                this.props.isSelected(outsideReaction) ||
+                this.props.rootSelected(outsideReaction)) ? true : false);
         protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
@@ -74,22 +80,23 @@ export interface ViewBoxAnnotatableProps {
     Document: Doc;
     DataDoc?: Doc;
     fieldKey: string;
-    layerProvider?: (doc: Doc) => boolean;
-    active: () => boolean;
+    filterAddDocument?: (doc: Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
+    layerProvider?: (doc: Doc, assign?: boolean) => boolean;
+    isContentActive: () => boolean;
     select: (isCtrlPressed: boolean) => void;
-    whenActiveChanged: (isActive: boolean) => void;
+    whenChildContentsActiveChanged: (isActive: boolean) => void;
     isSelected: (outsideReaction?: boolean) => boolean;
     rootSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
+    isAnnotationOverlay?: boolean;
 }
-export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
+export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T>(schemaCtor: (doc: Doc) => T, _annotationKey: string = "annotations") {
     class Component extends Touchable<P> {
-        @observable _annotationKey: string = "annotations";
+        @observable _annotationKey: string = _annotationKey;
 
-        @observable _isChildActive = false;
+        @observable _isAnyChildContentActive = false;
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
-
         // This is the "The Document" -- it encapsulates, data, layout, and any templates
         @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
         // This is the rendering data of a document -- it may be "The Document", or it may be some template document that holds the rendering info
@@ -125,7 +132,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
         protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
-        @computed public get annotationKey() { return this.fieldKey + "-" + this._annotationKey; }
+        @computed public get annotationKey() { return this.fieldKey + (this._annotationKey ? "-" + this._annotationKey : ""); }
 
         @action.bound
         removeDocument(doc: Doc | Doc[], annotationKey?: string, leavePushpin?: boolean): boolean {
@@ -156,16 +163,28 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
             return false;
         }
-        // if the moved document is already in this overlay collection nothing needs to be done.
-        // otherwise, if the document can be removed from where it was, it will then be added to this document's overlay collection. 
+        // this is called with the document that was dragged and the collection to move it into.
+        // if the target collection is the same as this collection, then the move will be allowed.
+        // otherwise, the document being moved must be able to be removed from its container before
+        // moving it into the target.
         @action.bound
-        moveDocument(doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean, annotationKey?: string): boolean {
-            return Doc.AreProtosEqual(this.props.Document, targetCollection) ? true : this.removeDocument(doc, annotationKey, true) ? addDocument(doc) : false;
+        moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean, annotationKey?: string): boolean => {
+            if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
+                return true;
+            }
+            const first = doc instanceof Doc ? doc : doc[0];
+            if (!first?._stayInCollection && addDocument !== returnFalse) {
+                return UndoManager.RunInTempBatch(() => this.removeDocument(doc, annotationKey, true) && addDocument(doc));
+            }
+            return false;
         }
         @action.bound
         addDocument(doc: Doc | Doc[], annotationKey?: string): boolean {
             const docs = doc instanceof Doc ? [doc] : doc;
-            docs.map(doc => doc.context = Doc.GetProto(doc).annotationOn = this.props.Document);
+            if (this.props.filterAddDocument?.(docs) === false ||
+                docs.find(doc => Doc.AreProtosEqual(doc, this.props.Document))) {
+                return false;
+            }
             const targetDataDoc = this.props.Document[DataSym];
             const docList = DocListCast(targetDataDoc[annotationKey ?? this.annotationKey]);
             const added = docs.filter(d => !docList.includes(d));
@@ -187,10 +206,21 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     }
 
                     if (effectiveAcl === AclAddonly) {
-                        added.map(doc => Doc.AddDocToList(targetDataDoc, annotationKey ?? this.annotationKey, doc));
+                        added.map(doc => {
+                            doc.context = this.props.Document;
+                            if (annotationKey ?? this._annotationKey) Doc.GetProto(doc).annotationOn = this.props.Document;
+                            this.props.layerProvider?.(doc, true);
+                            Doc.AddDocToList(targetDataDoc, annotationKey ?? this.annotationKey, doc);
+                        });
                     }
                     else {
-                        added.map(doc => doc.context = this.props.Document);
+                        added.filter(doc => [AclAdmin, AclEdit].includes(GetEffectiveAcl(doc))).map(doc => {  // only make a pushpin if we have acl's to edit the document
+                            this.props.layerProvider?.(doc, true);
+                            DocUtils.LeavePushpin(doc);
+                            doc._stayInCollection = undefined;
+                            doc.context = this.props.Document;
+                            if (annotationKey ?? this._annotationKey) Doc.GetProto(doc).annotationOn = this.props.Document;
+                        });
                         const annoDocs = targetDataDoc[annotationKey ?? this.annotationKey] as List<Doc>;
                         if (annoDocs) annoDocs.push(...added);
                         else targetDataDoc[annotationKey ?? this.annotationKey] = new List<Doc>(added);
@@ -201,13 +231,11 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             return true;
         }
 
-        whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
-        active = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool === InkTool.None &&
-            (this.props.rootSelected(outsideReaction) ||
-                this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
-        annotationsActive = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool !== InkTool.None ||
-            (this.props.layerProvider?.(this.props.Document) === false && this.props.active()) ||
-            (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
+        whenChildContentsActiveChanged = action((isActive: boolean) => this.props.whenChildContentsActiveChanged(this._isAnyChildContentActive = isActive));
+        isContentActive = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool !== InkTool.None ||
+            (this.props.isContentActive?.() || this.props.Document.forceActive ||
+                this.props.isSelected(outsideReaction) || this._isAnyChildContentActive ||
+                this.props.rootSelected(outsideReaction)) ? true : false)
     }
     return Component;
 }

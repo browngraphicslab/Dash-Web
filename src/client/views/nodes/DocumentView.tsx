@@ -1,18 +1,19 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction, reaction, IReactionDisposer } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt, StrListCast } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
 import { List } from "../../../fields/List";
+import { ObjectField } from "../../../fields/ObjectField";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { AudioField } from "../../../fields/URLField";
 import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
-import { emptyFunction, hasDescendantTarget, OmitKeys, returnFalse, returnVal, Utils } from "../../../Utils";
+import { emptyFunction, hasDescendantTarget, OmitKeys, returnVal, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -34,19 +35,18 @@ import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
 import { InkingStroke } from "../InkingStroke";
+import { LightboxView } from "../LightboxView";
 import { StyleLayers, StyleProp } from "../StyleProvider";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "./DocumentContentsView";
 import { DocumentLinksButton } from './DocumentLinksButton';
 import "./DocumentView.scss";
-import { FieldViewProps } from "./FieldView";
 import { LinkAnchorBox } from './LinkAnchorBox';
 import { LinkDocPreview } from "./LinkDocPreview";
 import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
-import { ObjectField } from "../../../fields/ObjectField";
-import { LightboxView } from "../LightboxView";
+import { ScriptingBox } from "./ScriptingBox";
 const { Howl } = require('howler');
 
 interface Window {
@@ -75,7 +75,7 @@ export interface DocFocusOptions {
 }
 export type DocAfterFocusFunc = (notFocused: boolean) => Promise<ViewAdjustment>;
 export type DocFocusFunc = (doc: Doc, options?: DocFocusOptions) => void;
-export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
+export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => any;
 export interface DocComponentView {
     getAnchor?: () => Doc; // returns an Anchor Doc that represents the current state of the doc's componentview (e.g., the current playhead location of a an audio/video box)
     scrollFocus?: (doc: Doc, smooth: boolean) => Opt<number>; // returns the duration of the focus
@@ -85,6 +85,8 @@ export interface DocComponentView {
     menuControls?: () => JSX.Element; // controls to display in the top menu bar when the document is selected.
     getKeyFrameEditing?: () => boolean; // whether the document is in keyframe editing mode (if it is, then all hidden documents that are not active at the keyframe time will still be shown)
     setKeyFrameEditing?: (set: boolean) => void; // whether the document is in keyframe editing mode (if it is, then all hidden documents that are not active at the keyframe time will still be shown)
+    playFrom?: (time: number, endTime?: number) => void;
+    setFocus?: () => void;
 }
 export interface DocumentViewSharedProps {
     renderDepth: number;
@@ -105,11 +107,10 @@ export interface DocumentViewSharedProps {
     docFilters: () => string[];
     docRangeFilters: () => string[];
     searchFilterDocs: () => Doc[];
-    contentsActive?: (setActive: () => boolean) => void;
-    parentActive: (outsideReaction: boolean) => boolean;
-    whenActiveChanged: (isActive: boolean) => void;
+    whenChildContentsActiveChanged: (isActive: boolean) => void;
     rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
     addDocTab: (doc: Doc, where: string) => boolean;
+    filterAddDocument?: (doc: Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     addDocument?: (doc: Doc | Doc[]) => boolean;
     removeDocument?: (doc: Doc | Doc[]) => boolean;
     moveDocument?: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
@@ -118,6 +119,7 @@ export interface DocumentViewSharedProps {
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     dropAction?: dropActionType;
     dontRegisterView?: boolean;
+    hideLinkButton?: boolean;
     ignoreAutoHeight?: boolean;
     cantBrush?: boolean; // whether the document doesn't show brush highlighting
     pointerEvents?: string;
@@ -130,6 +132,8 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     hideTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
     hideDecorationTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
     treeViewDoc?: Doc;
+    isDocumentActive?: () => boolean | undefined; // whether a document should handle pointer events
+    isContentActive: () => boolean | undefined; // whether a document should handle pointer events
     contentPointerEvents?: string; // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
     radialMenu?: String[];
     LayoutTemplateString?: string;
@@ -157,7 +161,7 @@ export interface DocumentViewInternalProps extends DocumentViewProps {
 @observer
 export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps, Document>(Document) {
     @observable _animateScalingTo = 0;
-    @observable _audioState = 0;
+    @observable _mediaState = 0;
     @observable _pendingDoubleClick = false;
     private _downX: number = 0;
     private _downY: number = 0;
@@ -174,7 +178,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     _componentView: Opt<DocComponentView>; // needs to be accessed from DocumentView wrapper class
 
     private get topMost() { return this.props.renderDepth === 0; }
-    private get active() { return this.props.isSelected(true) || this.props.parentActive(true); }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
     public get LayoutFieldKey() { return Doc.LayoutFieldKey(this.layoutDoc); }
@@ -278,7 +281,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             this._downX = touch.clientX;
             this._downY = touch.clientY;
             if (!e.nativeEvent.cancelBubble) {
-                if ((this.active || this.layoutDoc.onDragStart || this.onClickHandler) && !e.ctrlKey && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) e.stopPropagation();
+                if ((this.props.isDocumentActive?.() || this.layoutDoc.onDragStart || this.onClickHandler) && !e.ctrlKey && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) e.stopPropagation();
                 this.removeMoveListeners();
                 this.addMoveListeners();
                 this.removeEndListeners();
@@ -289,10 +292,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     }
 
     handle1PointerMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
-        if (e.cancelBubble && this.active) {
+        if (e.cancelBubble && this.props.isDocumentActive?.()) {
             this.removeMoveListeners();
         }
-        else if (!e.cancelBubble && (this.props.isSelected(true) || this.props.parentActive(true) || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+        else if (!e.cancelBubble && (this.props.isDocumentActive?.() || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
             const touch = me.touchEvent.changedTouches.item(0);
             if (touch && (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3)) {
                 if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler)) {
@@ -404,9 +407,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 if (!this._titleRef.current) setTimeout(() => this._titleRef.current?.setIsFocused(true), 0);
                 else if (!this._titleRef.current.setIsFocused(true)) { // if focus didn't change, focus on interior text...
                     this._titleRef.current?.setIsFocused(false);
-                    const any = (this._mainCont.current?.getElementsByClassName("ProseMirror")?.[0] as any);
-                    any.keeplocation = true;
-                    any?.focus();
+                    this._componentView?.setFocus?.();
                 }
             }
         }
@@ -456,28 +457,24 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     }
                     Doc.UnBrushDoc(this.props.Document);
                 }
-            } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
-                const shiftKey = e.shiftKey;
-                const clientX = e.clientX;
-                const clientY = e.clientY;
+            } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes(ScriptingBox.name)) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
                 const func = () => this.onClickHandler.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,
                     scriptContext: this.props.scriptContext,
                     thisContainer: this.props.ContainingCollectionDoc,
                     documentView: this.props.DocumentView(),
-                    clientX: clientX,
-                    clientY: clientY,
-                    shiftKey
-                }, console.log);
-                const clickFunc = () => this.props.Document.dontUndo ? func() :
-                    UndoManager.RunInBatch(() => func().result?.select === true ? this.props.select(false) : "", "on click");
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                    shiftKey: e.shiftKey
+                }, console.log).result?.select === true ? this.props.select(false) : "";
+                const clickFunc = () => this.props.Document.dontUndo ? func() : UndoManager.RunInBatch(func, "on click");
                 if (this.onDoubleClickHandler) {
                     this._timeout = setTimeout(() => { this._timeout = undefined; clickFunc(); }, 350);
                 } else clickFunc();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
                 this.props.addDocTab(DocUtils.makeCustomViewClicked(Doc.MakeAlias(this.props.Document), undefined, "onClick"), "add:right");
-            } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
+            } else if (this.allLinks && this.Document.type !== DocumentType.LINK && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
                 this.allLinks.length && LinkManager.FollowLink(undefined, this.props.Document, this.props, e.altKey);
             } else {
                 if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
@@ -509,7 +506,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if ((!e.nativeEvent.cancelBubble || this.onClickHandler || this.layoutDoc.onDragStart) &&
             // if this is part of a template, let the event go up to the tempalte root unless right/ctrl clicking
             !(this.props.Document.rootDocument && !(e.ctrlKey || e.button > 0))) {
-            if ((this.active || this.layoutDoc.onDragStart) &&
+            if ((this.props.isDocumentActive?.() || this.layoutDoc.onDragStart) &&
                 !e.ctrlKey &&
                 (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
                 !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
@@ -526,10 +523,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     onPointerMove = (e: PointerEvent): void => {
         if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || [InkTool.Highlighter, InkTool.Pen].includes(CurrentUserUtils.SelectedTool))) return;
-        if (e.cancelBubble && this.active) {
+        if (e.cancelBubble && this.props.isDocumentActive?.()) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (this.props.isSelected(true) || this.props.parentActive(true) || this.layoutDoc.onDragStart) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+        else if (!e.cancelBubble && (this.props.isDocumentActive?.() || this.layoutDoc.onDragStart) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);
@@ -754,14 +751,12 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     rootSelected = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     panelHeight = () => this.props.PanelHeight() - this.headerMargin;
-    parentActive = (outsideReaction: boolean) => this.props.layerProvider?.(this.layoutDoc) === false ? this.props.parentActive(outsideReaction) : false;
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
     setHeight = (height: number) => this.layoutDoc._height = height;
     setContentView = (view: { getAnchor?: () => Doc, forward?: () => boolean, back?: () => boolean }) => this._componentView = view;
-    @observable contentsActive: () => boolean = returnFalse;
-    @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
+    isContentActive = (outsideReaction?: boolean) => this.props.isContentActive() ? true : false;
     @computed get contents() {
         TraceMobx();
         const audioView = !this.layoutDoc._showAudio ? (null) :
@@ -771,7 +766,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 style={{ height: 25, position: "absolute", top: 10, left: 10 }}
             >
                 <FontAwesomeIcon className="documentView-audioFont"
-                    style={{ color: [DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
+                    style={{ color: [DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._mediaState] }}
                     icon={!DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]).length ? "microphone" : "file-audio"} size="sm" />
             </div>;
         return <div className="documentView-contentsView"
@@ -785,8 +780,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 scaling={this.contentScaling}
                 PanelHeight={this.panelHeight}
                 setHeight={this.setHeight}
-                contentsActive={this.setContentsActive}
-                parentActive={this.parentActive}
+                isContentActive={this.isContentActive}
                 ScreenToLocalTransform={this.screenToLocal}
                 rootSelected={this.rootSelected}
                 onClick={this.onClickFunc}
@@ -794,7 +788,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allLinkEndpoints}
             {this.hideLinkButton ? (null) :
-                <DocumentLinksButton View={this.props.DocumentView()} links={this.allLinks} Offset={[this.topMost ? 0 : -15, undefined, undefined, this.topMost ? 10 : -20]} />}
+                <DocumentLinksButton View={this.props.DocumentView()} Offset={[this.topMost ? 0 : -15, undefined, undefined, this.topMost ? 10 : -20]} />}
 
             {audioView}
         </div>;
@@ -804,8 +798,12 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && (doc.hidden = true), true)
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
-    anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
-        return property !== StyleProp.LinkSource ? this.props.styleProvider?.(doc, props, property + ":anchor") : this.props.Document; // pass the LinkSource to the LinkAnchorBox
+    anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any => {
+        switch (property) {
+            case StyleProp.PointerEvents: return "none";
+            case StyleProp.LinkSource: return this.props.Document;// pass the LinkSource to the LinkAnchorBox
+            default: return this.props.styleProvider?.(doc, props, property);
+        }
     }
     @computed get directLinks() { TraceMobx(); return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }
     @computed get allLinks() { TraceMobx(); return LinkManager.Instance.getAllRelatedLinks(this.rootDoc); }
@@ -813,7 +811,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         TraceMobx();
         if (this.props.LayoutTemplateString?.includes(LinkAnchorBox.name)) return null;
         if (this.layoutDoc.presBox || this.rootDoc.type === DocumentType.LINK || this.props.dontRegisterView) return (null);
-
         // need to use allLinks for RTF since embedded linked text anchors are not rendered with DocumentViews.  All other documents render their anchors with nested DocumentViews so we just need to render the directLinks here
         const filtered = DocUtils.FilterDocs(this.rootDoc.type === DocumentType.RTF ? this.allLinks : this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden);
         return filtered.map((link, i) =>
@@ -834,7 +831,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     onPointerEnter = () => {
         const self = this;
         const audioAnnos = DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]);
-        if (audioAnnos && audioAnnos.length && this._audioState === 0) {
+        if (audioAnnos && audioAnnos.length && this._mediaState === 0) {
             const anno = audioAnnos[Math.floor(Math.random() * audioAnnos.length)];
             anno.data instanceof AudioField && new Howl({
                 src: [anno.data.url.href],
@@ -843,10 +840,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 loop: false,
                 volume: 0.5,
                 onend: function () {
-                    runInAction(() => self._audioState = 0);
+                    runInAction(() => self._mediaState = 0);
                 }
             });
-            this._audioState = 1;
+            this._mediaState = 1;
         }
     }
     recordAudioAnnotation = () => {
@@ -871,11 +868,11 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     }
                 }
             };
-            runInAction(() => self._audioState = 2);
+            runInAction(() => self._mediaState = 2);
             recorder.start();
             setTimeout(() => {
                 recorder.stop();
-                runInAction(() => self._audioState = 0);
+                runInAction(() => self._mediaState = 0);
                 gumStream.getAudioTracks()[0].stop();
             }, 5000);
         });
@@ -1032,7 +1029,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get centeringY() { return this.fitWidth || this.props.dontCenter?.includes("y") ? 0 : this.Yshift; }
 
     toggleNativeDimensions = () => this.docView && Doc.toggleNativeDimensions(this.layoutDoc, this.docView.ContentScale, this.props.PanelWidth(), this.props.PanelHeight());
-    contentsActive = () => this.docView?.contentsActive();
     focus = (doc: Doc, options?: DocFocusOptions) => this.docView?.focus(doc, options);
     getBounds = () => {
         if (!this.docView || !this.docView.ContentDiv || this.docView.props.renderDepth === 0 || this.docView.props.treeViewDoc || Doc.AreProtosEqual(this.props.Document, Doc.UserDoc())) {
@@ -1102,16 +1098,16 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     render() {
         TraceMobx();
-        const xshift = this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) <= 0.001 ? this.props.PanelWidth() : undefined;
-        const yshift = this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Yshift) <= 0.001 ? this.props.PanelHeight() : undefined;
+        const xshift = () => (this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) <= 0.001 ? this.props.PanelWidth() : undefined);
+        const yshift = () => (this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Yshift) <= 0.001 ? this.props.PanelHeight() : undefined);
         return (<div className="contentFittingDocumentView">
             {!this.props.Document || !this.props.PanelWidth() ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
                     style={{
                         position: this.props.Document.isInkMask ? "absolute" : undefined,
                         transform: `translate(${this.centeringX}px, ${this.centeringY}px)`,
-                        width: xshift ?? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%`,
-                        height: yshift ?? (this.fitWidth ? `${this.panelHeight}px` :
+                        width: xshift() ?? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%`,
+                        height: yshift() ?? (this.fitWidth ? `${this.panelHeight}px` :
                             `${100 * this.effectiveNativeHeight / this.effectiveNativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%`),
                     }}>
                     <DocumentViewInternal {...this.props}

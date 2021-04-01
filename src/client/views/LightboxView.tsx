@@ -5,7 +5,7 @@ import "normalize.css";
 import * as React from 'react';
 import { Doc, DocListCast, Opt } from '../../fields/Doc';
 import { Cast, NumCast, StrCast } from '../../fields/Types';
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnTrue } from '../../Utils';
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnTrue, returnFalse } from '../../Utils';
 import { DocUtils } from '../documents/Documents';
 import { DocumentManager } from '../util/DocumentManager';
 import { LinkManager } from '../util/LinkManager';
@@ -114,9 +114,11 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     @action public static Next() {
         const doc = LightboxView._doc!;
         const target = LightboxView._docTarget = LightboxView._future?.pop();
-        const docView = target && DocumentManager.Instance.getLightboxDocumentView(target);
-        if (docView && target) {
-            docView.focus(target, { originalTarget: target, willZoom: true, scale: 0.9 });
+        const targetDocView = target && DocumentManager.Instance.getLightboxDocumentView(target);
+        if (targetDocView && target) {
+            const l = DocUtils.MakeLinkToActiveAudio(targetDocView.ComponentView?.getAnchor?.() || target).lastElement();
+            l && (Cast(l.anchor2, Doc, null).backgroundColor = "lightgreen");
+            targetDocView.focus(target, { originalTarget: target, willZoom: true, scale: 0.9 });
             if (LightboxView._history?.lastElement().target !== target) LightboxView._history?.push({ doc, target });
         } else {
             if (!target && LightboxView.path.length) {
@@ -229,6 +231,8 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         DataDoc={undefined}
                         addDocument={undefined}
                         fitContentsToDoc={this.fitToBox}
+                        isDocumentActive={returnFalse}
+                        isContentActive={returnTrue}
                         addDocTab={this.addDocTab}
                         pinToPres={TabDocView.PinDoc}
                         rootSelected={returnTrue}
@@ -241,8 +245,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         PanelWidth={this.lightboxWidth}
                         PanelHeight={this.lightboxHeight}
                         focus={DocUtils.DefaultFocus}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
+                        whenChildContentsActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
                         docRangeFilters={returnEmptyFilter}
                         searchFilterDocs={returnEmptyDoclist}

@@ -341,8 +341,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     }
 
     @computed get viewModes() {
-        const excludedViewTypes = Doc.UserDoc().noviceMode ? [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.StackedTimeline, CollectionViewType.Stacking, CollectionViewType.Map, CollectionViewType.Linear] :
-            [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.StackedTimeline, CollectionViewType.Linear];
+        const excludedViewTypes = [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.StackedTimeline, CollectionViewType.Linear];
         const isPres: boolean = (this.document && this.document.type === DocumentType.PRES);
         return isPres ? (null) : (<div className="collectionViewBaseChrome-viewModes" >
             <Tooltip title={<div className="dash-tooltip">drop document to apply or drag to create button</div>} placement="bottom">
@@ -517,7 +516,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                             </button>
                         </Tooltip>
                         {this.subChrome}
-                        {/* {this.notACollection || this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes} */}
+                        {this.notACollection || this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes}
                         {!this._buttonizableCommands ? (null) : this.templateChrome}
                     </div>
                 </div>

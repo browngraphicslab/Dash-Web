@@ -230,17 +230,20 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     // 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
     startTempMedia = (targetDoc: Doc, activeItem: Doc) => {
         const duration: number = NumCast(activeItem.presEndTime) - NumCast(activeItem.presStartTime);
-        if (targetDoc.type === DocumentType.AUDIO) {
-            if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
-            targetDoc._triggerAudio = NumCast(activeItem.presStartTime);
-            this._mediaTimer = [setTimeout(() => targetDoc._audioStop = true, duration * 1000), targetDoc];
-        } else if (targetDoc.type === DocumentType.VID) {
-            if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
-            targetDoc._triggerVideoStop = true;
-            setTimeout(() => targetDoc._currentTimecode = NumCast(activeItem.presStartTime), 10);
-            setTimeout(() => targetDoc._triggerVideo = true, 20);
-            this._mediaTimer = [setTimeout(() => targetDoc._triggerVideoStop = true, (duration * 1000) + 20), targetDoc];
+        if ([DocumentType.VID, DocumentType.AUDIO].includes(targetDoc.type as any)) {
+            const targMedia = DocumentManager.Instance.getDocumentView(targetDoc);
+            targMedia?.ComponentView?.playFrom?.(NumCast(activeItem.presStartTime), NumCast(activeItem.presStartTime) + duration);
         }
+        // if (targetDoc.type === DocumentType.AUDIO) {
+        //     if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
+        //     targetDoc._triggerAudio = NumCast(activeItem.presStartTime);
+        //     this._mediaTimer = [setTimeout(() => targetDoc._audioStop = true, duration * 1000), targetDoc];
+        // } else if (targetDoc.type === DocumentType.VID) {
+        //     targetDoc._triggerVideoStop = true;
+        //     setTimeout(() => targetDoc._currentTimecode = NumCast(activeItem.presStartTime), 10);
+        //     setTimeout(() => targetDoc._triggerVideo = true, 20);
+        //     this._mediaTimer = [setTimeout(() => targetDoc._triggerVideoStop = true, (duration * 1000) + 20), targetDoc];
+        // }
     }
 
     stopTempMedia = (targetDoc: Doc) => {
@@ -708,10 +711,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         return output;
     });
 
-    whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
+    whenChildContentsActiveChanged = action((isActive: boolean) => this.props.whenChildContentsActiveChanged(this._isChildActive = isActive));
     // For dragging documents into the presentation trail
-    addDocumentFilter = (doc: Doc | Doc[]) => {
-        const docs = doc instanceof Doc ? [doc] : doc;
+    addDocumentFilter = (docs: Doc[]) => {
         docs.forEach((doc, i) => {
             if (doc.presentationTargetDoc) return true;
             if (doc.type === DocumentType.LABEL) {
@@ -746,7 +748,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     removeDocument = (doc: Doc) => Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc);
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight() - 40;
-    active = (outsideReaction?: boolean) => ((CurrentUserUtils.SelectedTool === InkTool.None && this.props.layerProvider?.(this.layoutDoc) !== false) &&
+    isContentActive = (outsideReaction?: boolean) => ((CurrentUserUtils.SelectedTool === InkTool.None && this.props.layerProvider?.(this.layoutDoc) !== false) &&
         (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
     /**

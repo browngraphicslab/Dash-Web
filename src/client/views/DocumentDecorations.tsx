@@ -94,7 +94,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         setupMoveUpEvents(this, e, e => this.onBackgroundMove(true, e), (e) => { }, action((e) => {
             !this._edtingTitle && (this._accumulatedTitle = this._titleControlString.startsWith("#") ? this.selectionTitle : this._titleControlString);
             this._edtingTitle = true;
-            setTimeout(() => this._keyinput.current!.focus(), 0);
+            this._keyinput.current && setTimeout(this._keyinput.current.focus);
         }));
     }
 
@@ -103,13 +103,12 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     @action
     onBackgroundMove = (dragTitle: boolean, e: PointerEvent): boolean => {
         const dragDocView = SelectionManager.Views()[0];
-        const dragData = new DragManager.DocumentDragData(SelectionManager.Views().map(dv => dv.props.Document));
         const { left, top } = dragDocView.getBounds() || { left: 0, top: 0 };
-        dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.ContentScale()).transformDirection(e.x - left, e.y - top);
+        const dragData = new DragManager.DocumentDragData(SelectionManager.Views().map(dv => dv.props.Document), dragDocView.props.dropAction);
+        dragData.offset = dragDocView.props.ScreenToLocalTransform().transformDirection(e.x - left, e.y - top);
         dragData.moveDocument = dragDocView.props.moveDocument;
         dragData.isSelectionMove = true;
         dragData.canEmbed = dragTitle;
-        dragData.dropAction = dragDocView.props.dropAction;
         this._hidden = this.Interacting = true;
         DragManager.StartDocumentDrag(SelectionManager.Views().map(dv => dv.ContentDiv!), dragData, e.x, e.y, {
             dragComplete: action(e => {
@@ -192,7 +191,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     X: Math.cos(angle) * (ink.X - pair.X) - Math.sin(angle) * (ink.Y - pair.Y) + pair.X,
                     Y: Math.sin(angle) * (ink.X - pair.X) + Math.cos(angle) * (ink.Y - pair.Y) + pair.Y
                 })) || [];
-                Doc.SetInPlace(pair.doc, "data", new InkField(newPoints), true);
+                Doc.GetProto(pair.doc).data = new InkField(newPoints);
 
                 pair.doc._width = ((xs) => (Math.max(...xs) - Math.min(...xs)))(newPoints.map(p => p.X) || [0]);
                 pair.doc._height = ((ys) => (Math.max(...ys) - Math.min(...ys)))(newPoints.map(p => p.Y) || [0]);
@@ -228,7 +227,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
         const first = SelectionManager.Views()[0];
-        let thisPt = { thisX: e.clientX - this._offX, thisY: e.clientY - this._offY };
+        let thisPt = { x: e.clientX - this._offX, y: e.clientY - this._offY };
         var fixedAspect = Doc.NativeAspect(first.layoutDoc);
         InkStrokeProperties.Instance?._lock && SelectionManager.Views().filter(dv => dv.rootDoc.type === DocumentType.INK)
             .forEach(dv => fixedAspect = Doc.NativeAspect(dv.rootDoc));
@@ -250,10 +249,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             thisPt = DragManager.snapDrag(e, -this._offX, -this._offY, this._offX, this._offY);
         }
 
-        move[0] = thisPt.thisX - this._snapX;
-        move[1] = thisPt.thisY - this._snapY;
-        this._snapX = thisPt.thisX;
-        this._snapY = thisPt.thisY;
+        move[0] = thisPt.x - this._snapX;
+        move[1] = thisPt.y - this._snapY;
+        this._snapX = thisPt.x;
+        this._snapY = thisPt.y;
         let dragBottom = false, dragRight = false, dragBotRight = false;
         let dX = 0, dY = 0, dW = 0, dH = 0;
         switch (this._resizeHdlId) {
@@ -376,11 +375,11 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         //need to change points for resize, or else rotation/control points will fail.
         this._inkDragDocs.map(oldbds => ({ oldbds, inkPts: Cast(oldbds.doc.data, InkField)?.inkData || [] }))
             .forEach(({ oldbds: { doc, x, y, width, height }, inkPts }) => {
-                Doc.SetInPlace(doc, "data", new InkField(inkPts.map(ipt =>  // (new x — oldx) + newWidth * (oldxpoint /oldWidth)
+                Doc.GetProto(doc).data = new InkField(inkPts.map(ipt =>  // (new x — oldx) + newWidth * (oldxpoint /oldWidth)
                     ({
                         X: (NumCast(doc.x) - x) + NumCast(doc.width) * ipt.X / width,
                         Y: (NumCast(doc.y) - y) + NumCast(doc.height) * ipt.Y / height
-                    }))), true);
+                    })));
                 Doc.SetNativeWidth(doc, undefined);
                 Doc.SetNativeHeight(doc, undefined);
             });
@@ -476,10 +475,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
                             {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
                                 topBtn("selector", "arrow-alt-circle-up", this.onSelectorClick, "tap to select containing document")}
+                            <div key="rot" className={`documentDecorations-${useRotation ? "rotation" : "borderRadius"}`}
+                                onPointerDown={useRotation ? this.onRotateDown : this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}>{useRotation && "⟲"}</div>
                         </>
                     }
-                    <div key="rot" className={`documentDecorations-${useRotation ? "rotation" : "borderRadius"}`}
-                        onPointerDown={useRotation ? this.onRotateDown : this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}>{useRotation && "⟲"}</div>
                 </div >
                 {seldoc?.Document.type === DocumentType.FONTICON ? (null) : <div className="link-button-container" key="links" style={{ left: bounds.x - this._resizeBorderWidth / 2 + 10, top: bounds.b + this._resizeBorderWidth / 2 }}>
                     <DocumentButtonBar views={SelectionManager.Views} />

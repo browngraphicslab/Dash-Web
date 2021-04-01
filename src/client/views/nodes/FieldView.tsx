@@ -18,8 +18,8 @@ export interface FieldViewProps extends DocumentViewSharedProps {
     fieldKey: string;
     scrollOverflow?: boolean; // bcz: would like to think this can be avoided -- need to look at further
 
-    active: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;
+    isContentActive: (outsideReaction?: boolean) => boolean;
     isSelected: (outsideReaction?: boolean) => boolean;
     scaling?: () => number;
     setHeight: (height: number) => void;
@@ -73,28 +73,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <p>{field.date.toLocaleString()}</p>;
         }
         else if (field instanceof Doc) {
-            return <p><b>{field.title && field.title.toString()}</b></p>;
-            //return <p><b>{field.title + " : id= " + field[Id]}</b></p>;
-            // let returnHundred = () => 100;
-            // return (
-            //     <DocumentContentsView Document={field}
-            //         addDocument={undefined}
-            //         addDocTab={this.props.addDocTab}
-            //         removeDocument={undefined}
-            //         ScreenToLocalTransform={Transform.Identity}
-            //         ContentScaling={returnOne}
-            //         PanelWidth={returnHundred}
-            //         PanelHeight={returnHundred}
-            //         renderDepth={0} //TODO Why is renderDepth reset?
-            //         focus={emptyFunction}
-            //         isSelected={this.props.isSelected}
-            //         select={returnFalse}
-            //         layoutKey={"layout"}
-            //         ContainingCollectionView={this.props.ContainingCollectionView}
-            //         parentActive={this.props.active}
-            //         whenActiveChanged={this.props.whenActiveChanged}
-            //         bringToFront={emptyFunction} />
-            // );
+            return <p><b>{field.title?.toString()}</b></p>;
         }
         else if (field instanceof List) {
             return <div> {field.length ? field.map(f => Field.toString(f)).join(", ") : ""}  </div>;

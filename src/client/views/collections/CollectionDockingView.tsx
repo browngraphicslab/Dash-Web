@@ -188,6 +188,8 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                         // if not going in a row layout, must add already existing content into column
                         const rowlayout = instance._goldenLayout.root.contentItems[0];
                         const newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, instance._goldenLayout);
+
+                        CollectionDockingView.Instance._goldenLayout.saveScrollTops(rowlayout.element);
                         rowlayout.parent.replaceChild(rowlayout, newColumn);
                         if (pullSide === "top") {
                             newColumn.addChild(rowlayout, undefined, true);
@@ -196,6 +198,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                             newColumn.addChild(newContentItem, undefined, true);
                             newColumn.addChild(rowlayout, 0, true);
                         }
+                        CollectionDockingView.Instance._goldenLayout.restoreScrollTops(rowlayout.element);
 
                         rowlayout.config.height = 50;
                         newContentItem.config.height = 50;
@@ -210,8 +213,9 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                         // if not going in a row layout, must add already existing content into column
                         const collayout = instance._goldenLayout.root.contentItems[0];
                         const newRow = collayout.layoutManager.createContentItem({ type: "row" }, instance._goldenLayout);
-                        collayout.parent.replaceChild(collayout, newRow);
 
+                        CollectionDockingView.Instance._goldenLayout.saveScrollTops(collayout.element);
+                        collayout.parent.replaceChild(collayout, newRow);
                         if (pullSide === "left") {
                             newRow.addChild(collayout, undefined, true);
                             newRow.addChild(newContentItem, 0, true);
@@ -219,6 +223,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                             newRow.addChild(newContentItem, undefined, true);
                             newRow.addChild(collayout, 0, true);
                         }
+                        CollectionDockingView.Instance._goldenLayout.restoreScrollTops(collayout.element);
 
                         collayout.config.width = 50;
                         newContentItem.config.width = 50;
@@ -348,7 +353,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         if (clone) {
             const cloned = (await Doc.MakeClone(doc));
             Array.from(cloned.map.entries()).map(entry => json = json.replace(entry[0], entry[1][Id]));
-            Doc.SetInPlace(cloned.clone, "dockingConfig", json, true);
+            Doc.GetProto(cloned.clone).dockingConfig = json;
             return cloned.clone;
         }
         const matches = json.match(/\"documentId\":\"[a-z0-9-]+\"/g);
@@ -358,7 +363,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             const origtabdocs = DocListCast(origtab.data);
             const newtab = origtabdocs.length ? Doc.MakeCopy(origtab, true) : Doc.MakeAlias(origtab);
             const newtabdocs = origtabdocs.map(origtabdoc => Doc.MakeAlias(origtabdoc));
-            newtabdocs.length && Doc.SetInPlace(newtab, "data", new List<Doc>(newtabdocs), true);
+            newtabdocs.length && (Doc.GetProto(newtab).data = new List<Doc>(newtabdocs));
             json = json.replace(origtab[Id], newtab[Id]);
             return newtab;
         });
@@ -432,9 +437,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        return <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} ref={this._containerRef}>
-            {this.props.renderDepth > 0 ? "Nested dashboards can't be rendered" : (null)}
-        </div>;
+        return <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} ref={this._containerRef} />;
     }
 }
 

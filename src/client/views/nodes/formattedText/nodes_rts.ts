@@ -28,14 +28,17 @@ export const nodes: { [index: string]: NodeSpec } = {
         group: "block",
         attrs: {
             timeCode: { default: 0 },
-            audioId: { default: "" }
+            audioId: { default: "" },
+            textId: { default: "" }
         },
         toDOM(node) {
             return ['audiotag',
                 {
+                    class: node.attrs.textId,
                     // style: see FormattedTextBox.scss
                     "data-timecode": node.attrs.timeCode,
                     "data-audioid": node.attrs.audioId,
+                    "data-textid": node.attrs.textId,
                 },
                 formatAudioTime(node.attrs.timeCode.toString())
             ];
@@ -45,7 +48,8 @@ export const nodes: { [index: string]: NodeSpec } = {
                 tag: "audiotag", getAttrs(dom: any) {
                     return {
                         timeCode: dom.getAttribute("data-timecode"),
-                        audioId: dom.getAttribute("data-audioid")
+                        audioId: dom.getAttribute("data-audioid"),
+                        textId: dom.getAttribute("data-textid")
                     };
                 }
             },
