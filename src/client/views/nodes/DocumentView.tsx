@@ -121,7 +121,7 @@ export interface DocumentViewSharedProps {
     dontRegisterView?: boolean;
     hideLinkButton?: boolean;
     ignoreAutoHeight?: boolean;
-    cantBrush?: boolean; // whether the document doesn't show brush highlighting
+    disableDocBrushing?: boolean; // should highlighting for this view be disabled when same document in another view is hovered over.
     pointerEvents?: string;
     scriptContext?: any; // can be assigned anything and will be passed as 'scriptContext' to any OnClick script that executes on this document
 }
@@ -438,16 +438,15 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     clearTimeout(this._timeout);
                     this._timeout = undefined;
                 }
-                if (this.onDoubleClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
+                if (this.onDoubleClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes(ScriptingBox.name)) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
+                    const { clientX, clientY, shiftKey } = e;
                     const func = () => this.onDoubleClickHandler.script.run({
                         this: this.layoutDoc,
                         self: this.rootDoc,
                         scriptContext: this.props.scriptContext,
                         thisContainer: this.props.ContainingCollectionDoc,
                         documentView: this.props.DocumentView(),
-                        clientX: e.clientX,
-                        clientY: e.clientY,
-                        shiftKey: e.shiftKey
+                        clientX, clientY, shiftKey
                     }, console.log);
                     UndoManager.RunInBatch(() => func().result?.select === true ? this.props.select(false) : "", "on double click");
                 } else if (!Doc.IsSystem(this.rootDoc)) {
@@ -458,15 +457,14 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     Doc.UnBrushDoc(this.props.Document);
                 }
             } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes(ScriptingBox.name)) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
+                const { clientX, clientY, shiftKey } = e;
                 const func = () => this.onClickHandler.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,
                     scriptContext: this.props.scriptContext,
                     thisContainer: this.props.ContainingCollectionDoc,
                     documentView: this.props.DocumentView(),
-                    clientX: e.clientX,
-                    clientY: e.clientY,
-                    shiftKey: e.shiftKey
+                    clientX, clientY, shiftKey
                 }, console.log).result?.select === true ? this.props.select(false) : "";
                 const clickFunc = () => this.props.Document.dontUndo ? func() : UndoManager.RunInBatch(func, "on click");
                 if (this.onDoubleClickHandler) {
@@ -950,7 +948,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"])[highlightIndex];
         const highlightStyle = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"][highlightIndex];
         const excludeTypes = !this.props.treeViewDoc ? [DocumentType.FONTICON, DocumentType.INK] : [DocumentType.FONTICON];
-        let highlighting = !this.props.cantBrush && highlightIndex && !excludeTypes.includes(this.layoutDoc.type as any) && this.layoutDoc._viewType !== CollectionViewType.Linear;
+        let highlighting = !this.props.disableDocBrushing && highlightIndex && !excludeTypes.includes(this.layoutDoc.type as any) && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction && this.layoutDoc.title !== "[pres element template]";  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
 
         const boxShadow = highlighting && this.borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :
