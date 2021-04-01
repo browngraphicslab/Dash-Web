@@ -538,9 +538,6 @@ export class TreeView extends React.Component<TreeViewProps> {
      */
     @computed
     get renderTitle() {
-        if (this.props.document.title === "MARYKAY") {
-            console.log();
-        }
         TraceMobx();
         const view = this._editTitle ? <EditableView key="_editTitle"
             oneLine={true}
@@ -652,9 +649,6 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     renderEmbeddedDocument = (asText: boolean) => {
-        if (this.props.document.title === "MARYKAY") {
-            console.log();
-        }
         const layout = StrCast(Doc.LayoutField(this.layoutDoc));
         const isExpandable = layout.includes(FormattedTextBox.name) || layout.includes(SliderBox.name);
         const panelWidth = asText || isExpandable ? this.rtfWidth : this.expandPanelWidth;
