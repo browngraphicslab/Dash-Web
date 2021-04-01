@@ -429,6 +429,11 @@ export namespace Doc {
         index = allowProtos && index !== -1 ? index : list.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, toFind)) ? i : p, -1);
         return index; // list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind));
     }
+
+    /**
+     * Removes doc from the list of Docs at listDoc[fieldKey]
+     * @returns true if successful, false otherwise.
+     */
     export function RemoveDocFromList(listDoc: Doc, fieldKey: string | undefined, doc: Doc) {
         const key = fieldKey ? fieldKey : Doc.LayoutFieldKey(listDoc);
         if (listDoc[key] === undefined) {
@@ -444,6 +449,11 @@ export namespace Doc {
         }
         return false;
     }
+
+    /**
+     * Adds doc to the list of Docs stored at listDoc[fieldKey].
+     * @returns true if successful, false otherwise.
+     */
     export function AddDocToList(listDoc: Doc, fieldKey: string | undefined, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
         const key = fieldKey ? fieldKey : Doc.LayoutFieldKey(listDoc);
         if (listDoc[key] === undefined) {
@@ -477,9 +487,9 @@ export namespace Doc {
         return false;
     }
 
-    //
-    // Computes the bounds of the contents of a set of documents.
-    //
+    /**
+     * Computes the bounds of the contents of a set of documents.
+     */
     export function ComputeContentBounds(docList: Doc[]) {
         const bounds = docList.reduce((bounds, doc) => {
             const [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)];
