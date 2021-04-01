@@ -19,6 +19,7 @@ import { SearchBox } from "../search/SearchBox";
 import { FieldView, FieldViewProps } from './FieldView';
 import './FilterBox.scss';
 import { Scripting } from "../../util/Scripting";
+import { CollectionView } from "../collections/CollectionView";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -40,7 +41,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             }, { fireImmediately: true });
     }
     @computed get allDocs() {
-        trace();
         const allDocs = new Set<Doc>();
         if (this._loaded && CollectionDockingView.Instance) {
             const activeTabs = DocListCast(CollectionDockingView.Instance.props.Document.data);
@@ -51,7 +51,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
 
     @computed get _allFacets() {
-        trace();
         const noviceReqFields = ["author", "tags", "text", "type"];
         const noviceLayoutFields: string[] = [];//["_curPage"];
         const noviceFields = [...noviceReqFields, ...noviceLayoutFields];
@@ -152,9 +151,11 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
             } else {
                 newFacet = new Doc();
-                newFacet.sytem = true;
+                newFacet.system = true;
                 newFacet.title = facetHeader;
                 newFacet.treeViewOpen = true;
+                newFacet.layout = CollectionView.LayoutString("data");
+                newFacet.layoutKey = "layout";
                 newFacet.type = DocumentType.COL;
                 newFacet.target = targetDoc;
                 newFacet.data = ComputedField.MakeFunction(`readFacetData(self.target, "${facetHeader}")`);
