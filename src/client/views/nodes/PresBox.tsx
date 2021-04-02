@@ -14,7 +14,7 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
 import { returnFalse, returnOne, returnTrue, emptyFunction } from '../../../Utils';
-import { Docs } from "../../documents/Documents";
+import { Docs, DocumentOptions } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DocumentManager } from "../../util/DocumentManager";
