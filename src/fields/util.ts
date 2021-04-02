@@ -131,6 +131,19 @@ export function denormalizeEmail(email: string) {
 //     playgroundMode = !playgroundMode;
 // }
 
+
+/**
+ * Copies parent's acl fields to the child
+ */
+export function inheritParentAcls(parent: Doc, child: Doc) {
+    if (parent.isShared) {
+        const dataDoc = parent[DataSym];
+        for (const key of Object.keys(dataDoc)) {
+            key.startsWith("acl") && distributeAcls(key, dataDoc[key], child);
+        }
+    }
+}
+
 /**
  * These are the various levels of access a user can have to a document.
  * 
@@ -245,7 +258,7 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
             dataDocChanged = true;
         }
 
-        // maps over the aliases of the document
+        // maps over the links of the document
         const links = DocListCast(dataDoc.links);
         links.forEach(link => distributeAcls(key, acl, link, inheritingFromCollection, visited));
 

@@ -836,8 +836,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaHeaders: new List(schemaHeaders), ...options, _viewType: CollectionViewType.Schema });
         }
 
-        export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Tree }, id);
+        export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string, protoId?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Tree }, id, undefined, protoId);
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions, id?: string, protoId?: string) {

@@ -35,6 +35,7 @@ import { UndoManager } from "./UndoManager";
 import { SnappingManager } from "./SnappingManager";
 import { InkTool } from "../../fields/InkField";
 import { computedFn } from "mobx-utils";
+import { SharingManager } from "./SharingManager";
 
 
 export let resolvedPorts: { server: number, socket: number };
@@ -907,9 +908,9 @@ export class CurrentUserUtils {
         if (doc.mySharedDocs === undefined) {
             let sharedDocs = Docs.newAccount ? undefined : await DocServer.GetRefField(sharingDocumentId + "outer");
             if (!sharedDocs) {
-                sharedDocs = Docs.Create.StackingDocument([], {
-                    title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15,
-                    _showTitle: "title", ignoreClick: true, _lockedPosition: true, "acl-Public": SharingPermissions.Add, "_acl-Public": SharingPermissions.Add, _chromeHidden: true,
+                sharedDocs = Docs.Create.TreeDocument([], {
+                    title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "all", childLimitHeight: 0, _yMargin: 50, _gridGap: 15,
+                    _showTitle: "title", ignoreClick: false, _lockedPosition: true, "acl-Public": SharingPermissions.Add, "_acl-Public": SharingPermissions.Add, _chromeHidden: true,
                 }, sharingDocumentId + "outer", sharingDocumentId);
                 (sharedDocs as Doc)["acl-Public"] = (sharedDocs as Doc)[DataSym]["acl-Public"] = SharingPermissions.Add;
             }
@@ -1188,8 +1189,10 @@ export class CurrentUserUtils {
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
         const snapshotDashboard = ScriptField.MakeScript(`snapshotDashboard()`);
         const createDashboard = ScriptField.MakeScript(`createNewDashboard()`);
-        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, snapshotDashboard!, createDashboard!]);
-        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard"]);
+        const shareDashboard = ScriptField.MakeScript(`shareDashboard()`);
+        const addToDashboards = ScriptField.MakeScript(`addToDashboards(self)`);
+        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, snapshotDashboard!, createDashboard!, shareDashboard!, addToDashboards!]);
+        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard", "Share Dashboard", "Add to Dashboards"]);
 
         Doc.AddDocToList(dashboards, "data", dashboardDoc);
         CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
@@ -1241,3 +1244,10 @@ Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Insta
     "returns all the links to the document or its annotations", "(doc: any)");
 Scripting.addGlobal(function importDocument() { return CurrentUserUtils.importDocument(); },
     "imports files from device directly into the import sidebar");
+Scripting.addGlobal(function shareDashboard() {
+    CurrentUserUtils.ActiveDashboard.isShared = true;
+    SharingManager.Instance.open(undefined, CurrentUserUtils.ActiveDashboard);
+},
+    "opens sharing dialog for Dashboard");
+Scripting.addGlobal(function addToDashboards(dashboard: Doc) { Doc.AddDocToList(CurrentUserUtils.MyDashboards, "data", dashboard); },
+    "adds Dashboard to set of Dashboards");

@@ -7,7 +7,7 @@ import { InteractionUtils } from '../util/InteractionUtils';
 import { List } from '../../fields/List';
 import { DateField } from '../../fields/DateField';
 import { ScriptField } from '../../fields/ScriptField';
-import { GetEffectiveAcl, SharingPermissions, distributeAcls, denormalizeEmail } from '../../fields/util';
+import { GetEffectiveAcl, SharingPermissions, distributeAcls, denormalizeEmail, inheritParentAcls } from '../../fields/util';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DocUtils } from '../documents/Documents';
 import { returnFalse } from '../../Utils';
@@ -198,15 +198,15 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     if (this.props.Document[AclSym] && Object.keys(this.props.Document[AclSym]).length) {
                         added.forEach(d => {
                             for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                                if (d.author === denormalizeEmail(key.substring(4)) && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
-                                //else if (this.props.Document[key] === SharingPermissions.Admin) distributeAcls(key, SharingPermissions.Add, d, true);
-                                // else distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
+                                if (d.author === denormalizeEmail(key.substring(4)) && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d);
                             }
                         });
                     }
 
                     if (effectiveAcl === AclAddonly) {
                         added.map(doc => {
+
+                            if ([AclAdmin, AclEdit].includes(GetEffectiveAcl(doc))) inheritParentAcls(CurrentUserUtils.ActiveDashboard, doc);
                             doc.context = this.props.Document;
                             if (annotationKey ?? this._annotationKey) Doc.GetProto(doc).annotationOn = this.props.Document;
                             this.props.layerProvider?.(doc, true);
@@ -220,6 +220,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                             doc._stayInCollection = undefined;
                             doc.context = this.props.Document;
                             if (annotationKey ?? this._annotationKey) Doc.GetProto(doc).annotationOn = this.props.Document;
+
+                            inheritParentAcls(CurrentUserUtils.ActiveDashboard, doc);
                         });
                         const annoDocs = targetDataDoc[annotationKey ?? this.annotationKey] as List<Doc>;
                         if (annoDocs) annoDocs.push(...added);
