@@ -352,10 +352,10 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const considerPush = isText && this.considerGoogleDocsPush;
         return <div className="documentButtonBar">
             <div className="documentButtonBar-button">
-                <DocumentLinksButton links={this.view0.allLinks} View={this.view0} AlwaysOn={true} InMenu={true} StartLink={true} />
+                <DocumentLinksButton View={this.view0} AlwaysOn={true} InMenu={true} StartLink={true} />
             </div>
             {DocumentLinksButton.StartLink || !Doc.UserDoc()["documentLinksButton-fullMenu"] ? <div className="documentButtonBar-button">
-                <DocumentLinksButton links={this.view0.allLinks} View={this.view0} AlwaysOn={true} InMenu={true} StartLink={false} />
+                <DocumentLinksButton View={this.view0} AlwaysOn={true} InMenu={true} StartLink={false} />
             </div> : (null)}
             {!Doc.UserDoc()["documentLinksButton-fullMenu"] ? (null) : <div className="documentButtonBar-button">
                 {this.templateButton}

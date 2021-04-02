@@ -28,9 +28,9 @@ export namespace SelectionManager {
                 }
 
                 manager.SelectedViews.set(docView, true);
-                docView.props.whenActiveChanged(true);
+                docView.props.whenChildContentsActiveChanged(true);
             } else if (!ctrlPressed && Array.from(manager.SelectedViews.entries()).length > 1) {
-                Array.from(manager.SelectedViews.keys()).map(dv => dv !== docView && dv.props.whenActiveChanged(false));
+                Array.from(manager.SelectedViews.keys()).map(dv => dv !== docView && dv.props.whenChildContentsActiveChanged(false));
                 manager.SelectedSchemaDocument = undefined;
                 manager.SelectedSchemaCollection = undefined;
                 manager.SelectedViews.clear();
@@ -42,14 +42,14 @@ export namespace SelectionManager {
 
             if (manager.SelectedViews.get(docView)) {
                 manager.SelectedViews.delete(docView);
-                docView.props.whenActiveChanged(false);
+                docView.props.whenChildContentsActiveChanged(false);
             }
         }
         @action
         DeselectAll(): void {
             manager.SelectedSchemaCollection = undefined;
             manager.SelectedSchemaDocument = undefined;
-            Array.from(manager.SelectedViews.keys()).map(dv => dv.props.whenActiveChanged(false));
+            Array.from(manager.SelectedViews.keys()).map(dv => dv.props.whenChildContentsActiveChanged(false));
             manager.SelectedViews.clear();
         }
     }

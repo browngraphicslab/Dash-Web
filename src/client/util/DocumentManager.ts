@@ -29,8 +29,7 @@ export class DocumentManager {
             const whichOtherAnchor = view.props.LayoutTemplateString?.includes("anchor2") ? "anchor1" : "anchor2";
             const otherDoc = link && (link[whichOtherAnchor] as Doc);
             const otherDocAnno = otherDoc?.type === DocumentType.TEXTANCHOR ? otherDoc.annotationOn as Doc : undefined;
-            otherDoc && DocumentManager.Instance.DocumentViews.
-                filter(dv => Doc.AreProtosEqual(dv.rootDoc, otherDoc) || Doc.AreProtosEqual(dv.rootDoc, otherDocAnno)).
+            otherDoc && DocumentManager.Instance.DocumentViews?.filter(dv => Doc.AreProtosEqual(dv.rootDoc, otherDoc) || Doc.AreProtosEqual(dv.rootDoc, otherDocAnno)).
                 forEach(otherView => {
                     if (otherView.rootDoc.type !== DocumentType.LINK || otherView.props.LayoutTemplateString !== view.props.LayoutTemplateString) {
                         this.LinkedDocumentViews.push({ a: whichOtherAnchor === "anchor1" ? otherView : view, b: whichOtherAnchor === "anchor1" ? view : otherView, l: link });
@@ -209,7 +208,6 @@ export class DocumentManager {
                                 // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
                                 if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.rootDoc);
                                 if (targetDoc.layout) { // there will no layout for a TEXTANCHOR type document
-                                    // Doc.SetInPlace(targetDoc, "annotationOn", undefined, false);
                                     createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
                                 }
                             } else {

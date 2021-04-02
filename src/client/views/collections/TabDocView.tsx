@@ -30,7 +30,7 @@ import { DefaultLayerProvider, DefaultStyleProvider, StyleLayers, StyleProp } fr
 import { CollectionDockingView } from './CollectionDockingView';
 import { CollectionDockingViewMenu } from './CollectionDockingViewMenu';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
-import { CollectionViewType } from './CollectionView';
+import { CollectionViewType, CollectionView } from './CollectionView';
 import "./TabDocView.scss";
 import React = require("react");
 import Color = require('color');
@@ -346,6 +346,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 DataDoc={!Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
+                isContentActive={returnTrue}
                 PanelWidth={this.PanelWidth}
                 PanelHeight={this.PanelHeight}
                 layerProvider={this.layerProvider}
@@ -359,8 +360,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 ScreenToLocalTransform={this.ScreenToLocalTransform}
                 dontCenter={"y"}
                 rootSelected={returnTrue}
-                parentActive={this.active}
-                whenActiveChanged={emptyFunction}
+                whenChildContentsActiveChanged={emptyFunction}
                 focus={this.focusFunc}
                 docViewPath={returnEmptyDoclist}
                 bringToFront={emptyFunction}
@@ -372,7 +372,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     background={this.miniMapColor}
                     document={this._document}
                     tabView={this.tabView} />
-                <Tooltip style={{ display: this._document?._viewType !== CollectionViewType.Freeform ? "none" : undefined }} key="ttip" title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
+                <Tooltip style={{ display: this._document.layout !== CollectionView.LayoutString(Doc.LayoutFieldKey(this._document)) || this._document?._viewType !== CollectionViewType.Freeform ? "none" : undefined }} key="ttip" title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
                     <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
                         <FontAwesomeIcon icon={"globe-asia"} size="lg" />
                     </div>
@@ -405,7 +405,7 @@ interface TabMinimapViewProps {
 }
 @observer
 export class TabMinimapView extends React.Component<TabMinimapViewProps> {
-    static miniStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
+    static miniStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any => {
         if (doc) {
             switch (property.split(":")[0]) {
                 default: return DefaultStyleProvider(doc, props, property);
@@ -454,12 +454,11 @@ export class TabMinimapView extends React.Component<TabMinimapViewProps> {
                     CollectionView={undefined}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
-                    parentActive={returnFalse}
                     docViewPath={returnEmptyDoclist}
                     childLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
                     noOverlay={true} // don't render overlay Docs since they won't scale
                     setHeight={returnFalse}
-                    active={returnTrue}
+                    isContentActive={returnTrue}
                     select={emptyFunction}
                     dropAction={undefined}
                     isSelected={returnFalse}
@@ -474,7 +473,7 @@ export class TabMinimapView extends React.Component<TabMinimapViewProps> {
                     PanelHeight={this.returnMiniSize}
                     ScreenToLocalTransform={Transform.Identity}
                     renderDepth={0}
-                    whenActiveChanged={emptyFunction}
+                    whenChildContentsActiveChanged={emptyFunction}
                     focus={DocUtils.DefaultFocus}
                     styleProvider={TabMinimapView.miniStyleProvider}
                     layerProvider={undefined}

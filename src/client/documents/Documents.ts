@@ -176,6 +176,7 @@ export class DocumentOptions {
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children
     childDontRegisterViews?: boolean;
+    childHideLinkButton?: boolean; // hide link buttons on all children
     hideLinkButton?: boolean; // whether the blue link counter button should be hidden
     hideAllLinks?: boolean; // whether all individual blue anchor dots should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
@@ -248,13 +249,13 @@ export class DocumentOptions {
     treeViewHideTitle?: boolean; // whether to hide the top document title of a tree view
     treeViewHideHeader?: boolean; // whether to hide the header for a document in a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
+    treeViewShowClearButton?: boolean; // whether a clear button should be displayed 
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
+    treeViewExpandedViewLock?: boolean; // whether the expanded view can be changed
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     treeViewTruncateTitleWidth?: number;
     treeViewType?: string; // whether treeview is a Slide, file system, or (default) collection hierarchy
-    treeViewLockExpandedView?: boolean; // whether the expanded view can be changed
-    treeViewDefaultExpandedView?: string; // default expanded view
     sidebarColor?: string;  // background color of text sidebar
     sidebarViewType?: string; // collection type of text sidebar
     docMaxAutoHeight?: number; // maximum height for newly created (eg, from pasting) text documents
@@ -369,13 +370,10 @@ export namespace Docs {
             [DocumentType.LINK, {
                 layout: { view: LinkBox, dataField: defaultDataKey },
                 options: {
-                    childDontRegisterViews: true, _isLinkButton: true, treeViewHideTitle: true,
-                    treeViewOpen: true, _height: 150, description: "",
+                    childDontRegisterViews: true, _isLinkButton: true, _height: 150, description: "",
                     backgroundColor: "lightblue", // lightblue is default color for linking dot and link documents text comment area
-                    treeViewExpandedView: "fields", _removeDropProperties: new List(["_layerTags", "isLinkButton"]),
                     links: ComputedField.MakeFunction("links(self)") as any,
-                    linkBoxExcludedKeys: new List(["treeViewExpandedView", "aliases", "treeViewHideTitle", "_removeDropProperties",
-                        "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "creationDate", "author"])
+                    _removeDropProperties: new List(["_layerTags", "isLinkButton"]),
                 }
             }],
             [DocumentType.LINKDB, {
@@ -842,7 +840,7 @@ export namespace Docs {
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { childDontRegisterViews: true, ...options, _viewType: CollectionViewType.Tree }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Tree }, id);
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions, id?: string, protoId?: string) {
@@ -892,9 +890,9 @@ export namespace Docs {
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", _fitWidth: true, system: true });
-            const all = TreeDocument([], { title: "Off-Screen Tabs", freezeChildren: "add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List([tabs, all]), { freezeChildren: "remove|add", treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", childDontRegisterViews: true, freezeChildren: "remove|add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", _fitWidth: true, system: true });
+            const all = TreeDocument([], { title: "Off-Screen Tabs", childDontRegisterViews: true, freezeChildren: "add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", system: true });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List([tabs, all]), { freezeChildren: "remove|add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
         }
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {
@@ -1054,7 +1052,7 @@ export namespace DocUtils {
     export function MakeLinkToActiveAudio(doc: Doc, broadcastEvent = true) {
         broadcastEvent && runInAction(() => DocumentManager.Instance.RecordingEvent = DocumentManager.Instance.RecordingEvent + 1);
         return DocUtils.ActiveRecordings.map(audio =>
-            DocUtils.MakeLink({ doc: doc }, { doc: audio.getAnchor() || audio.props.Document }, "recording link", "recording timeline")).lastElement();
+            DocUtils.MakeLink({ doc: doc }, { doc: audio.getAnchor() || audio.props.Document }, "recording link", "recording timeline"));
     }
 
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string, allowParCollectionLink?: boolean, showPopup?: number[]) {
@@ -1325,7 +1323,10 @@ export namespace DocUtils {
     export function LeavePushpin(doc: Doc) {
         if (doc.isPushpin) return undefined;
         const context = Cast(doc.context, Doc, null) ?? Cast(doc.annotationOn, Doc, null);
-        const hasContextAnchor = DocListCast(doc.links).some(l => (l.anchor2 === doc && Cast(l.anchor1, Doc, null)?.annotationOn === context) || (l.anchor1 === doc && Cast(l.anchor2, Doc, null)?.annotationOn === context));
+        const hasContextAnchor = DocListCast(doc.links).
+            some(l =>
+                (l.anchor2 === doc && Cast(l.anchor1, Doc, null)?.annotationOn === context) ||
+                (l.anchor1 === doc && Cast(l.anchor2, Doc, null)?.annotationOn === context));
         if (context && !hasContextAnchor && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
             const pushpin = Docs.Create.FontIconDocument({
                 title: "pushpin", label: "", annotationOn: Cast(doc.annotationOn, Doc, null), isPushpin: true,

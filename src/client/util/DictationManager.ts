@@ -89,7 +89,7 @@ export namespace DictationManager {
         export const listen = async (options?: Partial<ListeningOptions>) => {
             if (pendingListen instanceof Promise) return pendingListen.then(pl => innerListen(options));
             return innerListen(options);
-        }
+        };
         const innerListen = async (options?: Partial<ListeningOptions>) => {
             let results: string | undefined;
 

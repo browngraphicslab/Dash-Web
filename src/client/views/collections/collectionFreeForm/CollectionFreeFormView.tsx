@@ -36,7 +36,6 @@ import { ActiveArrowEnd, ActiveArrowStart, ActiveDash, ActiveFillColor, ActiveIn
 import { LightboxView } from "../../LightboxView";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocFocusOptions, DocumentView, DocumentViewProps, ViewAdjustment, ViewSpecPrefix } from "../../nodes/DocumentView";
-import { FieldViewProps } from "../../nodes/FieldView";
 import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
 import { PresBox } from "../../nodes/PresBox";
@@ -67,7 +66,6 @@ export const panZoomSchema = createSchema({
 type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof collectionSchema, typeof documentSchema, typeof pageSchema]>;
 const PanZoomDocument = makeInterface(panZoomSchema, collectionSchema, documentSchema, pageSchema);
 export type collectionFreeformViewProps = {
-    parentActive: (outsideReaction: boolean) => boolean;
     annotationLayerHostsContent?: boolean; // whether to force scaling of content (needed by ImageBox)
     viewDefDivClick?: ScriptField;
     childPointerEvents?: boolean;
@@ -117,7 +115,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @computed get views() { return this._layoutElements.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele); }
     @computed get backgroundEvents() { return this.props.layerProvider?.(this.layoutDoc) === false && SnappingManager.GetIsDragging(); }
-    @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
+    @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.isContentActive() || this.props.isContentActive()); }
     @computed get fitToContentVals() {
         return {
             bounds: { ...this.contentBounds, cx: (this.contentBounds.x + this.contentBounds.r) / 2, cy: (this.contentBounds.y + this.contentBounds.b) / 2 },
@@ -152,7 +150,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     getKeyFrameEditing = () => this._keyframeEditing;
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
-    parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.props.parentActive?.(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
     elementFunc = () => this._layoutElements;
     shrinkWrap = () => {
         const vals = this.fitToContentVals;
@@ -422,7 +419,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
     }
 
-    getClusterColor = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
+    getClusterColor = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => {
         let styleProp = this.props.styleProvider?.(doc, props, property);  // bcz: check 'props'  used to be renderDepth + 1
         if (property !== StyleProp.BackgroundColor) return styleProp;
         const cluster = NumCast(doc?.cluster);
@@ -459,7 +456,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return;
         }
         this._hitCluster = this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY));
-        if (e.button === 0 && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+        if (e.button === 0 && !e.altKey && !e.ctrlKey && this.props.isContentActive(true)) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -484,7 +481,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const pt = me.changedTouches[0];
             if (pt) {
                 this._hitCluster = this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY));
-                if (!e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+                if (!e.shiftKey && !e.altKey && !e.ctrlKey && this.props.isContentActive(true)) {
                     this.removeMoveListeners();
                     this.addMoveListeners();
                     this.removeEndListeners();
@@ -625,8 +622,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     onClick = (e: React.MouseEvent) => {
         if ((Math.abs(e.pageX - this._downX) < 3 && Math.abs(e.pageY - this._downY) < 3)) {
-            if (e.shiftKey && Date.now() - this._lastTap < 300) { // reset zoom of freeform view to 1-to-1 on a shift + double click 
-                this.zoomSmoothlyAboutPt(this.getTransform().transformPoint(e.clientX, e.clientY), 1);
+            if (e.shiftKey) {
+                if (Date.now() - this._lastTap < 300) { // reset zoom of freeform view to 1-to-1 on a shift + double click 
+                    this.zoomSmoothlyAboutPt(this.getTransform().transformPoint(e.clientX, e.clientY), 1);
+                }
                 e.stopPropagation();
                 e.preventDefault();
             }
@@ -647,7 +646,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (this.props.Document._isGroup) return; // groups don't pan when dragged -- instead let the event go through to allow the group itself to drag
         if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) return;
         if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) {
-            if (this.props.active(true)) e.stopPropagation();
+            if (this.props.isContentActive(true)) e.stopPropagation();
         } else if (!e.cancelBubble) {
             if (CurrentUserUtils.SelectedTool === InkTool.None) {
                 if (this.tryDragCluster(e, this._hitCluster)) {
@@ -735,7 +734,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     handle2PointersDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
-        if (!e.nativeEvent.cancelBubble && this.props.active(true)) {
+        if (!e.nativeEvent.cancelBubble && this.props.isContentActive(true)) {
             // const pt1: React.Touch | null = e.targetTouches.item(0);
             // const pt2: React.Touch | null = e.targetTouches.item(1);
             // // if (!pt1 || !pt2) return;
@@ -819,7 +818,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (!e.ctrlKey && this.props.Document.scrollHeight !== undefined) { // things that can scroll vertically should do that instead of zooming
             e.stopPropagation();
         }
-        else if (this.props.active(true) && !this.Document._isGroup) {
+        else if (this.props.isContentActive(true) && !this.Document._isGroup) {
             e.stopPropagation();
             e.preventDefault();
             this.zoom(e.clientX, e.clientY, e.deltaY); // if (!this.props.isAnnotationOverlay) // bcz: do we want to zoom in on images/videos/etc?
@@ -1007,6 +1006,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         };
     }
 
+    isContentActive = () => this.props.isSelected() || this.props.isContentActive();
+
     getChildDocView(entry: PoolData) {
         const childLayout = entry.pair.layout;
         const childData = entry.pair.data;
@@ -1030,14 +1031,15 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             docFilters={this.freeformDocFilters}
             docRangeFilters={this.freeformRangeDocFilters}
             searchFilterDocs={this.searchFilterDocs}
+            isContentActive={this.isAnnotationOverlay ? this.props.isContentActive : returnFalse}
+            isDocumentActive={this.isContentActive}
             focus={this.focusDocument}
             addDocTab={this.addDocTab}
             addDocument={this.props.addDocument}
             removeDocument={this.props.removeDocument}
             moveDocument={this.props.moveDocument}
             pinToPres={this.props.pinToPres}
-            whenActiveChanged={this.props.whenActiveChanged}
-            parentActive={this.parentActive}
+            whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
             docViewPath={this.props.docViewPath}
             styleProvider={this.getClusterColor}
             layerProvider={this.props.layerProvider}
@@ -1488,7 +1490,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 width: `${100 / (this.contentScaling || 1)}%`,
                 height: this.isAnnotationOverlay && this.Document.scrollHeight ? this.Document.scrollHeight : `${100 / (this.contentScaling || 1)}%`// : this.isAnnotationOverlay ? (this.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight()
             }}>
-            {this.Document._freeformLOD && !this.props.active() && !this.props.isAnnotationOverlay && this.props.renderDepth > 0 ?
+            {this.Document._freeformLOD && !this.props.isContentActive() && !this.props.isAnnotationOverlay && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
             {this.props.noOverlay ? (null) : <CollectionFreeFormOverlayView elements={this.elementFunc} />}
 

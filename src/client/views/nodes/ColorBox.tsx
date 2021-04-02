@@ -2,21 +2,20 @@ import React = require("react");
 import { action } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from 'react-color';
-import { Doc, WidthSym, HeightSym } from '../../../fields/Doc';
-import { Utils } from "../../../Utils";
+import { Doc, HeightSym, WidthSym } from '../../../fields/Doc';
 import { documentSchema } from "../../../fields/documentSchemas";
 import { InkTool } from "../../../fields/InkField";
 import { makeInterface } from "../../../fields/Schema";
 import { StrCast } from "../../../fields/Types";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch } from "../../util/UndoManager";
 import { ViewBoxBaseComponent } from "../DocComponent";
-import { ActiveInkPen, ActiveInkWidth, ActiveInkBezierApprox, SetActiveInkColor, SetActiveInkWidth, SetActiveBezierApprox, ActiveInkColor } from "../InkingStroke";
+import { ActiveInkColor, ActiveInkWidth, SetActiveInkColor, SetActiveInkWidth } from "../InkingStroke";
 import "./ColorBox.scss";
 import { FieldView, FieldViewProps } from './FieldView';
-import { DocumentType } from "../../documents/DocumentTypes";
 import { RichTextMenu } from "./formattedText/RichTextMenu";
-import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 
 type ColorDocument = makeInterface<[typeof documentSchema]>;
 const ColorDocument = makeInterface(documentSchema);
@@ -50,7 +49,7 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
 
     render() {
         const scaling = Math.min(this.layoutDoc.fitWidth ? 10000 : this.props.PanelHeight() / this.rootDoc[HeightSym](), this.props.PanelWidth() / this.rootDoc[WidthSym]());
-        return <div className={`colorBox-container${this.active() ? "-interactive" : ""}`}
+        return <div className={`colorBox-container${this.isContentActive() ? "-interactive" : ""}`}
             onPointerDown={e => e.button === 0 && !e.ctrlKey && e.stopPropagation()} onClick={e => e.stopPropagation()}
             style={{ transform: `scale(${scaling})`, width: `${100 * scaling}%`, height: `${100 * scaling}%` }} >
 

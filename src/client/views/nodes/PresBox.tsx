@@ -725,10 +725,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         return output;
     });
 
-    whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
+    whenChildContentsActiveChanged = action((isActive: boolean) => this.props.whenChildContentsActiveChanged(this._isChildActive = isActive));
     // For dragging documents into the presentation trail
-    addDocumentFilter = (doc: Doc | Doc[]) => {
-        const docs = doc instanceof Doc ? [doc] : doc;
+    addDocumentFilter = (docs: Doc[]) => {
         docs.forEach((doc, i) => {
             if (doc.presentationTargetDoc) return true;
             if (doc.type === DocumentType.LABEL) {
@@ -763,7 +762,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     removeDocument = (doc: Doc) => Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc);
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight() - 40;
-    active = (outsideReaction?: boolean) => ((CurrentUserUtils.SelectedTool === InkTool.None && this.props.layerProvider?.(this.layoutDoc) !== false) &&
+    isContentActive = (outsideReaction?: boolean) => ((CurrentUserUtils.SelectedTool === InkTool.None && this.props.layerProvider?.(this.layoutDoc) !== false) &&
         (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
     /**

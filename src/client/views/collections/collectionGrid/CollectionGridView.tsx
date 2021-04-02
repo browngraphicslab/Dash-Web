@@ -171,7 +171,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             ScreenToLocalTransform={dxf}
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
-            parentActive={this.props.active}
             dontCenter={"y"}
         />;
     }
@@ -296,7 +295,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * Handles text document creation on double click.
      */
     onPointerDown = (e: React.PointerEvent) => {
-        if (this.props.active(true)) {
+        if (this.props.isContentActive(true)) {
             setupMoveUpEvents(this, e, returnFalse, returnFalse,
                 (e: PointerEvent, doubleTap?: boolean) => {
                     if (doubleTap) {
@@ -316,7 +315,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     render() {
         return (
             <div className="collectionGridView-contents" ref={this.createDashEventsTarget}
-                style={{ pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined }}
+                style={{ pointerEvents: !this.props.isContentActive() && !SnappingManager.GetIsDragging() ? "none" : undefined }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}
                 onDrop={this.onExternalDrop}

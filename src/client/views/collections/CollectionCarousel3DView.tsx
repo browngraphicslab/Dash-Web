@@ -54,7 +54,6 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                 PanelHeight={this.panelHeight}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                 bringToFront={returnFalse}
-                parentActive={this.props.active}
             />;
         };
 
@@ -127,7 +126,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     }
 
     @computed get buttons() {
-        if (!this.props.active()) return null;
+        if (!this.props.isContentActive()) return null;
         return <div className="arrow-buttons" >
             <div key="back" className="carousel3DView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
                 onClick={(e) => this.onArrowClick(e, -1)}

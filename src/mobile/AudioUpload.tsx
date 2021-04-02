@@ -93,12 +93,13 @@ export class AudioUpload extends React.Component {
                         PanelWidth={() => 600}
                         PanelHeight={() => 400}
                         renderDepth={0}
+                        isDocumentActive={returnTrue}
+                        isContentActive={returnFalse}
                         focus={emptyFunction}
                         layerProvider={undefined}
                         styleProvider={() => "rgba(0,0,0,0)"}
                         docViewPath={returnEmptyDoclist}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
+                        whenChildContentsActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}

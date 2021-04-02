@@ -1,24 +1,26 @@
 import React = require("react");
-import { action, computed, IReactionDisposer, observable, runInAction, reaction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocListCast } from "../../../fields/Doc";
+import { computedFn } from "mobx-utils";
+import { Doc, DocListCast } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
-import { emptyFunction, formatTime, OmitKeys, returnFalse, setupMoveUpEvents, StopEvent } from "../../../Utils";
+import { emptyFunction, formatTime, OmitKeys, returnFalse, returnOne, setupMoveUpEvents, StopEvent, returnTrue } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
+import { LinkManager } from "../../util/LinkManager";
 import { Scripting } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
+import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
+import { AudioWaveform } from "../AudioWaveform";
 import { CollectionSubView } from "../collections/CollectionSubView";
-import { DocumentView, DocAfterFocusFunc, DocFocusFunc, DocumentViewProps } from "../nodes/DocumentView";
+import { LightboxView } from "../LightboxView";
+import { DocAfterFocusFunc, DocFocusFunc, DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import { LabelBox } from "../nodes/LabelBox";
 import "./CollectionStackedTimeline.scss";
-import { Transform } from "../../util/Transform";
-import { LinkManager } from "../../util/LinkManager";
-import { computedFn } from "mobx-utils";
 
 type PanZoomDocument = makeInterface<[]>;
 const PanZoomDocument = makeInterface();
@@ -30,9 +32,10 @@ export type CollectionStackedTimelineProps = {
     playFrom: (seekTimeInSeconds: number, endTime?: number) => void;
     playing: () => boolean;
     setTime: (time: number) => void;
-    isChildActive: () => boolean;
     startTag: string;
     endTag: string;
+    mediaPath: string;
+    dictationKey: string;
 };
 
 @observer
@@ -111,7 +114,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     onPointerDownTimeline = (e: React.PointerEvent): void => {
         const rect = this._timeline?.getBoundingClientRect();
         const clientX = e.clientX;
-        if (rect && this.props.active()) {
+        if (rect && this.props.isContentActive()) {
             const wasPlaying = this.props.playing();
             if (wasPlaying) this.props.Pause();
             const wasSelecting = CollectionStackedTimeline.SelectingRegion === this;
@@ -142,7 +145,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                     e.shiftKey && CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.props.fieldKey, this.props.startTag, this.props.endTag, this.currentTime);
                     !wasPlaying && doubleTap && this.props.Play();
                 },
-                this.props.isSelected(true) || this.props.isChildActive(), undefined,
+                this.props.isSelected(true) || this.props.isContentActive(), undefined,
                 () => !wasPlaying && this.props.setTime((clientX - rect.x) / rect.width * this.duration));
         }
     }
@@ -230,25 +233,60 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         placed.push({ anchorStartTime: x1, anchorEndTime: x2, level });
         return level;
     }
+
+    dictationHeight = () => this.props.PanelHeight() / 3;
+    timelineContentHeight = () => this.props.PanelHeight() * 2 / 3;
+    dictationScreenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(0, -this.timelineContentHeight());
+    @computed get renderDictation() {
+        const dictation = Cast(this.dataDoc[this.props.dictationKey], Doc, null);
+        return !dictation ? (null) : <div style={{ position: "absolute", height: this.dictationHeight(), top: this.timelineContentHeight(), background: "tan" }}>
+            <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
+                Document={dictation}
+                PanelHeight={this.dictationHeight}
+                isAnnotationOverlay={true}
+                isDocumentActive={returnFalse}
+                select={emptyFunction}
+                scaling={returnOne}
+                xMargin={25}
+                yMargin={10}
+                ScreenToLocalTransform={this.dictationScreenToLocalTransform}
+                whenChildContentsActiveChanged={emptyFunction}
+                removeDocument={returnFalse}
+                moveDocument={returnFalse}
+                addDocument={returnFalse}
+                CollectionView={undefined}
+                renderDepth={this.props.renderDepth + 1}>
+            </DocumentView>
+        </div>;
+    }
+    @computed get renderAudioWaveform() {
+        return !this.props.mediaPath ? (null) :
+            <div className="collectionStackedTimeline-waveform" >
+                <AudioWaveform
+                    duration={this.duration}
+                    mediaPath={this.props.mediaPath}
+                    dataDoc={this.dataDoc}
+                    PanelHeight={this.timelineContentHeight} />
+            </div>;
+    }
     currentTimecode = () => this.currentTime;
     render() {
         const timelineContentWidth = this.props.PanelWidth();
-        const timelineContentHeight = this.props.PanelHeight();
         const overlaps: { anchorStartTime: number, anchorEndTime: number, level: number }[] = [];
         const drawAnchors = this.childDocs.map(anchor => ({ level: this.getLevel(anchor, overlaps), anchor }));
         const maxLevel = overlaps.reduce((m, o) => Math.max(m, o.level), 0) + 2;
-        const isActive = this.props.isChildActive() || this.props.isSelected(false);
+        const isActive = this.props.isContentActive() || this.props.isSelected(false);
         return <div className="collectionStackedTimeline" ref={(timeline: HTMLDivElement | null) => this._timeline = timeline}
             onClick={e => isActive && StopEvent(e)} onPointerDown={e => isActive && this.onPointerDownTimeline(e)}>
             {drawAnchors.map(d => {
                 const start = this.anchorStart(d.anchor);
                 const end = this.anchorEnd(d.anchor, start + 10 / timelineContentWidth * this.duration);
                 const left = start / this.duration * timelineContentWidth;
-                const top = d.level / maxLevel * timelineContentHeight;
+                const top = d.level / maxLevel * this.timelineContentHeight();
                 const timespan = end - start;
                 return this.props.Document.hideAnchors ? (null) :
                     <div className={"collectionStackedTimeline-marker-timeline"} key={d.anchor[Id]}
-                        style={{ left, top, width: `${timespan / this.duration * timelineContentWidth}px`, height: `${timelineContentHeight / maxLevel}px` }}
+                        style={{ left, top, width: `${timespan / this.duration * timelineContentWidth}px`, height: `${this.timelineContentHeight() / maxLevel}px` }}
                         onClick={e => { this.props.playFrom(start, this.anchorEnd(d.anchor)); e.stopPropagation(); }} >
                         <StackedTimelineAnchor {...this.props}
                             mark={d.anchor}
@@ -257,7 +295,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                             left={left}
                             top={top}
                             width={timelineContentWidth * timespan / this.duration}
-                            height={timelineContentHeight / maxLevel}
+                            height={this.timelineContentHeight() / maxLevel}
                             toTimeline={this.toTimeline}
                             layoutDoc={this.layoutDoc}
                             currentTimecode={this.currentTimecode}
@@ -267,12 +305,15 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                     </div>;
             })}
             {this.selectionContainer}
+            {this.renderAudioWaveform}
+            {this.renderDictation}
+
             <div className="collectionStackedTimeline-current" style={{ left: `${this.currentTime / this.duration * 100}%` }} />
         </div>;
     }
 }
 
-interface StackedTinelineAnchorProps {
+interface StackedTimelineAnchorProps {
     mark: Doc;
     rangeClickScript: () => ScriptField;
     rangePlayScript: () => ScriptField;
@@ -283,7 +324,6 @@ interface StackedTinelineAnchorProps {
     toTimeline: (screen_delta: number, width: number) => number;
     playLink: (linkDoc: Doc) => void;
     setTime: (time: number) => void;
-    isChildActive: () => boolean;
     startTag: string;
     endTag: string;
     renderDepth: number;
@@ -296,7 +336,7 @@ interface StackedTinelineAnchorProps {
     stackedTimeline: CollectionStackedTimeline;
 }
 @observer
-class StackedTimelineAnchor extends React.Component<StackedTinelineAnchorProps> {
+class StackedTimelineAnchor extends React.Component<StackedTimelineAnchorProps> {
     _lastTimecode: number;
     _disposer: IReactionDisposer | undefined;
     constructor(props: any) {
@@ -306,7 +346,9 @@ class StackedTimelineAnchor extends React.Component<StackedTinelineAnchorProps> 
     componentDidMount() {
         this._disposer = reaction(() => this.props.currentTimecode(),
             (time) => {
-                if (DocListCast(this.props.mark.links).length &&
+                const dictationDoc = Cast(this.props.layoutDoc["data-dictation"], Doc, null);
+                const isDictation = dictationDoc && DocListCast(this.props.mark.links).some(link => Cast(link.anchor1, Doc, null)?.annotationOn === dictationDoc);
+                if ((isDictation || !Doc.AreProtosEqual(LightboxView.LightboxDoc, this.props.layoutDoc)) && DocListCast(this.props.mark.links).length &&
                     time > NumCast(this.props.mark[this.props.startTag]) &&
                     time < NumCast(this.props.mark[this.props.endTag]) &&
                     this._lastTimecode < NumCast(this.props.mark[this.props.startTag])) {
@@ -353,11 +395,11 @@ class StackedTimelineAnchor extends React.Component<StackedTinelineAnchorProps> 
                 renderDepth={this.props.renderDepth + 1}
                 LayoutTemplate={undefined}
                 LayoutTemplateString={LabelBox.LayoutString("data")}
+                isDocumentActive={returnFalse}
                 PanelWidth={() => width}
                 PanelHeight={() => height}
                 ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-x, -y)}
                 focus={focusFunc}
-                parentActive={out => this.props.isSelected(out) || this.props.isChildActive()}
                 rootSelected={returnFalse}
                 onClick={script}
                 onDoubleClick={this.props.layoutDoc.autoPlayAnchors ? undefined : doublescript}

@@ -145,7 +145,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         };
     }
 
-    public static FocusedBox: FormattedTextBox | undefined;
     public static PasteOnLoad: ClipboardEvent | undefined;
     public static SelectOnLoad = "";
     public static DontSelectInitialText = false; // whether initial text should be selected or not
@@ -667,7 +666,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             if (this._break) {
                 const textanchor = Docs.Create.TextanchorDocument({ title: "dictation anchor" });
                 this.addDocument(textanchor);
-                const link = DocUtils.MakeLinkToActiveAudio(textanchor, false);
+                const link = DocUtils.MakeLinkToActiveAudio(textanchor, false).lastElement();
+                link && (Doc.GetProto(link).isDictation = true);
                 if (!link) return;
                 const audioanchor = Cast(link.anchor2, Doc, null);
                 if (!audioanchor) return;
@@ -762,9 +762,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
                 editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
                 const escAnchorId = textAnchorId[0] >= '0' && textAnchorId[0] <= '9' ? `\\3${textAnchorId[0]} ${textAnchorId.substr(1)}` : textAnchorId;
-                addStyleSheetRule(FormattedTextBox._highlightStyleSheet, `${escAnchorId}`, { background: "yellow" });
+                addStyleSheetRule(FormattedTextBox._highlightStyleSheet, `${escAnchorId}`, { background: "yellow", transform: "scale(3)", "transform-origin": "left bottom" });
                 setTimeout(() => this._focusSpeed = undefined, this._focusSpeed);
-                setTimeout(() => clearStyleSheetRules(FormattedTextBox._highlightStyleSheet), Math.max(this._focusSpeed || 0, 1500));
+                setTimeout(() => clearStyleSheetRules(FormattedTextBox._highlightStyleSheet), Math.max(this._focusSpeed || 0, 3000));
             }
         }
 
@@ -781,7 +781,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     componentDidMount() {
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
-        this.props.contentsActive?.(this.active);
         this._cachedLinks = DocListCast(this.Document.links);
         this._disposers.breakupDictation = reaction(() => DocumentManager.Instance.RecordingEvent, this.breakupDictation);
         this._disposers.autoHeight = reaction(() => this.autoHeight, autoHeight => autoHeight && this.tryUpdateScrollHeight());
@@ -1152,7 +1151,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                             setTimeout(func);
                         }
                         else docView.ComponentView?.playFrom?.(timecode, Cast(anchor.timecodeToHide, "number", null)); // bcz: would be nice to find the next audio tag in the doc and play until that
-                    }
+                    };
                     func();
                 }
             });
@@ -1191,7 +1190,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if ((e.nativeEvent as any).formattedHandled) {
             console.log("handled");
         }
-        if (!(e.nativeEvent as any).formattedHandled && this.active(true)) {
+        if (!(e.nativeEvent as any).formattedHandled && this.isContentActive(true)) {
             const editor = this._editorView!;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
             !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
@@ -1224,26 +1223,17 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             e.stopPropagation();
         }
     }
+    setFocus = () => {
+        const pos = this._editorView?.state.selection.$from.pos || 1;
+        (this.ProseRef?.children?.[0] as any).focus();
+        setTimeout(() => this._editorView?.dispatch(this._editorView?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
+    }
     @action
     onFocused = (e: React.FocusEvent): void => {
-        FormattedTextBox.FocusedBox = this;
         //applyDevTools.applyDevTools(this._editorView);
-
-        // see if we need to preserve the insertion point
-        const prosediv = this.ProseRef?.children?.[0] as any;
-        const keeplocation = prosediv?.keeplocation;
-        prosediv && (prosediv.keeplocation = undefined);
-        const pos = this._editorView?.state.selection.$from.pos || 1;
-        keeplocation && setTimeout(() => this._editorView?.dispatch(this._editorView?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
-
         this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props);
     }
-    onPointerWheel = (e: React.WheelEvent): void => {
-        // if a text note is selected and scrollable, stop event to prevent, say, outer collection from zooming.
-        if ((this.props.rootSelected(true) || this.props.isSelected(true)) || e.currentTarget.scrollHeight > e.currentTarget.clientHeight) {
-            e.stopPropagation();
-        }
-    }
+
     onClick = (e: React.MouseEvent): void => {
         if (Math.abs(e.clientX - this._downX) > 4 || Math.abs(e.clientY - this._downY) > 4) {
             this._forceDownNode = undefined;
@@ -1446,7 +1436,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @computed get sidebarHandle() {
         TraceMobx();
         const annotated = DocListCast(this.dataDoc[this.SidebarKey]).filter(d => d?.author).length;
-        return (!annotated && !this.active()) ? (null) : <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown}
+        return (!annotated && !this.isContentActive()) ? (null) : <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown}
             style={{
                 left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`,
                 background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.WidgetColor + (annotated ? ":annotated" : ""))
@@ -1466,9 +1456,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 scaleField={this.SidebarKey + "-scale"}
                 isAnnotationOverlay={false}
                 select={emptyFunction}
-                active={this.annotationsActive}
+                isContentActive={this.isContentActive}
                 scaling={this.sidebarContentScaling}
-                whenActiveChanged={this.whenActiveChanged}
+                whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
                 removeDocument={this.sidebarRemDocument}
                 moveDocument={this.sidebarMoveDocument}
                 addDocument={this.sidebarAddDocument}
@@ -1488,7 +1478,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     render() {
         TraceMobx();
         const selected = this.props.isSelected();
-        const active = this.active();
+        const active = this.isContentActive();
         const scale = this.props.hideOnLeave ? 1 : (this.props.scaling?.() || 1) * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = (CurrentUserUtils.SelectedTool === InkTool.None || SnappingManager.GetIsDragging()) && (this.layoutDoc.z || this.props.layerProvider?.(this.layoutDoc) !== false);
@@ -1500,6 +1490,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const selPaddingClass = selected && !this.layoutDoc._singleLine && margins >= 10 ? "-selected" : "";
         return (
             <div className="formattedTextBox-cont"
+                onWheel={e => this.isContentActive() && e.stopPropagation()}
                 style={{
                     transform: `scale(${scale})`,
                     transformOrigin: "top left",
@@ -1528,7 +1519,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     onPointerUp={this.onPointerUp}
                     onPointerDown={this.onPointerDown}
                     onMouseUp={this.onMouseUp}
-                    onWheel={this.onPointerWheel}
                     onDoubleClick={this.onDoubleClick}
                 >
                     <div className={`formattedTextBox-outer${selected ? "-selected" : ""}`} ref={this._scrollRef}

@@ -210,12 +210,13 @@ export class MobileInterface extends React.Component {
                     PanelWidth={this.returnWidth}
                     PanelHeight={this.returnHeight}
                     renderDepth={0}
+                    isDocumentActive={returnTrue}
+                    isContentActive={returnFalse}
                     focus={DocUtils.DefaultFocus}
                     styleProvider={this.whitebackground}
                     layerProvider={undefined}
                     docViewPath={returnEmptyDoclist}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
+                    whenChildContentsActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}

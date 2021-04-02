@@ -223,6 +223,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             LayoutTemplateString={this.props.childLayoutString}
             freezeDimensions={this.props.childFreezeDimensions}
             renderDepth={this.props.renderDepth + 1}
+            isContentActive={returnFalse}
             PanelWidth={width}
             PanelHeight={height}
             rootSelected={this.rootSelected}
@@ -239,8 +240,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
             removeDocument={this.props.removeDocument}
-            parentActive={this.props.active}
-            whenActiveChanged={this.props.whenActiveChanged}
+            whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
             addDocTab={this.addDocTab}
             pinToPres={this.props.pinToPres}
             bringToFront={returnFalse}

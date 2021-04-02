@@ -132,18 +132,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                     });
                 })();
                 e.stopPropagation();
-            } else if (e.key === "f" && e.ctrlKey) {
-                e.preventDefault();
-                const root = Docs.Create.TreeDocument([], { title: "folder", _stayInCollection: true, isFolder: true });
-                const folder = Docs.Create.TreeDocument([root], { title: "root", isFolder: true, treeViewType: "fileSystem", treeViewTruncateTitleWidth: 150 });
-                Doc.GetProto(folder).isFolder = true;
-                folder.x = x;
-                folder.y = y;
-                folder._width = 200;
-                folder._height = 300;
-                this.props.addDocument?.(folder);
-                //setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(slide)!, false));
-                e.stopPropagation();
             } else if (e.key === "b" && e.ctrlKey) {
                 // e.preventDefault();
                 // navigator.clipboard.readText().then(text => {
@@ -167,7 +155,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             } else if (!e.ctrlKey && !e.metaKey && SelectionManager.Views().length < 2) {
                 FormattedTextBox.SelectOnLoadChar = Doc.UserDoc().defaultTextLayout && !this.props.childLayoutString ? e.key : "";
                 FormattedTextBox.LiveTextUndo = UndoManager.StartBatch("live text batch");
-                this.props.addLiveTextDocument(CurrentUserUtils.GetNewTextDoc("-typed text-", x, y, 200, 100, this.props.xMargin === 0, this.props.isAnnotationOverlay ? this.props.Document : undefined));
+                this.props.addLiveTextDocument(CurrentUserUtils.GetNewTextDoc("-typed text-", x, y, 200, 100, this.props.xMargin === 0));
                 e.stopPropagation();
             }
     }
@@ -366,6 +354,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         newCollection._width = this.Bounds.width;
         newCollection._height = this.Bounds.height;
         newCollection._isGroup = makeGroup;
+        newCollection.forceActive = makeGroup;
         newCollection.x = this.Bounds.left;
         newCollection.y = this.Bounds.top;
         selected.forEach(d => d.context = newCollection);
