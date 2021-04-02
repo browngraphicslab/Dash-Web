@@ -243,11 +243,11 @@ export class DocumentOptions {
     searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
     freezeChildren?: string; // whether children are now allowed to be added and or removed from a collection
-    treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the top document title of a tree view
     treeViewHideHeader?: boolean; // whether to hide the header for a document in a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewShowClearButton?: boolean; // whether a clear button should be displayed 
+    treeViewOpenIsTransient?: boolean; // ignores the treeViewOpen Doc flag, allowing a treeViewItem's expand/collapse state to be independent of other views of the same document in the same or any other tree view
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
     treeViewExpandedViewLock?: boolean; // whether the expanded view can be changed

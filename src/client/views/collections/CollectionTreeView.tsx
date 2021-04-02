@@ -102,7 +102,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
         if (!Doc.UserDoc().noviceMode) {
             const layoutItems: ContextMenuProps[] = [];
-            layoutItems.push({ description: (this.doc.treeViewPreventOpen ? "Persist" : "Abandon") + "Treeview State", event: () => this.doc.treeViewPreventOpen = !this.doc.treeViewPreventOpen, icon: "paint-brush" });
+            layoutItems.push({ description: "Make tree state " + (this.doc.treeViewOpenIsTransient ? "persistent" : "transient"), event: () => this.doc.treeViewOpenIsTransient = !this.doc.treeViewOpenIsTransient, icon: "paint-brush" });
             layoutItems.push({ description: (this.doc.treeViewHideHeaderFields ? "Show" : "Hide") + " Header Fields", event: () => this.doc.treeViewHideHeaderFields = !this.doc.treeViewHideHeaderFields, icon: "paint-brush" });
             layoutItems.push({ description: (this.doc.treeViewHideTitle ? "Show" : "Hide") + " Title", event: () => this.doc.treeViewHideTitle = !this.doc.treeViewHideTitle, icon: "paint-brush" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "eye" });
@@ -195,7 +195,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             this.panelWidth,
             this.props.renderDepth,
             () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
-            BoolCast(this.doc.treeViewPreventOpen),
             [],
             this.props.onCheckedClick,
             this.onChildClick,
