@@ -30,8 +30,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || SelectionManager.Views().lastElement()?.rootDoc; }
 
-    propertyToggleBtn = (label: string, property: string, tooltip: (on?: any) => string, icon: (on: boolean) => string, onClick?: (dv: Opt<DocumentView>, doc: Doc, property: string) => void) => {
-        const targetDoc = this.selectedDoc;
+    propertyToggleBtn = (label: string, property: string, tooltip: (on?: any) => string, icon: (on: boolean) => string, onClick?: (dv: Opt<DocumentView>, doc: Doc, property: string) => void, useUserDoc?: boolean) => {
+        const targetDoc = useUserDoc ? Doc.UserDoc() : this.selectedDoc;
         const onPropToggle = (dv: Opt<DocumentView>, doc: Doc, prop: string) => (dv?.layoutDoc || doc)[prop] = (dv?.layoutDoc || doc)[prop] ? false : true;
         return !targetDoc ? (null) :
             <Tooltip title={<div className={`dash-tooltip`}>{tooltip(targetDoc?.[property])} </div>} placement="top">
@@ -39,7 +39,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                     <div className={`propertiesButtons-linkButton-empty toggle-${StrCast(targetDoc[property]).includes(":hover") ? "hover" : targetDoc[property] ? "on" : "off"}`}
                         onPointerDown={e => e.stopPropagation()}
                         onClick={undoBatch(() => {
-                            if (SelectionManager.Views().length) {
+                            if (SelectionManager.Views().length > 1) {
                                 SelectionManager.Views().forEach(dv => (onClick ?? onPropToggle)(dv, dv.rootDoc, property));
                             } else if (targetDoc) (onClick ?? onPropToggle)(undefined, targetDoc, property);
                         })} >
@@ -84,6 +84,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     }
     @computed get gridButton() {
         return this.propertyToggleBtn("Grid", "_backgroundGrid-show", on => `Display background grid in collection`, on => "border-all");
+    }
+    @computed get snapButton() {
+        return this.propertyToggleBtn("Snap\xA0Lines", "showSnapLines", on => `Display snapping lines when objects are dragged`, on => "border-all", undefined, true);
     }
 
     @computed
@@ -200,6 +203,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 {toggle(this.maskButton, { display: !isInk ? "none" : "" })}
                 {toggle(this.chromeButton, { display: isCollection ? "" : "none" })}
                 {toggle(this.gridButton, { display: isCollection ? "" : "none" })}
+                {toggle(this.snapButton, { display: isCollection ? "" : "none" })}
                 {toggle(this.clustersButton, { display: !isFreeForm ? "none" : "" })}
                 {toggle(this.panButton, { display: !isFreeForm ? "none" : "" })}
                 {toggle(this.perspectiveButton, { display: !isCollection ? "none" : "" })}

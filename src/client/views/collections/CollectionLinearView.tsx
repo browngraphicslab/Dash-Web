@@ -7,12 +7,13 @@ import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { makeInterface } from '../../../fields/Schema';
 import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
-import { emptyFunction, returnTrue, Utils, emptyPath, returnEmptyDoclist, returnFalse } from '../../../Utils';
+import { emptyFunction, returnEmptyDoclist, returnFalse, returnTrue, Utils } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
 import { Transform } from '../../util/Transform';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { DocumentView } from '../nodes/DocumentView';
 import { LinkDescriptionPopup } from '../nodes/LinkDescriptionPopup';
+import { StyleProp } from '../StyleProvider';
 import "./CollectionLinearView.scss";
 import { CollectionSubView } from './CollectionSubView';
 import { CollectionViewType } from './CollectionView';
@@ -37,14 +38,13 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     }
 
     componentDidMount() {
-        // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
-        this._widthDisposer = reaction(() => 5 + (this.props.Document.linearViewIsExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
-            width => this.childDocs.length && (this.props.Document._width = width),
+        this._widthDisposer = reaction(() => 5 + (this.layoutDoc.linearViewIsExpanded ? this.childDocs.length * (this.rootDoc[HeightSym]()) : 10),
+            width => this.childDocs.length && (this.layoutDoc._width = width),
             { fireImmediately: true }
         );
 
         this._selectedDisposer = reaction(
-            () => NumCast(this.props.Document.selectedIndex),
+            () => NumCast(this.layoutDoc.selectedIndex),
             (i) => runInAction(() => {
                 this._selectedIndex = i;
                 let selected: any = undefined;
@@ -71,7 +71,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         }
     }
 
-    dimension = () => NumCast(this.props.Document._height); // 2 * the padding
+    dimension = () => NumCast(this.rootDoc._height); // 2 * the padding
     getTransform = (ele: React.RefObject<HTMLDivElement>) => () => {
         if (!ele.current) return Transform.Identity();
         const { scale, translateX, translateY } = Utils.GetScreenTransform(ele.current);
@@ -109,12 +109,13 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     render() {
         const guid = Utils.GenerateGuid();
         const flexDir: any = StrCast(this.Document.flexDirection);
-        const backgroundColor = StrCast(this.props.Document.backgroundColor, "black");
-        const color = StrCast(this.props.Document.color, "white");
         const expandable: boolean = BoolCast(this.props.Document.linearViewExpandable);
+        const backgroundColor = this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.BackgroundColor);
+        const color = this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.Color);
+
         const menuOpener = <label htmlFor={`${guid}`} style={{ pointerEvents: "all", cursor: "pointer", background: backgroundColor === color ? "black" : backgroundColor, }}
             onPointerDown={e => e.stopPropagation()} >
-            <p>{BoolCast(this.props.Document.linearViewIsExpanded) ? "–" : "+"}</p>
+            <p>{BoolCast(this.layoutDoc.linearViewIsExpanded) ? "–" : "+"}</p>
         </label>;
 
         return <div className="collectionLinearView-outer">

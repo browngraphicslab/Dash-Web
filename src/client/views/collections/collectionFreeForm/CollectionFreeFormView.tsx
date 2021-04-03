@@ -1446,7 +1446,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             getTransform={this.getTransform}
             isAnnotationOverlay={this.isAnnotationOverlay}>
             <div ref={this._marqueeRef}>
-                {this.layoutDoc["_backgroundGrid-show"] && (!SnappingManager.GetIsDragging() || !Doc.UserDoc().showSnapLines) ? this.backgroundGrid : (null)}
+                {this.layoutDoc["_backgroundGrid-show"] ? this.backgroundGrid : (null)}
                 <CollectionFreeFormViewPannableContents
                     isAnnotationOverlay={this.isAnnotationOverlay}
                     transform={this.contentTransform}
