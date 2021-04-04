@@ -530,7 +530,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         <div className="searchBox-lozenge-dashboard"  >
                             <select className="searchBox-dashSelect" onChange={e => CurrentUserUtils.openDashboard(Doc.UserDoc(), myDashboards[Number(e.target.value)])}
                                 value={myDashboards.indexOf(CurrentUserUtils.ActiveDashboard)}>
-                                {myDashboards.map((dash, i) => <option key={dash[Id]} value={i}> {StrCast(dash.title)} </option>)}
+                                {myDashboards.map((dash, i) => <option key={dash[Id]} value={i} style={{ color: "black" }}> {StrCast(dash.title)} </option>)}
                             </select>
                             <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}>
                                 New
