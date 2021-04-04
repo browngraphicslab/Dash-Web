@@ -740,6 +740,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         !Doc.UserDoc().novice && helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "add:right"), icon: "layer-group" });
         helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _width: 300, _height: 300 }), "add:right"), icon: "keyboard" });
         !Doc.UserDoc().novice && helpItems.push({ description: "Print Document in Console", event: () => console.log(this.props.Document), icon: "hand-point-right" });
+        !Doc.UserDoc().novice && helpItems.push({ description: "Print DataDoc in Console", event: () => console.log(this.props.Document[DataSym]), icon: "hand-point-right" });
         cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
 
         if (!this.topMost) e?.stopPropagation(); // DocumentViews should stop propagation of this event
