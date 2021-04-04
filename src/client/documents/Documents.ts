@@ -651,7 +651,7 @@ export namespace Docs {
             const viewKeys = ["x", "y", "system"]; // keys that should be addded to the view document even though they don't begin with an "_"
             const { omit: dataProps, extract: viewProps } = OmitKeys(options, viewKeys, "^_");
 
-            dataProps.system = viewProps.system;
+            dataProps.system = viewProps.system ? (viewProps.system) : (viewProps.system = false);
             dataProps.isPrototype = true;
             dataProps.author = Doc.CurrentUserEmail;
             dataProps.creationDate = new DateField;

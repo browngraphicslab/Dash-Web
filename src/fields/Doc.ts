@@ -1077,7 +1077,7 @@ export namespace Doc {
     // filters document in a container collection:
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
-    export function setDocFilter(container: Opt<Doc>, key: string, value: any, modifiers: "remove" | "match" | "check" | "x", toggle?: boolean, fieldSuffix?: string) {
+    export function setDocFilter(container: Opt<Doc>, key: string, value: any, modifiers: "remove" | "match" | "check" | "x", toggle?: boolean, fieldSuffix?: string, append: boolean = true) {
         if (!container) return;
         const filterField = "_" + (fieldSuffix ? fieldSuffix + "-" : "") + "docFilters";
         const docFilters = Cast(container[filterField], listSpec("string"), []);
@@ -1146,6 +1146,7 @@ export namespace Doc {
             dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
             Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);
         }
+        ndoc && (ndoc.system = false);
         return ndoc;
     }
     export function delegateDragFactory(dragFactory: Doc) {

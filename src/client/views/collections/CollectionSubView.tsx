@@ -119,10 +119,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 (this.props.Document.currentFilter as Doc).filterBoolean = (this.props.ContainingCollectionDoc?.currentFilter as Doc)?.filterBoolean;
             }
             const docsforFilter: Doc[] = [];
-            console.log(this.props.Document.system);
             childDocs.forEach((d) => {
                 // if (DocUtils.Excluded(d, docFilters)) return;
-                let notFiltered = d.z || ((!searchDocs.length || searchDocs.includes(d)) && (DocUtils.FilterDocs([d], docFilters, docRangeFilters, viewSpecScript, this.props.Document).length > 0));
+                let notFiltered = d.z || d.system || ((!searchDocs.length || searchDocs.includes(d)) && (DocUtils.FilterDocs([d], docFilters, docRangeFilters, viewSpecScript, this.props.Document).length > 0));
                 const fieldKey = Doc.LayoutFieldKey(d);
                 const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
                 const data = d[annos ? fieldKey + "-annotations" : fieldKey];
