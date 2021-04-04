@@ -174,7 +174,7 @@ export class EditableView extends React.Component<EditableProps> {
                 }}
             />
             : <input className="editableView-input" ref={this._inputref}
-                style={{ display: this.props.display, fontSize: this.props.fontSize, minWidth: 20, background: this.props.background }}
+                style={{ display: this.props.display, overflow: "auto", fontSize: this.props.fontSize, minWidth: 20, background: this.props.background }}
                 placeholder={this.props.placeholder}
                 onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true, false)}
                 defaultValue={this.props.GetValue()}

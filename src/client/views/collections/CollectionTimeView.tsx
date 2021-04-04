@@ -136,7 +136,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     }
 
     @computed get contents() {
-        return <div className="collectionTimeView-innards" key="timeline" style={{ pointerEvents: this.props.active() ? undefined : "none" }}
+        return <div className="collectionTimeView-innards" key="timeline" style={{ pointerEvents: this.props.isContentActive() ? undefined : "none" }}
             onClick={this.contentsDown}>
             <CollectionFreeFormView {...this.props}
                 engineProps={{ pivotField: this.pivotField, docFilters: this.docFilters, docRangeFilters: this.docRangeFilters }}

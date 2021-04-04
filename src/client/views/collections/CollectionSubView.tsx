@@ -442,25 +442,23 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     });
                 }
             }
-            this.slowLoadDocuments(files, options, generatedDocuments, text, completed, e.clientX, e.clientY, addDocument);
-            batch.end();
+            this.slowLoadDocuments(files, options, generatedDocuments, text, completed, e.clientX, e.clientY, addDocument).then(batch.end);
         }
         slowLoadDocuments = async (files: File[], options: DocumentOptions, generatedDocuments: Doc[], text: string, completed: (() => void) | undefined, clientX: number, clientY: number, addDocument: (doc: Doc | Doc[]) => boolean) => {
-            runInAction(() => CollectionSubViewLoader.Waiting = "block");
             const disposer = OverlayView.Instance.addElement(
                 <ReactLoading type={"spinningBubbles"} color={"green"} height={250} width={250} />, { x: clientX - 125, y: clientY - 125 });
             generatedDocuments.push(...await DocUtils.uploadFilesToDocs(files, options));
             if (generatedDocuments.length) {
                 const set = generatedDocuments.length > 1 && generatedDocuments.map(d => DocUtils.iconify(d));
                 if (set) {
-                    UndoManager.RunInBatch(() => addDocument(DocUtils.pileup(generatedDocuments, options.x!, options.y!)!), "drop");
+                    addDocument(DocUtils.pileup(generatedDocuments, options.x!, options.y!)!);
                 } else {
-                    UndoManager.RunInBatch(() => generatedDocuments.forEach(addDocument), "drop");
+                    generatedDocuments.forEach(addDocument);
                 }
                 completed?.();
             } else {
                 if (text && !text.includes("https://")) {
-                    UndoManager.RunInBatch(() => addDocument(Docs.Create.TextDocument(text, { ...options, title: text.substring(0, 20), _width: 400, _height: 315 })), "drop");
+                    addDocument(Docs.Create.TextDocument(text, { ...options, title: text.substring(0, 20), _width: 400, _height: 315 }));
                 } else {
                     alert("Document upload failed - possibly an unsupported file type.");
                 }
@@ -470,10 +468,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
     }
 
     return CollectionSubView;
-}
-
-export class CollectionSubViewLoader {
-    @observable public static Waiting = "none";
 }
 
 import { DragManager, dropActionType } from "../../util/DragManager";

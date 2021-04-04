@@ -328,7 +328,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action
     onWheel(e: React.WheelEvent) {
         const scale = this.props.ScreenToLocalTransform().Scale;
-        this.props.active(true) && e.stopPropagation();
+        this.props.isContentActive(true) && e.stopPropagation();
     }
 
     @computed get renderMenuContent() {
@@ -410,6 +410,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     rootSelected={this.rootSelected}
                     PanelWidth={this.previewWidth}
                     PanelHeight={this.previewHeight}
+                    isContentActive={returnTrue}
+                    isDocumentActive={returnFalse}
                     ScreenToLocalTransform={this.getPreviewTransform}
                     docFilters={this.docFilters}
                     docRangeFilters={this.docRangeFilters}
@@ -422,8 +424,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     moveDocument={this.props.moveDocument}
                     addDocument={this.props.addDocument}
                     removeDocument={this.props.removeDocument}
-                    parentActive={this.props.active}
-                    whenActiveChanged={this.props.whenActiveChanged}
+                    whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
                     addDocTab={this.props.addDocTab}
                     pinToPres={this.props.pinToPres}
                     bringToFront={returnFalse}
@@ -445,7 +446,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             renderDepth={this.props.renderDepth}
             moveDocument={this.props.moveDocument}
             ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-            active={this.props.active}
+            active={this.props.isContentActive}
             onDrop={this.onExternalDrop}
             addDocTab={this.props.addDocTab}
             pinToPres={this.props.pinToPres}
@@ -534,11 +535,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.columns = columns;
     }
 
-    onZoomMenu = (e: React.WheelEvent) => this.props.active(true) && e.stopPropagation();
+    onZoomMenu = (e: React.WheelEvent) => this.props.isContentActive(true) && e.stopPropagation();
 
     render() {
         TraceMobx();
-        if (!this.props.active()) setTimeout(() => this.closeHeader(), 0);
+        if (!this.props.isContentActive()) setTimeout(() => this.closeHeader(), 0);
         const menuContent = this.renderMenuContent;
         const menu = <div className="collectionSchema-header-menu"
             onWheel={e => this.onZoomMenu(e)}
@@ -554,21 +555,21 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return <div className={"collectionSchemaView" + (this.props.Document._searchDoc ? "-searchContainer" : "-container")}
             style={{
                 overflow: this.props.scrollOverflow === true ? "scroll" : undefined, backgroundColor: "white",
-                pointerEvents: this.props.Document._searchDoc !== undefined && !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
+                pointerEvents: this.props.Document._searchDoc !== undefined && !this.props.isContentActive() && !SnappingManager.GetIsDragging() ? "none" : undefined,
                 width: name === "collectionSchemaView-searchContainer" ? "auto" : this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
             }}  >
             <div className="collectionSchemaView-tableContainer"
                 style={{ width: `calc(100% - ${this.previewWidth()}px)` }}
                 onContextMenu={this.onSpecificMenu}
                 onPointerDown={this.onPointerDown}
-                onWheel={e => this.props.active(true) && e.stopPropagation()}
+                onWheel={e => this.props.isContentActive(true) && e.stopPropagation()}
                 onDrop={e => this.onExternalDrop(e, {})}
                 ref={this.createTarget}>
                 {this.schemaTable}
             </div>
             {this.dividerDragger}
             {!this.previewWidth() ? (null) : this.previewPanel}
-            {this._headerOpen && this.props.active() ? menu : null}
+            {this._headerOpen && this.props.isContentActive() ? menu : null}
         </div>;
     }
 }

@@ -19,7 +19,7 @@ import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionStackedTimeline } from "../collections/CollectionStackedTimeline";
 import { ContextMenu } from "../ContextMenu";
-import { ViewBoxAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent, ViewBoxAnnotatableProps } from "../DocComponent";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
 import { VideoBox } from "./VideoBox";
@@ -33,7 +33,7 @@ type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
 const ScreenshotDocument = makeInterface(documentSchema);
 
 @observer
-export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
+export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ScreenshotBox, fieldKey); }
     private _videoRef = React.createRef<HTMLVideoElement>();
     private _audioRec: any;
@@ -159,9 +159,9 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
                         isSelected={this.props.isSelected}
                         isAnnotationOverlay={true}
                         select={emptyFunction}
-                        active={returnFalse}
+                        isContentActive={returnFalse}
                         scaling={returnOne}
-                        whenActiveChanged={emptyFunction}
+                        whenChildContentsActiveChanged={emptyFunction}
                         removeDocument={returnFalse}
                         moveDocument={returnFalse}
                         addDocument={returnFalse}
@@ -181,11 +181,11 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<FieldViewProps, S
                         isSelected={this.props.isSelected}
                         isAnnotationOverlay={true}
                         select={emptyFunction}
-                        active={returnFalse}
+                        isContentActive={returnFalse}
                         scaling={returnOne}
                         xMargin={25}
                         yMargin={10}
-                        whenActiveChanged={emptyFunction}
+                        whenChildContentsActiveChanged={emptyFunction}
                         removeDocument={returnFalse}
                         moveDocument={returnFalse}
                         addDocument={returnFalse}

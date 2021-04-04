@@ -13,14 +13,15 @@
 .treeView-container-active {
     .bullet-outline {
         position: relative;
-        width: 15px;
+        width: $TREE_BULLET_WIDTH;
         color: $intermediate-color;
         transform: scale(0.5);
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
     }
 
     .treeView-bulletIcons {
-        width: 15px;
+        width: $TREE_BULLET_WIDTH;
 
         .treeView-expandIcon {
             display: none;

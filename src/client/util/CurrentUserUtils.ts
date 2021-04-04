@@ -743,9 +743,9 @@ export class CurrentUserUtils {
         await doc.myDashboards;
         if (doc.myDashboards === undefined) {
             doc.myDashboards = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "My Dashboards", _height: 400,
+                title: "My Dashboards", _height: 400, childHideLinkButton: true,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
@@ -761,7 +761,7 @@ export class CurrentUserUtils {
             doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Presentations", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
@@ -780,8 +780,8 @@ export class CurrentUserUtils {
             doc.myFilesystem = new PrefetchProxy(Docs.Create.TreeDocument([doc.myFileRoot as Doc, doc.myFileOrphans as Doc], {
                 title: "My Documents", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                isFolder: true, treeViewType: "fileSystem",
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
+                isFolder: true, treeViewType: "fileSystem", childHideLinkButton: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "proto", system: true
             }));
         }
@@ -792,9 +792,9 @@ export class CurrentUserUtils {
         // setup Recently Closed library item
         if (doc.myRecentlyClosedDocs === undefined) {
             doc.myRecentlyClosedDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "Recently Closed",
+                title: "Recently Closed", treeViewShowClearButton: true, childHideLinkButton: true,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
@@ -809,7 +809,7 @@ export class CurrentUserUtils {
             doc.currentFilter = Docs.Create.FilterDocument({
                 title: "FilterDoc", _height: 150,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "none",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             });
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
@@ -825,7 +825,7 @@ export class CurrentUserUtils {
             doc.treeViewExpandedView = "fields";
             doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, title: "My UserDoc",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
@@ -855,7 +855,7 @@ export class CurrentUserUtils {
     static blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
         ...opts, _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", _forceActive: true,
         dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
-        backgroundColor: "black", treeViewPreventOpen: true, _lockedPosition: true, linearViewIsExpanded: true, system: true
+        backgroundColor: "black", _lockedPosition: true, linearViewIsExpanded: true, system: true
     })) as any as Doc
 
     static ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
@@ -911,6 +911,7 @@ export class CurrentUserUtils {
                     title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15,
                     _showTitle: "title", ignoreClick: true, _lockedPosition: true, "acl-Public": SharingPermissions.Add, "_acl-Public": SharingPermissions.Add, _chromeHidden: true,
                 }, sharingDocumentId + "outer", sharingDocumentId);
+                (sharedDocs as Doc)["acl-Public"] = (sharedDocs as Doc)[DataSym]["acl-Public"] = SharingPermissions.Add;
             }
             if (sharedDocs instanceof Doc) {
                 sharedDocs.userColor = sharedDocs.userColor || "rgb(202, 202, 202)";

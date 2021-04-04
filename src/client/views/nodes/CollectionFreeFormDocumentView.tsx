@@ -49,7 +49,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed get dataProvider() { return this.props.dataProvider?.(this.props.Document, this.props.replica); }
     @computed get sizeProvider() { return this.props.sizeProvider?.(this.props.Document, this.props.replica); }
 
-    styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
+    styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
         if (property === StyleProp.Opacity && doc === this.layoutDoc) return this.Opacity; // only change the opacity for this specific document, not its children
         return this.props.styleProvider?.(doc, props, property);
     }

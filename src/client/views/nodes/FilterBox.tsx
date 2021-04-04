@@ -20,6 +20,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import './FilterBox.scss';
 import { Scripting } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
+import { CollectionView } from "../collections/CollectionView";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -258,9 +259,11 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
             } else {
                 newFacet = new Doc();
-                newFacet.sytem = true;
+                newFacet.system = true;
                 newFacet.title = facetHeader;
                 newFacet.treeViewOpen = true;
+                newFacet.layout = CollectionView.LayoutString("data");
+                newFacet.layoutKey = "layout";
                 newFacet.type = DocumentType.COL;
                 // const capturedVariables = { layoutDoc: targetDoc, system: true, _stayInCollection: true, _hideContextMenu: true, dataDoc: (targetDoc.data as any)[0][DataSym] };
                 // newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, "${facetHeader}")`, {}, capturedVariables);
@@ -415,7 +418,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     DataDoc={Doc.GetProto(facetCollection)}
                     fieldKey={this.props.fieldKey}
                     CollectionView={undefined}
-                    cantBrush={true}
+                    disableDocBrushing={true}
                     setHeight={returnFalse} // if the tree view can trigger the height of the filter box to change, then this needs to be filled in.
                     onChildClick={this.suppressChildClick}
                     docFilters={returnEmptyFilter}
@@ -434,9 +437,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     isSelected={returnFalse}
                     select={returnFalse}
                     bringToFront={emptyFunction}
-                    active={returnTrue}
-                    parentActive={returnFalse}
-                    whenActiveChanged={returnFalse}
+                    isContentActive={returnTrue}
+                    whenChildContentsActiveChanged={returnFalse}
                     treeViewHideTitle={true}
                     focus={returnFalse}
                     treeViewHideHeaderFields={true}

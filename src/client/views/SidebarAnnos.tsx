@@ -22,8 +22,7 @@ interface ExtraProps {
     layoutDoc: Doc;
     rootDoc: Doc;
     dataDoc: Doc;
-    annotationsActive: (outsideReaction: boolean) => boolean;
-    whenActiveChanged: (isActive: boolean) => void;
+    whenChildContentsActiveChanged: (isActive: boolean) => void;
     ScreenToLocalTransform: () => Transform;
     sidebarAddDocument: (doc: (Doc | Doc[]), suffix: string) => boolean;
     removeDocument: (doc: (Doc | Doc[]), suffix: string) => boolean;
@@ -47,7 +46,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
     anchorMenuClick = (anchor: Doc) => {
         const startup = StrListCast(this.props.rootDoc.docFilters).map(filter => filter.split(":")[0]).join(" ");
         const target = Docs.Create.TextDocument(startup, {
-            title: "anno",
+            title: "-note-",
             annotationOn: this.props.rootDoc, _width: 200, _height: 50, _fitWidth: true, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
             _fontFamily: StrCast(Doc.UserDoc().fontFamily)
         });
@@ -98,7 +97,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
         };
         return !this.props.layoutDoc._showSidebar ? (null) :
             <div style={{
-                position: "absolute", pointerEvents: this.props.active() ? "all" : undefined, top: 0, right: 0,
+                position: "absolute", pointerEvents: this.props.isContentActive() ? "all" : undefined, top: 0, right: 0,
                 background: this.props.styleProvider?.(this.props.rootDoc, this.props, StyleProp.WidgetColor),
                 width: `${this.panelWidth()}px`,
                 height: "100%"
@@ -120,9 +119,8 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
                         scaleField={this.sidebarKey() + "-scale"}
                         isAnnotationOverlay={false}
                         select={emptyFunction}
-                        active={this.props.annotationsActive}
                         scaling={returnOne}
-                        whenActiveChanged={this.props.whenActiveChanged}
+                        whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
                         childHideDecorationTitle={returnTrue}
                         removeDocument={this.removeDocument}
                         moveDocument={this.moveDocument}

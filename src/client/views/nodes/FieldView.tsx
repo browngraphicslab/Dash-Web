@@ -18,8 +18,8 @@ export interface FieldViewProps extends DocumentViewSharedProps {
     fieldKey: string;
     scrollOverflow?: boolean; // bcz: would like to think this can be avoided -- need to look at further
 
-    active: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;
+    isContentActive: (outsideReaction?: boolean) => boolean;
     isSelected: (outsideReaction?: boolean) => boolean;
     scaling?: () => number;
     setHeight: (height: number) => void;

@@ -58,7 +58,6 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                         PanelHeight={this.panelHeight}
                         ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                         bringToFront={returnFalse}
-                        parentActive={this.props.active}
                     />
                 </div>
                 <div className="collectionCarouselView-caption" key="caption"

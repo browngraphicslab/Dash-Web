@@ -208,7 +208,7 @@ export class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMap
 
     render() {
         const { childLayoutPairs } = this;
-        const { Document, fieldKey, active, google } = this.props;
+        const { Document, fieldKey, isContentActive: active, google } = this.props;
         const mapLoc = this.getLocation(this.rootDoc, `${fieldKey}-mapCenter`, false);
         let center = mapLoc;
         if (center === undefined) {

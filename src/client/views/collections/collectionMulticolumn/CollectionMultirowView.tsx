@@ -232,6 +232,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             ScreenToLocalTransform={dxf}
             focus={this.props.focus}
             docFilters={this.docFilters}
+            isContentActive={returnFalse}
             docRangeFilters={this.docRangeFilters}
             searchFilterDocs={this.searchFilterDocs}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
@@ -239,8 +240,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
             removeDocument={this.props.removeDocument}
-            parentActive={this.props.active}
-            whenActiveChanged={this.props.whenActiveChanged}
+            whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
             addDocTab={this.addDocTab}
             pinToPres={this.props.pinToPres}
             bringToFront={returnFalse}

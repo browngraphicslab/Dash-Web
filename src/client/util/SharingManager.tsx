@@ -174,7 +174,7 @@ export class SharingManager extends React.Component<{}> {
         const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
 
         const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
-        docs.forEach(doc => {
+        return !docs.map(doc => {
             doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
 
             if (permission === SharingPermissions.None) {
@@ -186,9 +186,9 @@ export class SharingManager extends React.Component<{}> {
 
             distributeAcls(acl, permission as SharingPermissions, doc);
 
-            if (permission !== SharingPermissions.None) Doc.AddDocToList(sharingDoc, storage, doc);
-            else GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
-        });
+            if (permission !== SharingPermissions.None) return Doc.AddDocToList(sharingDoc, storage, doc);
+            else return GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
+        }).some(success => !success);
     }
 
     /**
@@ -204,7 +204,8 @@ export class SharingManager extends React.Component<{}> {
 
         const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
 
-        docs.forEach(doc => {
+        // ! ensures it returns true if document has been shared successfully, false otherwise
+        return !docs.map(doc => {
             doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmailNormalized}`] && distributeAcls(`acl-${Doc.CurrentUserEmailNormalized}`, SharingPermissions.Admin, doc);
 
             if (permission === SharingPermissions.None) {
@@ -223,12 +224,12 @@ export class SharingManager extends React.Component<{}> {
                 // if documents have been shared, add the doc to that list if it doesn't already exist, otherwise create a new list with the doc
                 group.docsShared ? Doc.IndexOf(doc, DocListCast(group.docsShared)) === -1 && (group.docsShared as List<Doc>).push(doc) : group.docsShared = new List<Doc>([doc]);
 
-                users.forEach(({ user, sharingDoc }) => {
-                    if (permission !== SharingPermissions.None) Doc.AddDocToList(sharingDoc, storage, doc); // add the doc to the sharingDoc if it hasn't already been added
-                    else GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc)); // remove the doc from the list if it already exists
-                });
+                return users.map(({ user, sharingDoc }) => {
+                    if (permission !== SharingPermissions.None) return Doc.AddDocToList(sharingDoc, storage, doc); // add the doc to the sharingDoc if it hasn't already been added
+                    else return GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc)); // remove the doc from the list if it already exists
+                }).some(success => !success);
             }
-        });
+        }).some(success => success);
     }
 
     /**
@@ -306,24 +307,6 @@ export class SharingManager extends React.Component<{}> {
         }
     }
 
-    /**
-     * Shares the document with a user.
-     */
-    // setInternalSharing = (recipient: ValidatedUser, permission: string, targetDoc?: Doc) => {
-    //     const { user, sharingDoc } = recipient;
-    //     const target = targetDoc || this.targetDoc!;
-    //     const acl = `acl-${normalizeEmail(user.email)}`;
-    //     const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
-
-    //     const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
-    //     docs.forEach(doc => {
-    //         doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
-    //         distributeAcls(acl, permission as SharingPermissions, doc);
-
-    //         if (permission !== SharingPermissions.None) Doc.AddDocToList(sharingDoc, storage, doc);
-    //         else GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
-    //     });
-    // }
 
 
     // private setExternalSharing = (permission: string) => {
@@ -535,10 +518,10 @@ export class SharingManager extends React.Component<{}> {
                                 {this.sharingOptions(uniform)}
                             </select>
                         ) : (
-                                <div className={"permissions-dropdown"}>
-                                    {permissions === SharingPermissions.Add ? "Can Augment" : permissions}
-                                </div>
-                            )}
+                            <div className={"permissions-dropdown"}>
+                                {permissions === SharingPermissions.Add ? "Can Augment" : permissions}
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -609,10 +592,10 @@ export class SharingManager extends React.Component<{}> {
                                 {this.sharingOptions(uniform, group.title === "Override")}
                             </select>
                         ) : (
-                                <div className={"permissions-dropdown"}>
-                                    {permissions}
-                                </div>
-                            )}
+                            <div className={"permissions-dropdown"}>
+                                {permissions}
+                            </div>
+                        )}
                     </div>
                 </div>
             );

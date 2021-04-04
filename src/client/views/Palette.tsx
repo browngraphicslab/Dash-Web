@@ -49,12 +49,13 @@ export default class Palette extends React.Component<PaletteProps> {
                             PanelWidth={() => window.screen.width}
                             PanelHeight={() => window.screen.height}
                             renderDepth={0}
+                            isDocumentActive={returnTrue}
+                            isContentActive={returnFalse}
                             focus={emptyFunction}
                             docViewPath={returnEmptyDoclist}
                             styleProvider={returnEmptyString}
                             layerProvider={undefined}
-                            parentActive={returnTrue}
-                            whenActiveChanged={emptyFunction}
+                            whenChildContentsActiveChanged={emptyFunction}
                             bringToFront={emptyFunction}
                             docFilters={returnEmptyFilter}
                             docRangeFilters={returnEmptyFilter}

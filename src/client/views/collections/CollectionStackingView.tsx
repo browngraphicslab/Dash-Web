@@ -196,7 +196,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         });
     }
 
-    styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
+    styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
         if (property === StyleProp.Opacity && doc) {
             if (this.props.childOpacity) {
                 return this.props.childOpacity();
@@ -207,6 +207,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         }
         return this.props.styleProvider?.(doc, props, property);
     }
+    isContentActive = () => this.props.isSelected() || this.props.isContentActive();
     getDisplayDoc(doc: Doc, width: () => number) {
         const dataDoc = (!doc.isTemplateDoc && !doc.isTemplateForField && !doc.PARAMS) ? undefined : this.props.DataDoc;
         const height = () => this.getDocHeight(doc);
@@ -224,6 +225,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             layerProvider={this.props.layerProvider}
             docViewPath={this.props.docViewPath}
             fitWidth={this.props.childFitWidth}
+            isContentActive={returnFalse}
+            isDocumentActive={this.isContentActive}
             LayoutTemplate={this.props.childLayoutTemplate}
             LayoutTemplateString={this.props.childLayoutString}
             freezeDimensions={this.props.childFreezeDimensions}
@@ -248,8 +251,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             moveDocument={this.props.moveDocument}
             removeDocument={this.props.removeDocument}
             contentPointerEvents={StrCast(this.layoutDoc.contentPointerEvents)}
-            parentActive={this.props.active}
-            whenActiveChanged={this.props.whenActiveChanged}
+            whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
             addDocTab={this.addDocTab}
             bringToFront={returnFalse}
             scriptContext={this.props.scriptContext}
@@ -534,14 +536,14 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 <div className={this.isStackingView ? "collectionStackingView" : "collectionMasonryView"}
                     ref={this.createRef}
                     style={{
-                        overflowY: this.props.active() ? "auto" : "hidden",
+                        overflowY: this.props.isContentActive() ? "auto" : "hidden",
                         background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.BackgroundColor),
                         pointerEvents: this.backgroundEvents ? "all" : undefined
                     }}
                     onScroll={action(e => this._scroll = e.currentTarget.scrollTop)}
                     onDrop={this.onExternalDrop.bind(this)}
                     onContextMenu={this.onContextMenu}
-                    onWheel={e => this.props.active(true) && e.stopPropagation()} >
+                    onWheel={e => this.props.isContentActive(true) && e.stopPropagation()} >
                     {this.renderedSections}
                     {!this.showAddAGroup ? (null) :
                         <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"

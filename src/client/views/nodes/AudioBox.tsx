@@ -17,7 +17,7 @@ import { SnappingManager } from "../../util/SnappingManager";
 import { CollectionStackedTimeline } from "../collections/CollectionStackedTimeline";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { ViewBoxAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent, ViewBoxAnnotatableProps } from "../DocComponent";
 import "./AudioBox.scss";
 import { FieldView, FieldViewProps } from './FieldView';
 import { LinkDocPreview } from "./LinkDocPreview";
@@ -29,7 +29,7 @@ type AudioDocument = makeInterface<[typeof documentSchema]>;
 const AudioDocument = makeInterface(documentSchema);
 
 @observer
-export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioDocument>(AudioDocument) {
+export class AudioBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, AudioDocument>(AudioDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(AudioBox, fieldKey); }
     public static Enabled = false;
     static playheadWidth = 30; // width of playhead
@@ -63,7 +63,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @computed get pauseTime() { return this._pauseEnd - this._pauseStart; } // total time paused to update the correct time
     @computed get heightPercent() { return AudioBox.heightPercent; }
 
-    constructor(props: Readonly<FieldViewProps>) {
+    constructor(props: Readonly<ViewBoxAnnotatableProps & FieldViewProps>) {
         super(props);
         AudioBox.Instance = this;
 
@@ -267,7 +267,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     // returns the html audio element
     @computed get audio() {
-        return <audio ref={this.setRef} className={`audiobox-control${this.active() ? "-interactive" : ""}`}>
+        return <audio ref={this.setRef} className={`audiobox-control${this.isContentActive() ? "-interactive" : ""}`}>
             <source src={this.path} type="audio/mpeg" />
             Not supported.
         </audio>;
@@ -311,8 +311,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         }
     }
 
-    isActiveChild = () => this._isChildActive;
-    timelineWhenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(runInAction(() => this._isChildActive = isActive));
+    isActiveChild = () => this._isAnyChildContentActive;
+    timelineWhenChildContentsActiveChanged = (isActive: boolean) => this.props.whenChildContentsActiveChanged(runInAction(() => this._isAnyChildContentActive = isActive));
     timelineScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-AudioBox.playheadWidth, -(100 - this.heightPercent) / 200 * this.props.PanelHeight());
     setAnchorTime = (time: number) => this._ele!.currentTime = this.layoutDoc._currentTimecode = time;
     timelineHeight = () => this.props.PanelHeight() * this.heightPercent / 100 * this.heightPercent / 100; // panelHeight * heightPercent is player height.  * heightPercent is timeline height (as per css inline)
@@ -320,6 +320,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @computed get renderTimeline() {
         return <CollectionStackedTimeline ref={this._stackedTimeline} {...this.props}
             fieldKey={this.annotationKey}
+            dictationKey={this.fieldKey + "-dictation"}
             mediaPath={this.path}
             renderDepth={this.props.renderDepth + 1}
             startTag={"_timecodeToShow" /* audioStart */}
@@ -331,13 +332,12 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             playFrom={this.playFrom}
             setTime={this.setAnchorTime}
             playing={this.playing}
-            whenActiveChanged={this.timelineWhenActiveChanged}
+            whenChildContentsActiveChanged={this.timelineWhenChildContentsActiveChanged}
             removeDocument={this.removeDocument}
             ScreenToLocalTransform={this.timelineScreenToLocal}
-            isChildActive={this.isActiveChild}
             Play={this.Play}
             Pause={this.Pause}
-            active={this.active}
+            isContentActive={this.isContentActive}
             playLink={this.playLink}
             PanelWidth={this.timelineWidth}
             PanelHeight={this.timelineHeight}
@@ -345,7 +345,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     }
 
     render() {
-        const interactive = SnappingManager.GetIsDragging() || this.active() ? "-interactive" : "";
+        const interactive = SnappingManager.GetIsDragging() || this.isContentActive() ? "-interactive" : "";
         return <div className="audiobox-container"
             onContextMenu={this.specificContextMenu}
             onClick={!this.path && !this._recorder ? this.recordAudioAnnotation : undefined}
@@ -370,7 +370,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             RECORD
                         </button>}
                 </div> :
-                <div className="audiobox-controls" style={{ pointerEvents: this._isChildActive || this.active() ? "all" : "none" }} >
+                <div className="audiobox-controls" style={{ pointerEvents: this._isAnyChildContentActive || this.isContentActive() ? "all" : "none" }} >
                     <div className="audiobox-dictation" />
                     <div className="audiobox-player" style={{ height: `${AudioBox.heightPercent}%` }} >
                         <div className="audiobox-playhead" style={{ width: AudioBox.playheadWidth }} title={this.mediaState === "paused" ? "play" : "pause"} onClick={this.Play}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.mediaState === "paused" ? "play" : "pause"} size={"1x"} /></div>
