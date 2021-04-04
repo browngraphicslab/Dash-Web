@@ -68,7 +68,7 @@ export function ViewBoxBaseComponent<P extends ViewBoxBaseProps, T>(schemaCtor: 
         isContentActive = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool !== InkTool.None ||
             (this.props.isContentActive?.() || this.props.Document.forceActive ||
                 this.props.isSelected(outsideReaction) ||
-                this.props.rootSelected(outsideReaction)) ? true : false);
+                this.props.rootSelected(outsideReaction)) ? true : false)
         protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;

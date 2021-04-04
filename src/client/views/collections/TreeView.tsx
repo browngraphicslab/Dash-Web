@@ -76,13 +76,13 @@ export class TreeView extends React.Component<TreeViewProps> {
     static _editTitleOnLoad: Opt<{ id: string, parent: TreeView | CollectionTreeView | undefined }>;
     static _openTitleScript: Opt<ScriptField | undefined>;
     static _openLevelScript: Opt<ScriptField | undefined>;
-    private _header: React.RefObject<HTMLDivElement> = React.createRef();;
+    private _header: React.RefObject<HTMLDivElement> = React.createRef();
     private _tref = React.createRef<HTMLDivElement>();
     private _docRef: Opt<DocumentView>;
     private _selDisposer: Opt<IReactionDisposer>;
     private _editTitleScript: (() => ScriptField) | undefined;
     private _openScript: (() => ScriptField) | undefined;
-    private _treedropDisposer?: DragManager.DragDropDisposer
+    private _treedropDisposer?: DragManager.DragDropDisposer;
 
     get treeViewOpenIsTransient() { return this.props.treeView.doc.treeViewOpenIsTransient || Doc.IsPrototype(this.doc); }
     set treeViewOpen(c: boolean) {
@@ -534,7 +534,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             }
         }
     }
-    titleWidth = () => Math.max(20, Math.min(this.props.treeView.truncateTitleWidth(), this.props.panelWidth() - treeBulletWidth()))
+    titleWidth = () => Math.max(20, Math.min(this.props.treeView.truncateTitleWidth(), this.props.panelWidth() - treeBulletWidth()));
 
     /**
      * Renders the EditableView title element for placement into the tree.
