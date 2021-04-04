@@ -400,7 +400,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         const showAdmin = effectiveAcls.every(acl => acl === AclAdmin);
 
         // users in common between all docs
-        const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym][AclSym] && Object.keys(doc[DataSym][AclSym])));
+        const commonKeys: string[] = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym][AclSym] && Object.keys(doc[DataSym][AclSym])));
 
         const tableEntries = [];
 

@@ -22,7 +22,7 @@ import { listSpec } from "./Schema";
 import { ComputedField, ScriptField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { AudioField, ImageField, PdfField, VideoField, WebField } from "./URLField";
-import { deleteProperty, getField, getter, inheritParentAcls, makeEditable, makeReadOnly, normalizeEmail, setter, SharingPermissions, updateFunction } from "./util";
+import { deleteProperty, GetEffectiveAcl, getField, getter, inheritParentAcls, makeEditable, makeReadOnly, normalizeEmail, setter, SharingPermissions, updateFunction } from "./util";
 import JSZip = require("jszip");
 import { CurrentUserUtils } from "../client/util/CurrentUserUtils";
 

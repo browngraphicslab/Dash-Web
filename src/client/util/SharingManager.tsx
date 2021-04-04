@@ -5,7 +5,7 @@ import { observer } from "mobx-react";
 import * as React from "react";
 import Select from "react-select";
 import * as RequestPromise from "request-promise";
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast, DocListCastAsync, Opt } from "../../fields/Doc";
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, AclUnset, DataSym, Doc, DocListCast, DocListCastAsync, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { Cast, StrCast } from "../../fields/Types";
 import { distributeAcls, GetEffectiveAcl, normalizeEmail, SharingPermissions, TraceMobx } from "../../fields/util";
@@ -17,6 +17,7 @@ import { MainViewModal } from "../views/MainViewModal";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
 import { SearchBox } from "../views/search/SearchBox";
+import { CurrentUserUtils } from "./CurrentUserUtils";
 import { DocumentManager } from "./DocumentManager";
 import { GroupManager, UserOptions } from "./GroupManager";
 import { GroupMemberView } from "./GroupMemberView";
@@ -170,6 +171,7 @@ export class SharingManager extends React.Component<{}> {
             doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
             distributeAcls(acl, permission as SharingPermissions, doc);
 
+            this.setDashboardBackground(doc, permission as SharingPermissions);
             if (permission !== SharingPermissions.None) return Doc.AddDocToList(sharingDoc, storage, doc);
             else return GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
         }).some(success => !success);
@@ -192,6 +194,7 @@ export class SharingManager extends React.Component<{}> {
         return !docs.map(doc => {
             doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmailNormalized}`] && distributeAcls(`acl-${Doc.CurrentUserEmailNormalized}`, SharingPermissions.Admin, doc);
             distributeAcls(acl, permission as SharingPermissions, doc);
+            this.setDashboardBackground(doc, permission as SharingPermissions);
 
             if (group instanceof Doc) {
                 const members: string[] = JSON.parse(StrCast(group.members));
@@ -243,6 +246,25 @@ export class SharingManager extends React.Component<{}> {
             docs.forEach(doc => {
                 if (GetEffectiveAcl(doc) === AclAdmin) distributeAcls(`acl-${shareWith}`, permission, doc);
             });
+        }
+    }
+
+    /**
+     * Sets the background of the Dashboard if it has been shared as a visual indicator
+     */
+    setDashboardBackground = async (doc: Doc, permission: SharingPermissions) => {
+        if (Doc.IndexOf(doc, DocListCast(CurrentUserUtils.MyDashboards.data)) !== -1) {
+            if (permission !== SharingPermissions.None) {
+                doc.isShared = true;
+                doc.backgroundColor = "green";
+            }
+            else {
+                const acls = doc[DataSym][AclSym];
+                if (Object.keys(acls).every(key => key === `acl-${Doc.CurrentUserEmailNormalized}` ? true : [AclUnset, AclPrivate].includes(acls[key]))) {
+                    doc.isShared = undefined;
+                    doc.backgroundColor = undefined;
+                }
+            }
         }
     }
 

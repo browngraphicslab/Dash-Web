@@ -1189,7 +1189,7 @@ export class CurrentUserUtils {
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
         const snapshotDashboard = ScriptField.MakeScript(`snapshotDashboard()`);
         const createDashboard = ScriptField.MakeScript(`createNewDashboard()`);
-        const shareDashboard = ScriptField.MakeScript(`shareDashboard()`);
+        const shareDashboard = ScriptField.MakeScript(`shareDashboard(self)`);
         const addToDashboards = ScriptField.MakeScript(`addToDashboards(self)`);
         dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, snapshotDashboard!, createDashboard!, shareDashboard!, addToDashboards!]);
         dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard", "Share Dashboard", "Add to Dashboards"]);
@@ -1244,9 +1244,8 @@ Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Insta
     "returns all the links to the document or its annotations", "(doc: any)");
 Scripting.addGlobal(function importDocument() { return CurrentUserUtils.importDocument(); },
     "imports files from device directly into the import sidebar");
-Scripting.addGlobal(function shareDashboard() {
-    CurrentUserUtils.ActiveDashboard.isShared = true;
-    SharingManager.Instance.open(undefined, CurrentUserUtils.ActiveDashboard);
+Scripting.addGlobal(function shareDashboard(dashboard: Doc) {
+    SharingManager.Instance.open(undefined, dashboard);
 },
     "opens sharing dialog for Dashboard");
 Scripting.addGlobal(function addToDashboards(dashboard: Doc) { Doc.AddDocToList(CurrentUserUtils.MyDashboards, "data", dashboard); },
