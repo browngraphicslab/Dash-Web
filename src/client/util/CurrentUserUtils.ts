@@ -746,7 +746,7 @@ export class CurrentUserUtils {
             doc.myDashboards = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Dashboards", _height: 400, childHideLinkButton: true,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
@@ -762,7 +762,7 @@ export class CurrentUserUtils {
             doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Presentations", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
@@ -781,7 +781,7 @@ export class CurrentUserUtils {
             doc.myFilesystem = new PrefetchProxy(Docs.Create.TreeDocument([doc.myFileRoot as Doc, doc.myFileOrphans as Doc], {
                 title: "My Documents", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 isFolder: true, treeViewType: "fileSystem", childHideLinkButton: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "proto", system: true
             }));
@@ -795,7 +795,7 @@ export class CurrentUserUtils {
             doc.myRecentlyClosedDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "Recently Closed", treeViewShowClearButton: true, childHideLinkButton: true,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
@@ -810,7 +810,7 @@ export class CurrentUserUtils {
             doc.myFilter = new PrefetchProxy(Docs.Create.FilterDocument({
                 title: "FilterDoc",
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "none",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
         }
@@ -826,7 +826,7 @@ export class CurrentUserUtils {
             doc.treeViewExpandedView = "fields";
             doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, title: "My UserDoc",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
@@ -856,7 +856,7 @@ export class CurrentUserUtils {
     static blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
         ...opts, _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", _forceActive: true,
         dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
-        backgroundColor: "black", treeViewPreventOpen: true, _lockedPosition: true, linearViewIsExpanded: true, system: true
+        backgroundColor: "black", _lockedPosition: true, linearViewIsExpanded: true, system: true
     })) as any as Doc
 
     static ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({

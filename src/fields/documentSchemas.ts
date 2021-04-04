@@ -75,8 +75,8 @@ export const documentSchema = createSchema({
     textTransform: "string",
     treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
     treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
-    treeViewLockExpandedView: "boolean", // whether the expanded view can be changed
-    treeViewPreventOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
+    treeViewExpandedViewLock: "boolean", // whether the expanded view can be changed
+    treeViewOpenIsTransient: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
     treeViewType: "string", // whether tree view is an outline, file syste or (default) hierarchy. For outline, clicks edit document titles immediately since double-click opening is turned off
 
     // interaction and linking properties
