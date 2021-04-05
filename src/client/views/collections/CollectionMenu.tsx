@@ -37,6 +37,7 @@ import { LightboxView } from "../LightboxView";
 import { CollectionLinearView } from "./CollectionLinearView";
 import { DefaultStyleProvider } from "../StyleProvider";
 import { Transform } from "../../util/Transform";
+import { Docs } from "../../documents/Documents";
 
 @observer
 export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {

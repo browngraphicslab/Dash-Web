@@ -127,6 +127,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     ({ layer, color }) => {
                         const textColor = lightOrDark(this.tabColor); //not working with StyleProp.Color
                         titleEle.style.color = textColor;
+                        titleEle.style.backgroundColor = "transparent";
                         iconWrap.style.color = textColor;
                         closeWrap.style.color = textColor;
                         moreInfoDrag.style.backgroundColor = textColor;

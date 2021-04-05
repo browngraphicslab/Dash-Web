@@ -275,7 +275,7 @@ export class MainView extends React.Component {
         return <div key="docking" className={`mainContent-div${this._flyoutWidth ? "-flyout" : ""}`} onDrop={e => { e.stopPropagation(); e.preventDefault(); }}
             // style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `calc(100% - ${this._flyoutWidth + this.propertiesWidth()}px)` }}>
             // FIXME update with property panel width
-            style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `100%` }}>
+            style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)` }}>
             {!this.mainContainer ? (null) : this.mainDocView}
         </div>;
     }
@@ -430,7 +430,7 @@ export class MainView extends React.Component {
                 <div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, left: this._flyoutWidth ? (this._flyoutWidth + this.menuPanelWidth() - 10) : -10 }} onPointerDown={this.onFlyoutPointerDown} >
                     <FontAwesomeIcon icon="chevron-left" color={this.darkScheme ? "white" : "black"} style={{ opacity: "50%" }} size="sm" />
                 </div>
-                <div className="mainView-innerContainer">
+                <div className="mainView-innerContainer" style={{ width: `calc(100% - ${this.propertiesWidth() + this._flyoutWidth + this.menuPanelWidth()}px)` }}>
                     <CollectionMenu />
 
                     {this.dockingContent}

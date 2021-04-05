@@ -556,12 +556,22 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 style={{ color: Doc.UserDoc().colorScheme == 'dark' ? "white" : "black" }}>
                                 {myDashboards.map((dash, i) => <option key={dash[Id]} value={i}> {StrCast(dash.title)} </option>)}
                             </select>
-                            <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}>
+                            <div className="searchBox-dashboards">
+                                <div className="searchBar-icon" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}
+                                    style={{ color: Doc.UserDoc().colorScheme == 'dark' ? "white" : "black" }}>
+                                    <FontAwesomeIcon icon="plus"></FontAwesomeIcon>
+                                </div>
+                                <div className="searchBar-icon" onClick={undoBatch(() => CurrentUserUtils.snapshotDashboard(Doc.UserDoc()))}
+                                    style={{ color: Doc.UserDoc().colorScheme == 'dark' ? "white" : "black" }}>
+                                    <FontAwesomeIcon icon="camera"></FontAwesomeIcon>
+                                </div>
+                            </div>
+                            {/* <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}>
                                 New
-                        </div>
+                            </div>
                             <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.snapshotDashboard(Doc.UserDoc()))}>
                                 Snapshot
-                        </div>
+                            </div> */}
                         </div>
                     </div>
                     <div className="searchBox-right" >

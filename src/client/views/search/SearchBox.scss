@@ -23,15 +23,20 @@
 
         .searchBox-center {
             grid-column: 2;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
             .searchBox-lozenge-dashboard {
+                display: flex;
                 .searchBox-dashboards {
-                    border-radius: 3px;
-                    background: olivedrab;
-                    color: white;
-                    display: none;
-                    margin-left: 5px;
-                    padding: 1px 2px 1px 2px;
-                    cursor: pointer;
+                    display:none;
+                    // border-radius: 3px;
+                    // background: olivedrab;
+                    // color: white;
+                    // display: none;
+                    // margin-left: 5px;
+                    // padding: 1px 2px 1px 2px;
+                    // cursor: pointer;
                 }
 
                 .searchBox-dashSelect{
@@ -50,9 +55,30 @@
 
             .searchBox-lozenge-dashboard:hover {
                 .searchBox-dashboards {
-                    display:inline-block;
+                    display:inline-flex;
                 }
             }
+        }
+
+        .searchBar-icon {
+            color: black;
+            cursor: pointer;
+            font-size: 20px;
+            height: 30;
+            width: 30;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 5px;
+            justify-self: center;
+            align-self: center;
+            border-radius: 100%;
+            transition: linear 0.1s;
+            background-color: #92adb900;
+        }
+
+        .searchBar-icon:hover {
+            background-color: rgba(0,0,0,0.15);
         }
 
         .searchBox-right {
@@ -60,27 +86,6 @@
             position: relative;
             display: flex;
             justify-content: flex-end;
-
-            .searchBar-icon {
-                color: black;
-                cursor: pointer;
-                font-size: 20px;
-                height: 30;
-                width: 30;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                margin-right: 5px;
-                justify-self: center;
-                align-self: center;
-                border-radius: 100%;
-                transition: linear 0.1s;
-                background-color: #92adb900;
-            }
-
-            .searchBar-icon:hover {
-                background-color: #b5b3b3;
-            }
 
             .searchBox-lozenge-user,
             .searchBox-lozenge {
