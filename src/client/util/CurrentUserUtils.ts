@@ -1166,10 +1166,10 @@ export class CurrentUserUtils {
         CurrentUserUtils.openDashboard(userDoc, copy);
     }
 
-    public static createNewDashboard = (userDoc: Doc, id?: string) => {
-        const myPresentations = userDoc.myPresentations as Doc;
+    public static createNewDashboard = async (userDoc: Doc, id?: string) => {
+        const myPresentations = await userDoc.myPresentations as Doc;
         const presentation = Doc.MakeCopy(userDoc.emptyPresentation as Doc, true);
-        const dashboards = Cast(userDoc.myDashboards, Doc) as Doc;
+        const dashboards = await Cast(userDoc.myDashboards, Doc) as Doc;
         const dashboardCount = DocListCast(dashboards.data).length + 1;
         const emptyPane = Cast(userDoc.emptyPane, Doc, null);
         emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
