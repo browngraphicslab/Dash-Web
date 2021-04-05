@@ -458,6 +458,27 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 
     @undoBatch
     @action
+    startRecording = () => {
+        const doc = Docs.Create.ScreenshotDocument("", { _fitWidth: true, _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
+
+    }
+
+    @computed
+    get recordButton() {
+        const targetDoc = this.selectedDoc;
+        return <Tooltip key="record" title={<div className="dash-tooltip">{"Click to capture screen and audio"}</div>} placement="top">
+            <button className="antimodeMenu-button" style={{ justifyContent: "center" }}
+                onClick={e => this.startRecording()}>
+                <div className="recordButtonOutline" style={{ borderRadius: "100%" }}>
+                    <div className="recordButtonInner" style={{ borderRadius: "100%", width: "60%", height: "60%" }}>
+                    </div>
+                </div>
+            </button>
+        </Tooltip>;
+    }
+
+    @undoBatch
+    @action
     pinWithView = (targetDoc: Opt<Doc>) => {
         if (targetDoc) {
             TabDocView.PinDoc(targetDoc);
@@ -565,6 +586,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                     <div className="collectionViewBaseChrome">
                         {this.aliasButton}
                         {/* {this.pinButton} */}
+                        {this.recordButton}
                         {this.pinWithViewButton}
                         {this.lightboxButton}
                         <Tooltip title={<div className="dash-tooltip">Toggle Overlay Layer</div>} placement="bottom">
