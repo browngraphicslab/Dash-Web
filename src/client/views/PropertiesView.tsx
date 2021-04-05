@@ -949,7 +949,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             </div>
             {
                 !this.openFilters ? (null) :
-                    <div className="propertiesView-filters-content">
+                    <div className="propertiesView-filters-content" style={{ height: this.docHeight() }}>
                         <DocumentView
                             Document={this.filterDoc.currentFilter as Doc}
                             DataDoc={undefined}
