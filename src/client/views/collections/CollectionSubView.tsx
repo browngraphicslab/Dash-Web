@@ -82,7 +82,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             return Cast(this.dataField, listSpec(Doc));
         }
         docFilters = () => {
-            return [...this.props.docFilters(), ...Cast(FilterBox._filterScope === "Current Collection" ? this.props.Document._docFilters : CurrentUserUtils.ActiveDashboard._docFilters, listSpec("string"), [])];
+            return [...this.props.docFilters(), ...Cast(FilterBox._filterScope === "Current Collection" ? this.props.Document?._docFilters : CurrentUserUtils.ActiveDashboard?._docFilters, listSpec("string"), [])];
         }
         docRangeFilters = () => {
             return [...this.props.docRangeFilters(), ...Cast(this.props.Document._docRangeFilters, listSpec("string"), [])];
