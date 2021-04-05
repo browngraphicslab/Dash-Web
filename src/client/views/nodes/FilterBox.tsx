@@ -2,7 +2,7 @@ import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { computed, observable, action, trace, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Field, Opt, DocListCastAsync } from "../../../fields/Doc";
+import { Doc, DocListCast, Field, Opt, DocListCastAsync, HeightSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { List } from "../../../fields/List";
 import { RichTextField } from "../../../fields/RichTextField";
@@ -360,7 +360,11 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         }
         );
     }
+    setTreeHeight = (hgt: number) => {
+        this.layoutDoc._height = hgt + 140; // 50?  need to add all the border sizes together.
+    }
 
+    layoutHeight = () => this.layoutDoc[HeightSym]();
     render() {
         const facetCollection = this.props.Document;
 
@@ -412,7 +416,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     fieldKey={this.props.fieldKey}
                     CollectionView={undefined}
                     disableDocBrushing={true}
-                    setHeight={returnFalse} // if the tree view can trigger the height of the filter box to change, then this needs to be filled in.
+                    setHeight={this.setTreeHeight} // if the tree view can trigger the height of the filter box to change, then this needs to be filled in.
                     onChildClick={this.suppressChildClick}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}
@@ -420,7 +424,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     PanelWidth={this.props.PanelWidth}
-                    PanelHeight={this.props.PanelHeight}
+                    PanelHeight={this.layoutHeight}
                     rootSelected={this.props.rootSelected}
                     renderDepth={1}
                     dropAction={this.props.dropAction}

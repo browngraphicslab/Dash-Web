@@ -65,8 +65,9 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     refList: Set<any> = new Set();
     observer: any;
     computeHeight = () => {
-        this.rootDoc._height = this.paddingTop() + 26/* bcz: ugh: title bar height hack ... get ref and compute instead */ +
+        const hgt = this.paddingTop() + 26/* bcz: ugh: title bar height hack ... get ref and compute instead */ +
             Array.from(this.refList).reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
+        this.props.setHeight(hgt);
     }
     unobserveHeight = (ref: any) => this.refList.delete(ref);
     observerHeight = (ref: any) => {
