@@ -16,6 +16,7 @@ import "./SidebarAnnos.scss";
 import { StyleProp } from './StyleProvider';
 import React = require("react");
 import { DocumentViewProps } from './nodes/DocumentView';
+import { DocumentType } from '../documents/DocumentTypes';
 
 interface ExtraProps {
     fieldKey: string;
@@ -69,7 +70,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
     sidebarKey = () => this.props.fieldKey + "-sidebar";
     filtersHeight = () => 50;
     screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(Doc.NativeWidth(this.props.dataDoc), 0).scale(this.props.scaling?.() || 1);
-    panelWidth = () => !this.props.layoutDoc._showSidebar ? 0 : (NumCast(this.props.layoutDoc.nativeWidth) - Doc.NativeWidth(this.props.dataDoc)) * this.props.PanelWidth() / NumCast(this.props.layoutDoc.nativeWidth);
+    panelWidth = () => !this.props.layoutDoc._showSidebar ? 0 : this.props.layoutDoc.type === DocumentType.RTF ? this.props.PanelWidth() : (NumCast(this.props.layoutDoc.nativeWidth) - Doc.NativeWidth(this.props.dataDoc)) * this.props.PanelWidth() / NumCast(this.props.layoutDoc.nativeWidth);
     panelHeight = () => this.props.PanelHeight() - this.filtersHeight();
     addDocument = (doc: Doc | Doc[]) => this.props.sidebarAddDocument(doc, this.sidebarKey());
     moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean) => this.props.moveDocument(doc, targetCollection, addDocument, this.sidebarKey());
