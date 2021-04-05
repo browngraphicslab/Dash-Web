@@ -2,7 +2,7 @@ import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { computed, observable, action, trace, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { DataSym, Doc, DocListCast, Field, Opt, DocListCastAsync } from "../../../fields/Doc";
+import { Doc, DocListCast, Field, Opt, DocListCastAsync } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { List } from "../../../fields/List";
 import { RichTextField } from "../../../fields/RichTextField";
@@ -198,9 +198,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
      * Responds to clicking the check box in the flyout menu
      */
     facetClick = (facetHeader: string) => {
-
-        console.log("facetClick: " + facetHeader);
-        console.log(this.props.fieldKey);
         const targetDoc = FilterBox.targetDoc;
         const found = this.activeAttributes.findIndex(doc => doc.title === facetHeader);
         if (found !== -1) {
@@ -242,8 +239,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet._textBoxPadding = 4;
                 const scriptText = `setDocFilter(this?.target, "${facetHeader}", text, "match")`;
                 newFacet.onTextChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, text: "string" });
-                // function foo (this:doc, text:string)
-                // "this" should be the item called noot (maybe) or the treeview doc itself
             } else if (facetHeader !== "tags" && nonNumbers / facetValues.strings.length < .1) {
                 newFacet = Docs.Create.SliderDocument({ title: facetHeader, _overflow: "visible", _fitWidth: true, _height: 40, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", treeViewOpen: true });
                 const newFacetField = Doc.LayoutFieldKey(newFacet);
@@ -265,8 +260,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet.layout = CollectionView.LayoutString("data");
                 newFacet.layoutKey = "layout";
                 newFacet.type = DocumentType.COL;
-                // const capturedVariables = { layoutDoc: targetDoc, system: true, _stayInCollection: true, _hideContextMenu: true, dataDoc: (targetDoc.data as any)[0][DataSym] };
-                // newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, "${facetHeader}")`, {}, capturedVariables);
                 newFacet.target = targetDoc;
                 newFacet.data = ComputedField.MakeFunction(`readFacetData(self.target, "${facetHeader}")`);
             }
@@ -390,8 +383,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
             <div className="filterBox-select-bool">
                 <select className="filterBox-selection" onChange={this.changeBool}>
-                    <option value="AND" key="AND" selected={(FilterBox.targetDoc.currentFilter as Doc).filterBoolean === "AND"}>AND</option>
-                    <option value="OR" key="OR" selected={(FilterBox.targetDoc.currentFilter as Doc).filterBoolean === "OR"}>OR</option>
+                    <option value="AND" key="AND" selected={(FilterBox.targetDoc.currentFilter as Doc)?.filterBoolean === "AND"}>AND</option>
+                    <option value="OR" key="OR" selected={(FilterBox.targetDoc.currentFilter as Doc)?.filterBoolean === "OR"}>OR</option>
                 </select>
                 <div className="filterBox-select-text">filters in </div>
                 <select className="filterBox-selection" onChange={this.changeScope}>

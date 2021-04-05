@@ -965,8 +965,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             scriptContext={this.filterDoc.currentFilter as Doc}
                             focus={emptyFunction}
                             styleProvider={DefaultStyleProvider}
-                            parentActive={returnTrue}
-                            whenActiveChanged={emptyFunction}
+                            isContentActive={returnTrue}
+                            whenChildContentsActiveChanged={emptyFunction}
                             bringToFront={emptyFunction}
                             docFilters={returnEmptyFilter}
                             docRangeFilters={returnEmptyFilter}

@@ -37,8 +37,7 @@ export type collectionTreeViewProps = {
 };
 
 @observer
-export class
-    CollectionTreeView extends CollectionSubView<Document, Partial<collectionTreeViewProps>>(Document) {
+export class CollectionTreeView extends CollectionSubView<Document, Partial<collectionTreeViewProps>>(Document) {
     private treedropDisposer?: DragManager.DragDropDisposer;
     private _mainEle?: HTMLDivElement;
     MainEle = () => this._mainEle;
