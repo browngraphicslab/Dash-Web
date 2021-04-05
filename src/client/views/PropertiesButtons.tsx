@@ -188,6 +188,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isCollection = this.selectedDoc?.type === DocumentType.COL;
         const isStacking = this.selectedDoc?._viewType === CollectionViewType.Stacking;
         const isFreeForm = this.selectedDoc?._viewType === CollectionViewType.Freeform;
+        const isTree = this.selectedDoc?._viewType === CollectionViewType.Tree;
         const toggle = (ele: JSX.Element | null, style?: React.CSSProperties) => <div className="propertiesButtons-button" style={style}> {ele} </div>;
 
         return !this.selectedDoc ? (null) :
@@ -199,7 +200,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 {toggle(this.onClickButton)}
                 {toggle(this.fitWidthButton)}
                 {toggle(this.fitContentButton, { display: !isFreeForm ? "none" : "" })}
-                {toggle(this.autoHeightButton, { display: !isText && !isStacking ? "none" : "" })}
+                {toggle(this.autoHeightButton, { display: !isText && !isStacking && !isTree ? "none" : "" })}
                 {toggle(this.maskButton, { display: !isInk ? "none" : "" })}
                 {toggle(this.chromeButton, { display: isCollection ? "" : "none" })}
                 {toggle(this.gridButton, { display: isCollection ? "" : "none" })}
