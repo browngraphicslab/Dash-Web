@@ -937,7 +937,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         this.filterDoc._docFilters = temp;
     }
 
-    filterSubHeight = () => (this.filterDoc.currentFilter as Doc)[HeightSym]();
     @computed get filtersSubMenu() {
         return !(this.filterDoc?.currentFilter instanceof Doc) ? (null) : <div className="propertiesView-filters">
             <div className="propertiesView-filters-title"
@@ -950,7 +949,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             </div>
             {
                 !this.openFilters ? (null) :
-                    <div className="propertiesView-filters-content" style={{ height: this.filterSubHeight() + 15 }}>
+                    <div className="propertiesView-filters-content" style={{ height: this.filterDoc.currentFilter[HeightSym]() + 15 }}>
                         <DocumentView
                             Document={this.filterDoc.currentFilter as Doc}
                             DataDoc={undefined}
@@ -960,8 +959,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             rootSelected={returnTrue}
                             removeDocument={returnFalse}
                             ScreenToLocalTransform={this.getTransform}
-                            PanelWidth={this.docWidth}
-                            PanelHeight={this.filterSubHeight}
+                            PanelWidth={() => this.props.width}
+                            PanelHeight={this.filterDoc.currentFilter[HeightSym]}
                             renderDepth={0}
                             scriptContext={this.filterDoc.currentFilter as Doc}
                             focus={emptyFunction}
