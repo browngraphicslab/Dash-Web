@@ -67,7 +67,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         Object.values(this._disposers).forEach(disposer => disposer?.());
     }
 
-    componentWillMount() {
+    componentDidMount() {
         this._disposers.autoheight = reaction(() => this.rootDoc.autoHeight,
             auto => auto && this.computeHeight(),
             { fireImmediately: true });

@@ -730,7 +730,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         return this.props.renderedIds.indexOf(this.doc[Id]) !== -1 ? "<" + this.doc.title + ">" : // just print the title of documents we've previously rendered in this hierarchical path to avoid cycles
             <div className={`treeView-container${this.props.isContentActive() ? "-active" : ""}`}
                 ref={this.createTreeDropTarget}
-                onPointerDown={e => this.props.isContentActive(true) && SelectionManager.DeselectAll()}
+                //onPointerDown={e => this.props.isContentActive(true) && SelectionManager.DeselectAll()} // bcz: this breaks entering a text filter in a filterBox since it deselects the filter's target document
                 onKeyDown={this.onKeyDown}>
                 <li className="collection-child">
                     {hideTitle && this.doc.type !== DocumentType.RTF ?
