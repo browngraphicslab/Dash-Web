@@ -493,9 +493,9 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     showContextMenu = (e: React.MouseEvent) => {
-        DocumentViewInternal.SelectOnContextsMenu = false;
+        DocumentViewInternal.SelectAfterContextMenu = false;
         simulateMouseClick(this._docRef?.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
-        DocumentViewInternal.SelectOnContextsMenu = true;
+        DocumentViewInternal.SelectAfterContextMenu = true;
     }
     contextMenuItems = () => Doc.IsSystem(this.doc) ? [] : this.doc.isFolder ?
         [{ script: ScriptField.MakeFunction(`scriptContext.makeFolder()`, { scriptContext: "any" })!, label: "New Folder" }] :

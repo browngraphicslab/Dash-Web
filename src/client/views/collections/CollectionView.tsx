@@ -1,4 +1,4 @@
-import { action, computed, observable } from 'mobx';
+import { computed, observable } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
@@ -35,8 +35,6 @@ import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
-import { FilterBox } from '../nodes/FilterBox';
-import { listSpec } from '../../../fields/Schema';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 

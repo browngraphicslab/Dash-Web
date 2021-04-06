@@ -162,6 +162,7 @@ export interface DocumentViewInternalProps extends DocumentViewProps {
 
 @observer
 export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps, Document>(Document) {
+    public static SelectAfterContextMenu = true; //  whether a document should be selected after it's contextmenu is triggered.
     @observable _animateScalingTo = 0;
     @observable _mediaState = 0;
     @observable _pendingDoubleClick = false;
@@ -746,9 +747,8 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
         if (!this.topMost) e?.stopPropagation(); // DocumentViews should stop propagation of this event
         cm.displayMenu((e?.pageX || pageX || 0) - 15, (e?.pageY || pageY || 0) - 15);
-        DocumentViewInternal.SelectOnContextsMenu && !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectView(this.props.DocumentView(), false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
+        DocumentViewInternal.SelectAfterContextMenu && !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectView(this.props.DocumentView(), false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
     }
-    public static SelectOnContextsMenu = true;
 
     rootSelected = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     panelHeight = () => this.props.PanelHeight() - this.headerMargin;
