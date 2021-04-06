@@ -28,7 +28,7 @@ import { PresBox } from "./nodes/PresBox";
 import { PropertiesButtons } from "./PropertiesButtons";
 import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
-import { DefaultStyleProvider, FilteringStyleProvider } from "./StyleProvider";
+import { DefaultStyleProvider } from "./StyleProvider";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { FilterBox } from "./nodes/FilterBox";
 import { List } from "../../fields/List";

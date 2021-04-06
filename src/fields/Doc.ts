@@ -1147,7 +1147,6 @@ export namespace Doc {
             dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
             Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);
         }
-        ndoc && (ndoc.system = false);
         return ndoc;
     }
     export function delegateDragFactory(dragFactory: Doc) {
