@@ -231,31 +231,6 @@ function closeFilter(e: React.MouseEvent, doc: Doc) {
 }
 
 
-/**
- * add (to treeView) for filtering decorations
- */
-export function FilteringStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
-    switch (property.split(":")[0]) {
-        case StyleProp.Decorations:
-            if (doc) {
-                return doc._viewType === CollectionViewType.Docking || (Doc.IsSystem(doc)) ? (null) :
-                    <>
-                        <div>
-                            <select className="filterBox-treeView-selection" onChange={e => changeFilterBool(e, doc)}>
-                                <option value="Is" key="Is">Is</option>
-                                <option value="Is Not" key="Is Not">Is Not</option>
-                            </select>
-                        </div>
-                        <div className="filterBox-treeView-close" onClick={(e) => closeFilter(e, doc)}>
-                            <FontAwesomeIcon icon={"times"} size="sm" />
-                        </div>
-                    </>;
-            }
-        default: return DefaultStyleProvider(doc, props, property);
-
-    }
-}
-
 //
 // a preliminary semantic-"layering/grouping" mechanism for determining interactive properties of documents
 //  currently, the provider tests whether the docuemnt's layer field matches the activeLayer field of the tab.
