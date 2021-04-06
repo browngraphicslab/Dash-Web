@@ -1160,12 +1160,12 @@ export namespace Doc {
         return ndoc;
     }
 
-    export function toIcon(doc: Doc) {
-        switch (StrCast(doc.type)) {
+    export function toIcon(doc?: Doc, isOpen?: boolean) {
+        switch (StrCast(doc?.type)) {
             case DocumentType.IMG: return "image";
             case DocumentType.COMPARISON: return "columns";
             case DocumentType.RTF: return "sticky-note";
-            case DocumentType.COL: return !doc.isFolder ? "folder" : "chevron-right";
+            case DocumentType.COL: return !doc?.isFolder ? "folder" + (isOpen ? "-open" : "") : "chevron-" + (isOpen ? "down" : "right");
             case DocumentType.WEB: return "globe-asia";
             case DocumentType.SCREENSHOT: return "photo-video";
             case DocumentType.WEBCAM: return "video";
