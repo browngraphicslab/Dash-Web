@@ -248,6 +248,7 @@ export class DocumentOptions {
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewShowClearButton?: boolean; // whether a clear button should be displayed 
     treeViewOpenIsTransient?: boolean; // ignores the treeViewOpen Doc flag, allowing a treeViewItem's expand/collapse state to be independent of other views of the same document in the same or any other tree view
+    _treeViewOpen?: boolean; // whether this document is expanded in a tree view  (note: need _ and regular versions since this can be specified for both proto and layout docs)
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
     treeViewExpandedViewLock?: boolean; // whether the expanded view can be changed
