@@ -21,7 +21,7 @@ import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from '../../util/UndoManager';
 import { EditableView } from "../EditableView";
 import { TREE_BULLET_WIDTH } from '../globalCssVariables.scss';
-import { DocumentView, DocumentViewProps, StyleProviderFunc } from '../nodes/DocumentView';
+import { DocumentView, DocumentViewProps, StyleProviderFunc, DocumentViewInternal } from '../nodes/DocumentView';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { RichTextMenu } from '../nodes/formattedText/RichTextMenu';
 import { KeyValueBox } from '../nodes/KeyValueBox';
@@ -483,17 +483,21 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     @computed get headerElements() {
-        return this.props.treeViewHideHeaderFields() || Doc.IsSystem(this.doc) ? (null)
+        return this.props.treeViewHideHeaderFields() ? (null)
             : <>
                 <FontAwesomeIcon key="bars" icon="bars" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />
-                {this.doc.treeViewExpandedViewLock ? (null) :
+                {this.doc.treeViewExpandedViewLock || Doc.IsSystem(this.doc) ? (null) :
                     <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView} onPointerDown={this.expandNextviewType}>
                         {this.treeViewExpandedView}
                     </span>}
             </>;
     }
 
-    showContextMenu = (e: React.MouseEvent) => simulateMouseClick(this._docRef?.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
+    showContextMenu = (e: React.MouseEvent) => {
+        DocumentViewInternal.SelectOnContextsMenu = false;
+        simulateMouseClick(this._docRef?.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
+        DocumentViewInternal.SelectOnContextsMenu = true;
+    }
     contextMenuItems = () => Doc.IsSystem(this.doc) ? [] : this.doc.isFolder ?
         [{ script: ScriptField.MakeFunction(`scriptContext.makeFolder()`, { scriptContext: "any" })!, label: "New Folder" }] :
         this.props.treeView.fileSysMode && this.doc === Doc.GetProto(this.doc) ?
