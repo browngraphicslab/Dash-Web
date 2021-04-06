@@ -174,7 +174,7 @@ export class TreeView extends React.Component<TreeViewProps> {
 
     componentWillUnmount() {
         this._selDisposer?.();
-        this._treeEle && this.props.unobserveHeight(this._treeEle)
+        this._treeEle && this.props.unobserveHeight(this._treeEle);
         document.removeEventListener("pointermove", this.onDragMove, true);
         document.removeEventListener("pointermove", this.onDragUp, true);
     }

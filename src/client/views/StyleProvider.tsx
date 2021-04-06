@@ -18,6 +18,7 @@ import "./collections/TreeView.scss";
 import "./nodes/FilterBox.scss";
 import React = require("react");
 import Color = require('color');
+import { FieldViewProps } from './nodes/FieldView';
 
 export enum StyleLayers {
     Background = "background"

@@ -82,9 +82,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     * @returns the relevant doc according to the value of FilterBox._filterScope i.e. either the Current Dashboard or the Current Collection
     */
     @computed static get targetDoc() {
-        console.log("recomputing");
         if (FilterBox._filterScope === "Current Collection") {
-            return SelectionManager.Views()[0]?.Document.type === "collection" ? SelectionManager.Views()[0].Document : SelectionManager.Views()[0]?.props.ContainingCollectionDoc!;
+            return SelectionManager.Views()[0]?.Document.type === DocumentType.COL ? SelectionManager.Views()[0].Document : SelectionManager.Views()[0]?.props.ContainingCollectionDoc!;
         }
         else return CurrentUserUtils.ActiveDashboard;
     }
@@ -172,10 +171,10 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     public removeFilter = (filterName: string) => {
         const targetDoc = FilterBox.targetDoc;
         const filterDoc = targetDoc.currentFilter as Doc;
-        const attributes = DocListCast(filterDoc["data"]);
+        const attributes = DocListCast(filterDoc.data);
         const found = attributes.findIndex(doc => doc.title === filterName);
         if (found !== -1) {
-            (filterDoc["data"] as List<Doc>).splice(found, 1);
+            (filterDoc.data as List<Doc>).splice(found, 1);
             const docFilter = Cast(targetDoc._docFilters, listSpec("string"));
             if (docFilter) {
                 let index: number;

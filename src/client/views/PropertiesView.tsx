@@ -951,7 +951,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 !this.openFilters ? (null) :
                     <div className="propertiesView-filters-content" style={{ height: this.filterDoc.currentFilter[HeightSym]() + 15 }}>
                         <DocumentView
-                            Document={this.filterDoc.currentFilter as Doc}
+                            Document={this.filterDoc.currentFilter}
                             DataDoc={undefined}
                             addDocument={undefined}
                             addDocTab={returnFalse}
@@ -962,7 +962,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             PanelWidth={() => this.props.width}
                             PanelHeight={this.filterDoc.currentFilter[HeightSym]}
                             renderDepth={0}
-                            scriptContext={this.filterDoc.currentFilter as Doc}
+                            scriptContext={this.filterDoc.currentFilter}
                             focus={emptyFunction}
                             styleProvider={DefaultStyleProvider}
                             isContentActive={returnTrue}

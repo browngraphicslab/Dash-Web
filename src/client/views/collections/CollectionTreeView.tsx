@@ -59,7 +59,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     componentWillMount() {
         this._disposers.autoheight = reaction(() => this.rootDoc.autoHeight,
             auto => auto && this.computeHeight(),
-            { fireImmediately: true })
+            { fireImmediately: true });
     }
 
     refList: Set<any> = new Set();
