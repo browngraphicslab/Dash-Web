@@ -378,7 +378,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     FilterStyleProvider = (doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) => {
         switch (property.split(":")[0]) {
             case StyleProp.Decorations:
-                return !doc || doc.treeViewHideHeaderFields ? (null) : // bcz: Todo: afterHeader should be generalized into a renderPath that is a list of the documents rendered so far which would mimic much of CSS property selectors
+                return !doc || doc.treeViewHideHeaderFields ? (null) :
                     <>
                         <div className={`styleProvider-treeView-hide${doc.hidden ? "-active" : ""}`} onClick={undoBatch(e =>
                             this.removeFilter(StrCast(doc.title))
@@ -433,7 +433,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     isMulti={false}
                     onChange={val => this.facetClick((val as UserOptions).value)}
                     value={null}
-                    closeMenuOnSelect={false}
+                    closeMenuOnSelect={true}
                 />
             </div>
 
