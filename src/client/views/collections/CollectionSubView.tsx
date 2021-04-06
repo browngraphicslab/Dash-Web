@@ -90,7 +90,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         searchFilterDocs = () => {
             return [...this.props.searchFilterDocs(), ...DocListCast(this.props.Document._searchFilterDocs)];
         }
-        @computed get childDocs() {
+        @computed.struct get childDocs() {
+            TraceMobx();
             let rawdocs: (Doc | Promise<Doc>)[] = [];
             if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
                 rawdocs = [this.dataField];
@@ -478,6 +479,6 @@ import { CollectionView, CollectionViewType, CollectionViewProps } from "./Colle
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
 import { Hypothesis } from "../../util/HypothesisUtils";
-import { GetEffectiveAcl } from "../../../fields/util";
+import { GetEffectiveAcl, TraceMobx } from "../../../fields/util";
 import { FilterBox } from "../nodes/FilterBox";
 
