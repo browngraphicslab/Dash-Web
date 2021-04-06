@@ -67,7 +67,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         Object.values(this._disposers).forEach(disposer => disposer?.());
     }
 
-    componentWillMount() {
+    componentDidMount() {
         this._disposers.autoheight = reaction(() => this.rootDoc.autoHeight,
             auto => auto && this.computeHeight(),
             { fireImmediately: true });
@@ -112,7 +112,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         const targetDataDoc = this.doc[DataSym];
         const value = DocListCast(targetDataDoc[this.props.fieldKey]);
         const result = value.filter(v => !docs.includes(v));
-        SelectionManager.DeselectAll();
+        if ((doc instanceof Doc ? [doc] : doc).some(doc => SelectionManager.Views().some(dv => Doc.AreProtosEqual(dv.rootDoc, doc)))) SelectionManager.DeselectAll();
         if (result.length !== value.length) {
             const ind = targetDataDoc[this.props.fieldKey].indexOf(doc);
             const prev = ind && targetDataDoc[this.props.fieldKey][ind - 1];

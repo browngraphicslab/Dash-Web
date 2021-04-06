@@ -167,7 +167,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         });
         return { strings: Array.from(valueSet.keys()), rtFields };
     }
-
+    removeFilterDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).map(doc => this.removeFilter(StrCast(doc.title))).length ? true : false;
     public removeFilter = (filterName: string) => {
         const targetDoc = FilterBox.targetDoc;
         const filterDoc = targetDoc.currentFilter as Doc;
@@ -190,8 +190,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 }
             }
         }
+        return true;
     }
-
     /**
      * Responds to clicking the check box in the flyout menu
      */
@@ -199,22 +199,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         const targetDoc = FilterBox.targetDoc;
         const found = this.activeAttributes.findIndex(doc => doc.title === facetHeader);
         if (found !== -1) {
-            // comment this bit out later once the x works in treeview
-            (this.dataDoc[this.props.fieldKey] as List<Doc>).splice(found, 1);
-            const docFilter = Cast(targetDoc._docFilters, listSpec("string"));
-            if (docFilter) {
-                let index: number;
-                while ((index = docFilter.findIndex(item => item.split(":")[0] === facetHeader)) !== -1) {
-                    docFilter.splice(index, 1);
-                }
-            }
-            const docRangeFilters = Cast(targetDoc._docRangeFilters, listSpec("string"));
-            if (docRangeFilters) {
-                let index: number;
-                while ((index = docRangeFilters.findIndex(item => item.split(":")[0] === facetHeader)) !== -1) {
-                    docRangeFilters.splice(index, 3);
-                }
-            }
+            this.removeFilter(facetHeader);
         } else {
             const allCollectionDocs = DocListCast((targetDoc.data as any)[0].data);
             const facetValues = this.gatherFieldValues(targetDoc, facetHeader);
@@ -232,13 +217,19 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             });
             let newFacet: Opt<Doc>;
             if (facetHeader === "text" || facetValues.rtFields / allCollectionDocs.length > 0.1) {
-                newFacet = Docs.Create.TextDocument("", { _width: 100, _height: 25, system: true, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, _forceActive: true, ignoreClick: true });
+                newFacet = Docs.Create.TextDocument("", {
+                    _width: 100, _height: 25, system: true, _stayInCollection: true, target: targetDoc,
+                    treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, _forceActive: true, ignoreClick: true
+                });
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
                 newFacet._textBoxPadding = 4;
                 const scriptText = `setDocFilter(this?.target, "${facetHeader}", text, "match")`;
                 newFacet.onTextChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, text: "string" });
             } else if (facetHeader !== "tags" && nonNumbers / facetValues.strings.length < .1) {
-                newFacet = Docs.Create.SliderDocument({ title: facetHeader, _overflow: "visible", _fitWidth: true, _height: 40, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", treeViewOpen: true });
+                newFacet = Docs.Create.SliderDocument({
+                    title: facetHeader, _overflow: "visible", _fitWidth: true,
+                    _height: 40, _stayInCollection: true, treeViewExpandedView: "layout", treeViewOpen: true
+                });
                 const newFacetField = Doc.LayoutFieldKey(newFacet);
                 const ranged = Doc.readDocRangeFilter(targetDoc, facetHeader);
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
@@ -261,7 +252,11 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet.target = targetDoc;
                 newFacet.data = ComputedField.MakeFunction(`readFacetData(self.target, "${facetHeader}")`);
             }
-            newFacet && Doc.AddDocToList(this.dataDoc, this.props.fieldKey, newFacet);
+            this.props.docViewPath()[0].ComponentView
+            const remove = ScriptField.MakeScript(`documentView.props.removeDocument(self)`, { documentView: "any" });
+            newFacet.contextMenuScripts = new List<ScriptField>([remove!]);
+            newFacet.contextMenuLabels = new List<string>(["Remove"]);
+            Doc.AddDocToList(this.dataDoc, this.props.fieldKey, newFacet);
         }
     }
 
@@ -458,7 +453,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     whenChildContentsActiveChanged={returnFalse}
                     treeViewHideTitle={true}
                     focus={returnFalse}
-                    treeViewHideHeaderFields={true}
+                    treeViewHideHeaderFields={false}
                     onCheckedClick={this.scriptField}
                     dontRegisterView={true}
                     styleProvider={this.props.styleProvider}
@@ -466,7 +461,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     docViewPath={this.props.docViewPath}
                     scriptContext={this.props.scriptContext}
                     moveDocument={returnFalse}
-                    removeDocument={returnFalse}
+                    removeDocument={this.removeFilterDoc}
                     addDocument={returnFalse} />
             </div>
             <div className="filterBox-bottom">
@@ -527,6 +522,7 @@ Scripting.addGlobal(function readFacetData(layoutDoc: Doc, facetHeader: string) 
     const facetValues = Array.from(set).filter(v => v);
 
     let nonNumbers = 0;
+
     facetValues.map(val => Number.isNaN(Number(val)) && nonNumbers++);
     const facetValueDocSet = (nonNumbers / facetValues.length > .1 ? facetValues.sort() : facetValues.sort((n1: string, n2: string) => Number(n1) - Number(n2))).map(facetValue => {
         const doc = new Doc();

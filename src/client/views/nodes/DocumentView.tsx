@@ -658,7 +658,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
         const customScripts = Cast(this.props.Document.contextMenuScripts, listSpec(ScriptField), []);
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>
-            cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ this: this.layoutDoc, scriptContext: this.props.scriptContext, self: this.rootDoc }), icon: "sticky-note" }));
+            cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ documentView: this, this: this.layoutDoc, scriptContext: this.props.scriptContext, self: this.rootDoc }), icon: "sticky-note" }));
         this.props.contextMenuItems?.().forEach(item =>
             item.label && cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, scriptContext: this.props.scriptContext, self: this.rootDoc }), icon: "sticky-note" }));
 
@@ -746,8 +746,9 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
         if (!this.topMost) e?.stopPropagation(); // DocumentViews should stop propagation of this event
         cm.displayMenu((e?.pageX || pageX || 0) - 15, (e?.pageY || pageY || 0) - 15);
-        !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectView(this.props.DocumentView(), false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
+        DocumentViewInternal.SelectOnContextsMenu && !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectView(this.props.DocumentView(), false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
     }
+    public static SelectOnContextsMenu = true;
 
     rootSelected = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     panelHeight = () => this.props.PanelHeight() - this.headerMargin;
