@@ -47,7 +47,6 @@ export interface EditableProps {
     toggle?: () => void;
     background?: string | undefined;
     placeholder?: string;
-    fullWidth?: boolean; // used in PropertiesView to make the whole key:value input box clickable 
 }
 
 /**

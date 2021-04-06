@@ -69,13 +69,14 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
     const isCaption = property.includes(":caption");
     const isAnchor = property.includes(":anchor");
     const isAnnotated = property.includes(":annotated");
+    const isOpen = property.includes(":open");
     const isBackground = () => StrListCast(doc?._layerTags).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
     const showTitle = () => props?.styleProvider?.(doc, props, StyleProp.ShowTitle);
 
     switch (property.split(":")[0]) {
-        case StyleProp.TreeViewIcon: return doc ? Doc.toIcon(doc) : "question";
+        case StyleProp.TreeViewIcon: return doc?.isFolder ? "chevron-" + (isOpen ? "down" : "right") : doc ? Doc.toIcon(doc) : "question";
         case StyleProp.DocContents: return undefined;
         case StyleProp.WidgetColor: return isAnnotated ? "lightBlue" : darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));

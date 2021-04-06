@@ -441,7 +441,7 @@ export class TreeView extends React.Component<TreeViewProps> {
 
     @computed get renderBullet() {
         TraceMobx();
-        const iconType = this.doc.isFolder ? (this.treeViewOpen ? "chevron-down" : "chevron-right") : Doc.toIcon(this.doc);
+        const iconType = this.props.treeView.props.styleProvider?.(this.doc, this.props.treeView.props, StyleProp.TreeViewIcon + (this.treeViewOpen ? ":open" : "")) || "question";
         const checked = this.onCheckedClick ? (this.doc.treeViewChecked ?? "unchecked") : undefined;
         return <div className={`bullet${this.props.treeView.outlineMode ? "-outline" : ""}`} key={"bullet"}
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
