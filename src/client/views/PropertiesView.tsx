@@ -916,9 +916,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
      * Creates a new currentFilter for this.filterDoc, 
      */
     createNewFilterDoc = () => {
-        const temp = this.filterDoc._docFilters;
+        const currentDocFilters = this.filterDoc._docFilters;
+        const currentDocRangeFilters = this.filterDoc._docRangeFilters;
         this.filterDoc._docFilters = new List<string>();
-        (this.filterDoc.currentFilter as Doc)._docFiltersList = temp;
+        this.filterDoc._docRangeFilters = new List<string>();
+        (this.filterDoc.currentFilter as Doc)._docFiltersList = currentDocFilters;
+        (this.filterDoc.currentFilter as Doc)._docRangeFiltersList = currentDocRangeFilters;
         this.filterDoc.currentFilter = undefined;
         CurrentUserUtils.setupFilterDocs(this.filterDoc);
     }
@@ -928,13 +931,21 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
      */
     updateFilterDoc = (doc: Doc) => {
         if (doc === this.filterDoc.currentFilter) return; // causes problems if you try to reapply the same doc
-        const temp = doc._docFiltersList;
-        const otherTemp = this.filterDoc._docFilters;
+        const savedDocFilters = doc._docFiltersList;
+        const currentDocFilters = this.filterDoc._docFilters;
         this.filterDoc._docFilters = new List<string>();
-        (this.filterDoc.currentFilter as Doc)._docFiltersList = otherTemp;
+        (this.filterDoc.currentFilter as Doc)._docFiltersList = currentDocFilters;
         this.filterDoc.currentFilter = doc;
         doc._docFiltersList = new List<string>();
-        this.filterDoc._docFilters = temp;
+        this.filterDoc._docFilters = savedDocFilters;
+
+        const savedDocRangeFilters = doc._docRangeFiltersList;
+        const currentDocRangeFilters = this.filterDoc._docRangeFilters;
+        this.filterDoc._docRangeFilters = new List<string>();
+        (this.filterDoc.currentFilter as Doc)._docRangeFiltersList = currentDocRangeFilters;
+        this.filterDoc.currentFilter = doc;
+        doc._docRangeFiltersList = new List<string>();
+        this.filterDoc._docRangeFilters = savedDocRangeFilters;
     }
 
     @computed get filtersSubMenu() {
