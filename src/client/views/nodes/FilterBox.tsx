@@ -227,8 +227,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet.onTextChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, text: "string" });
             } else if (facetHeader !== "tags" && nonNumbers / facetValues.strings.length < .1) {
                 newFacet = Docs.Create.SliderDocument({
-                    title: facetHeader, _overflow: "visible", _fitWidth: true,
-                    _height: 40, _stayInCollection: true, treeViewExpandedView: "layout", treeViewOpen: true
+                    title: facetHeader, _overflow: "visible", _fitWidth: true, target: targetDoc, _height: 40, _stayInCollection: true, treeViewExpandedView: "layout", treeViewOpen: true
                 });
                 const newFacetField = Doc.LayoutFieldKey(newFacet);
                 const ranged = Doc.readDocRangeFilter(targetDoc, facetHeader);
@@ -239,7 +238,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet[newFacetField + "-max"] = ranged === undefined ? extendedMaxVal : ranged[1];
                 Doc.GetProto(newFacet)[newFacetField + "-minThumb"] = extendedMinVal;
                 Doc.GetProto(newFacet)[newFacetField + "-maxThumb"] = extendedMaxVal;
-                const scriptText = `setDocFilterRange(this?.target, "${facetHeader}", range)`;
+                const scriptText = `setDocRangeFilter(this?.target, "${facetHeader}", range)`;
                 newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
             } else {
                 newFacet = new Doc();
