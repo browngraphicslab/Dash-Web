@@ -31,6 +31,7 @@ import { DefaultStyleProvider, StyleProp } from "../StyleProvider";
 import { CollectionViewType } from "../collections/CollectionView";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { EditableView } from "../EditableView";
+import { undoBatch } from "../../util/UndoManager";
 
 type FilterBoxDocument = makeInterface<[typeof documentSchema]>;
 const FilterBoxDocument = makeInterface(documentSchema);
@@ -251,10 +252,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet.target = targetDoc;
                 newFacet.data = ComputedField.MakeFunction(`readFacetData(self.target, "${facetHeader}")`);
             }
-            this.props.docViewPath()[0].ComponentView
-            const remove = ScriptField.MakeScript(`documentView.props.removeDocument(self)`, { documentView: "any" });
-            newFacet.contextMenuScripts = new List<ScriptField>([remove!]);
-            newFacet.contextMenuLabels = new List<string>(["Remove"]);
+            newFacet.hideContextMenu = true;
             Doc.AddDocToList(this.dataDoc, this.props.fieldKey, newFacet);
         }
     }
@@ -323,23 +321,21 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     FilteringStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
         switch (property.split(":")[0]) {
             case StyleProp.Decorations:
-                if (doc) {
-                    return doc._viewType === CollectionViewType.Docking || (Doc.IsSystem(doc)) ? (null) :
-                        <>
-                            <div style={{ marginRight: "5px", fontSize: "10px" }}>
-                                <select className="filterBox-selection">
-                                    <option value="Is" key="Is">Is</option>
-                                    <option value="Is Not" key="Is Not">Is Not</option>
-                                </select>
-                            </div>
-                            <div className="filterBox-treeView-close" onClick={e => this.removeFilter(StrCast(doc.title))}>
-                                <FontAwesomeIcon icon={"times"} size="sm" />
-                            </div>
-                        </>;
+                if (doc && !doc.treeViewHideHeaderFields) {
+                    return <>
+                        <div style={{ marginRight: "5px", fontSize: "10px" }}>
+                            <select className="filterBox-selection">
+                                <option value="Is" key="Is">Is</option>
+                                <option value="Is Not" key="Is Not">Is Not</option>
+                            </select>
+                        </div>
+                        <div className="filterBox-treeView-close" onClick={e => this.removeFilter(StrCast(doc.title))}>
+                            <FontAwesomeIcon icon={"times"} size="sm" />
+                        </div>
+                    </>;
                 }
-            default: return DefaultStyleProvider(doc, props, property);
-
         }
+        return DefaultStyleProvider(doc, props, property);
     }
 
     suppressChildClick = () => ScriptField.MakeScript("")!;
@@ -374,6 +370,24 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
     setTreeHeight = (hgt: number) => {
         this.layoutDoc._height = hgt + 140; // 50?  need to add all the border sizes together.
+    }
+
+    /**
+     * add lock and hide button decorations for the "Dashboards" flyout TreeView
+     */
+    FilterStyleProvider = (doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) => {
+        switch (property.split(":")[0]) {
+            case StyleProp.Decorations:
+                return !doc || doc.treeViewHideHeaderFields ? (null) : // bcz: Todo: afterHeader should be generalized into a renderPath that is a list of the documents rendered so far which would mimic much of CSS property selectors
+                    <>
+                        <div className={`styleProvider-treeView-hide${doc.hidden ? "-active" : ""}`} onClick={undoBatch(e =>
+                            this.removeFilter(StrCast(doc.title))
+                        )}>
+                            <FontAwesomeIcon icon={"trash"} size="sm" />
+                        </div>
+                    </>;
+        }
+        return this.props.styleProvider?.(doc, props, property);
     }
 
     layoutHeight = () => this.layoutDoc[HeightSym]();
@@ -431,7 +445,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     CollectionView={undefined}
                     disableDocBrushing={true}
                     setHeight={this.setTreeHeight} // if the tree view can trigger the height of the filter box to change, then this needs to be filled in.
-                    onChildClick={this.suppressChildClick}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
@@ -455,7 +468,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     treeViewHideHeaderFields={false}
                     onCheckedClick={this.scriptField}
                     dontRegisterView={true}
-                    styleProvider={this.props.styleProvider}
+                    styleProvider={this.FilterStyleProvider}
                     layerProvider={this.props.layerProvider}
                     docViewPath={this.props.docViewPath}
                     scriptContext={this.props.scriptContext}
@@ -530,6 +543,7 @@ Scripting.addGlobal(function readFacetData(layoutDoc: Doc, facetHeader: string) 
         doc.target = layoutDoc;
         doc.facetHeader = facetHeader;
         doc.facetValue = facetValue;
+        doc.treeViewHideHeaderFields = true;
         doc.treeViewChecked = ComputedField.MakeFunction("determineCheckedState(self.target, self.facetHeader, self.facetValue)");
         return doc;
     });

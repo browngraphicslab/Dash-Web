@@ -152,7 +152,6 @@ export class TreeView extends React.Component<TreeViewProps> {
         } else {
             this.props.addDocTab(this.props.document, "add:right");
         }
-        docView?.select(false);
     }
     constructor(props: any) {
         super(props);
@@ -483,9 +482,9 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     @computed get headerElements() {
-        return this.props.treeViewHideHeaderFields() ? (null)
+        return this.props.treeViewHideHeaderFields() || this.doc.treeViewHideHeaderFields ? (null)
             : <>
-                <FontAwesomeIcon key="bars" icon="bars" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />
+                {this.doc.hideContextMenu ? (null) : <FontAwesomeIcon key="bars" icon="bars" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />}
                 {this.doc.treeViewExpandedViewLock || Doc.IsSystem(this.doc) ? (null) :
                     <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView} onPointerDown={this.expandNextviewType}>
                         {this.treeViewExpandedView}
@@ -526,7 +525,6 @@ export class TreeView extends React.Component<TreeViewProps> {
                 }}>
                     {StrCast(doc?.title)}
                 </div>;
-            case StyleProp.Decorations: return (null);
             default: return this.props?.treeView?.props.styleProvider?.(doc, props, property);
         }
     }
