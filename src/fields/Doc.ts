@@ -1058,7 +1058,8 @@ export namespace Doc {
         prevLayout === "icon" && (doc.deiconifyLayout = undefined);
         doc.layoutKey = deiconify || "layout";
     }
-    export function setDocFilterRange(container: Doc, key: string, range?: number[]) {
+    export function setDocRangeFilter(container: Opt<Doc>, key: string, range?: number[]) {
+        if (!container) return;
         const docRangeFilters = Cast(container._docRangeFilters, listSpec("string"), []);
         for (let i = 0; i < docRangeFilters.length; i += 3) {
             if (docRangeFilters[i] === key) {
@@ -1352,4 +1353,4 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
     return docs.length ? new List(docs) : prevValue;
 });
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers: "match" | "check" | "x" | "remove") { Doc.setDocFilter(container, key, value, modifiers); });
-Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number[]) { Doc.setDocFilterRange(container, key, range); });
+Scripting.addGlobal(function setDocRangeFilter(container: Doc, key: string, range: number[]) { Doc.setDocRangeFilter(container, key, range); });
