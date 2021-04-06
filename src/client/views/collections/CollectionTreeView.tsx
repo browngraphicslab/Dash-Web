@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, reaction, IReactionDisposer } from "mobx";
+import { action, computed, reaction, IReactionDisposer, observable } from "mobx";
 import { observer } from "mobx-react";
 import { DataSym, Doc, DocListCast, HeightSym, Opt, WidthSym } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
@@ -25,6 +25,8 @@ import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import { TreeView } from "./TreeView";
 import React = require("react");
+import { InkTool } from '../../../fields/InkField';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 const _global = (window /* browser */ || global /* node */) as any;
 
 export type collectionTreeViewProps = {
@@ -43,12 +45,21 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     private _mainEle?: HTMLDivElement;
     private _disposers: { [name: string]: IReactionDisposer } = {};
     MainEle = () => this._mainEle;
+
     @computed get doc() { return this.props.Document; }
     @computed get dataDoc() { return this.props.DataDoc || this.doc; }
     @computed get treeViewtruncateTitleWidth() { return NumCast(this.doc.treeViewTruncateTitleWidth, this.panelWidth()); }
     @computed get treeChildren() { return this.props.childDocuments || this.childDocs; }
     @computed get outlineMode() { return this.doc.treeViewType === "outline"; }
     @computed get fileSysMode() { return this.doc.treeViewType === "fileSystem"; }
+
+    // these should stay in synch with counterparts in DocComponent.ts ViewBoxAnnotatableComponent
+    @observable _isAnyChildContentActive = false;
+    whenChildContentsActiveChanged = action((isActive: boolean) => this.props.whenChildContentsActiveChanged(this._isAnyChildContentActive = isActive));
+    isContentActive = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool !== InkTool.None ||
+        (this.props.isContentActive?.() || this.props.Document.forceActive ||
+            this.props.isSelected(outsideReaction) || this._isAnyChildContentActive ||
+            this.props.rootSelected(outsideReaction)) ? true : false)
 
     componentWillUnmount() {
         super.componentWillUnmount();
@@ -163,6 +174,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 })} />;
     }
 
+
     documentTitle = (childDocs: Doc[]) => {
         return <div style={{ display: "inline-block", width: "100%", height: this.documentTitleHeight() }} key={this.doc[Id]}
             onKeyDown={e => {
@@ -175,6 +187,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 LayoutTemplateString={FormattedTextBox.LayoutString("text")}
                 renderDepth={this.props.renderDepth + 1}
                 isContentActive={this.isContentActive}
+                isDocumentActive={this.isContentActive}
                 rootSelected={returnTrue}
                 docViewPath={this.props.docViewPath}
                 styleProvider={this.props.styleProvider}
@@ -193,7 +206,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 addDocument={this.props.addDocument}
                 moveDocument={returnFalse}
                 removeDocument={returnFalse}
-                whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
+                whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
                 addDocTab={this.props.addDocTab}
                 pinToPres={this.props.pinToPres}
                 bringToFront={returnFalse}
@@ -220,7 +233,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             this.props.addDocTab,
             this.props.styleProvider,
             this.props.ScreenToLocalTransform,
-            this.props.isContentActive,
+            this.isContentActive,
             this.panelWidth,
             this.props.renderDepth,
             () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
@@ -229,7 +242,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             this.onChildClick,
             this.props.treeViewSkipFields,
             true,
-            this.props.whenChildContentsActiveChanged,
+            this.whenChildContentsActiveChanged,
             this.props.dontRegisterView || Cast(this.props.Document.childDontRegisterViews, "boolean", null),
             this.observerHeight,
             this.unobserveHeight);
@@ -255,7 +268,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     truncateTitleWidth = () => this.treeViewtruncateTitleWidth;
     onChildClick = () => this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
     panelWidth = () => this.props.PanelWidth() - 2 * this.paddingX();
-    isContentActive = () => this.props.isContentActive() || this.props.isSelected();
     render() {
         TraceMobx();
         const background = () => this.props.styleProvider?.(this.doc, this.props, StyleProp.BackgroundColor);
