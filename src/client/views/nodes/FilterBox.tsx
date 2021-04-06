@@ -170,7 +170,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
 
     public removeFilter = (filterName: string) => {
-        console.log("remove filter");
         const targetDoc = FilterBox.targetDoc;
         const filterDoc = targetDoc.currentFilter as Doc;
         const attributes = DocListCast(filterDoc["data"]);
@@ -282,10 +281,22 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
 
     /**
-     * Changes the value of the variable that determines whether the filters should apply to the dashboard or the collection
+     * Changes the value of the variable that determines whether the filters should apply to the dashboard or the collection.
+     * 
+     * Saves the Dashboard's filters (on its currentFilter filterdoc) when it shifts to Current Collection so it doesn't get passed into this.props.docFIlters() in CollectionSubView (in the docFilters function).
      */
     @action
     changeScope = (e: any) => {
+        if (FilterBox._filterScope === "Current Dashboard" && e.currentTarget.value === "Current Collection") {
+            const temp = CurrentUserUtils.ActiveDashboard._docFilters;
+            CurrentUserUtils.ActiveDashboard._docFilters = new List<string>();
+            (CurrentUserUtils.ActiveDashboard.currentFilter as Doc)._docFilterList = temp;
+        }
+        else if (FilterBox._filterScope === "Current Collection" && e.currentTarget.value === "Current Dashboard") {
+            const temp = (CurrentUserUtils.ActiveDashboard.currentFilter as Doc)._docFilterList;
+            (CurrentUserUtils.ActiveDashboard.currentFilter as Doc)._docFilterList = undefined;
+            CurrentUserUtils.ActiveDashboard._docFilters = temp;
+        }
         FilterBox._filterScope = e.currentTarget.value;
     }
 
@@ -393,7 +404,10 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 <select className="filterBox-selection" onChange={this.changeScope}>
                     <option value="Current Dashboard" key="Current Dashboard" selected={"Current Dashboard" === FilterBox._filterScope}>Current Dashboard</option>
                     {/* <option value="Current Tab" key="Current Tab">Current Tab</option> */}
-                    <option value="Current Collection" key="Current Collection" selected={"Current Collection" === FilterBox._filterScope}>Current Collection</option>
+                    {SelectionManager.Views()?.[0].Document.type === DocumentType.COL ?
+                        <option value="Current Collection" key="Current Collection" selected={"Current Collection" === FilterBox._filterScope}>Current Collection</option>
+                        : (null)}
+
                 </select>
             </div>
 

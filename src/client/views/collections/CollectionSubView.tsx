@@ -82,7 +82,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             return Cast(this.dataField, listSpec(Doc));
         }
         docFilters = () => {
-            return [...this.props.docFilters(), ...Cast(FilterBox._filterScope === "Current Collection" ? this.props.Document?._docFilters : CurrentUserUtils.ActiveDashboard?._docFilters, listSpec("string"), [])];
+            return [...this.props.docFilters(), ...Cast(this.props.Document?._docFilters, listSpec("string"), [])];
         }
         docRangeFilters = () => {
             return [...this.props.docRangeFilters(), ...Cast(this.props.Document._docRangeFilters, listSpec("string"), [])];
@@ -115,9 +115,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
 
             // console.log(CurrentUserUtils.ActiveDashboard._docFilters);
-            if (!this.props.Document._docFilters && this.props.Document.currentFilter) {
-                (this.props.Document.currentFilter as Doc).filterBoolean = (this.props.ContainingCollectionDoc?.currentFilter as Doc)?.filterBoolean;
-            }
+            // if (!this.props.Document._docFilters && this.props.Document.currentFilter) {
+            //     (this.props.Document.currentFilter as Doc).filterBoolean = (this.props.ContainingCollectionDoc?.currentFilter as Doc)?.filterBoolean;
+            // }
             const docsforFilter: Doc[] = [];
             childDocs.forEach((d) => {
                 // if (DocUtils.Excluded(d, docFilters)) return;
@@ -129,13 +129,13 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     let subDocs = DocListCast(data);
                     if (subDocs.length > 0) {
                         let newarray: Doc[] = [];
-                        notFiltered = notFiltered || (!searchDocs.length && DocUtils.FilterDocs(subDocs, docFilters, docRangeFilters, viewSpecScript, this.props.Document).length);
+                        notFiltered = notFiltered || (!searchDocs.length && DocUtils.FilterDocs(subDocs, docFilters, docRangeFilters, viewSpecScript, d).length);
                         while (subDocs.length > 0 && !notFiltered) {
                             newarray = [];
                             subDocs.forEach((t) => {
                                 const fieldKey = Doc.LayoutFieldKey(t);
                                 const annos = !Field.toString(Doc.LayoutField(t) as Field).includes("CollectionView");
-                                notFiltered = notFiltered || ((!searchDocs.length || searchDocs.includes(t)) && ((!docFilters.length && !docRangeFilters.length) || DocUtils.FilterDocs([t], docFilters, docRangeFilters, viewSpecScript, this.props.Document).length));
+                                notFiltered = notFiltered || ((!searchDocs.length || searchDocs.includes(t)) && ((!docFilters.length && !docRangeFilters.length) || DocUtils.FilterDocs([t], docFilters, docRangeFilters, viewSpecScript, d).length));
                                 DocListCast(t[annos ? fieldKey + "-annotations" : fieldKey]).forEach((newdoc) => newarray.push(newdoc));
                             });
                             subDocs = newarray;
