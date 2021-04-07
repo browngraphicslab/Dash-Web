@@ -12,7 +12,6 @@ import { Cast, StrCast } from "../../../fields/Types";
 import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionTreeView } from "../collections/CollectionTreeView";
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { SearchBox } from "../search/SearchBox";
@@ -91,7 +90,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
     @observable _loaded = false;
     componentDidMount() {
-        reaction(() => DocListCastAsync(CollectionDockingView.Instance.props.Document.data),
+        reaction(() => DocListCastAsync(this.layoutDoc.data),
             async (activeTabsAsync) => {
                 const activeTabs = await activeTabsAsync;
                 activeTabs && (await SearchBox.foreachRecursiveDocAsync(activeTabs, emptyFunction));
@@ -527,7 +526,7 @@ Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: 
     return undefined;
 });
 Scripting.addGlobal(function readFacetData(layoutDoc: Doc, facetHeader: string) {
-    const allCollectionDocs = DocListCast(CollectionDockingView.Instance?.props.Document.allDocuments);
+    const allCollectionDocs = DocListCast(layoutDoc.allDocuments);
     const set = new Set<string>();
     if (facetHeader === "tags") allCollectionDocs.forEach(child => Field.toString(child[facetHeader] as Field).split(":").forEach(key => set.add(key)));
     else allCollectionDocs.forEach(child => set.add(Field.toString(child[facetHeader] as Field)));
