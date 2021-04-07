@@ -1005,7 +1005,7 @@ export namespace DocUtils {
                     return Field.toString(d[facetKey] as Field).includes(value);
                 });
                 // if we're ORing them together, the default return is false, and we return true for a doc if it satisfies any one set of criteria
-                if (((FilterBox._filterScope === "Current Collection" ? parentCollection || CurrentUserUtils.ActiveDashboard : CurrentUserUtils.ActiveDashboard).currentFilter as Doc)?.filterBoolean === "OR") {
+                if ((parentCollection?.currentFilter as Doc)?.filterBoolean === "OR") {
                     if (satisfiesCheckFacets && !failsNotEqualFacets && satisfiesMatchFacets) return true;
                 }
                 // if we're ANDing them together, the default return is true, and we return false for a doc if it doesn't satisfy any set of criteria
@@ -1014,7 +1014,7 @@ export namespace DocUtils {
                 }
 
             }
-            return ((FilterBox._filterScope === "Current Collection" ? parentCollection || CurrentUserUtils.ActiveDashboard : CurrentUserUtils.ActiveDashboard).currentFilter as Doc)?.filterBoolean === "OR" ? false : true;
+            return (parentCollection?.currentFilter as Doc)?.filterBoolean === "OR" ? false : true;
         }) : childDocs;
         const rangeFilteredDocs = filteredDocs.filter(d => {
             for (let i = 0; i < docRangeFilters.length; i += 3) {

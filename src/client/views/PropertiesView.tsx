@@ -30,7 +30,6 @@ import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
 import { DefaultStyleProvider } from "./StyleProvider";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
-import { FilterBox } from "./nodes/FilterBox";
 import { List } from "../../fields/List";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -49,10 +48,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get MAX_EMBED_HEIGHT() { return 200; }
 
-    @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
-    @computed get filterDoc() {
-        return FilterBox._filterScope === "Current Collection" ? this.selectedDoc! : CurrentUserUtils.ActiveDashboard;
-    }
+    @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc || CurrentUserUtils.ActiveDashboard; }
     @computed get selectedDocumentView() {
         if (SelectionManager.Views().length) return SelectionManager.Views()[0];
         if (PresBox.Instance?._selectedArray.size) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
@@ -909,47 +905,47 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
      * If it doesn't exist, it creates it.
      */
     checkFilterDoc() {
-        if (this.filterDoc.type === DocumentType.COL && !this.filterDoc.currentFilter) CurrentUserUtils.setupFilterDocs(this.filterDoc);
+        if (this.selectedDoc.type === DocumentType.COL && !this.selectedDoc.currentFilter) CurrentUserUtils.setupFilterDocs(this.selectedDoc);
     }
 
     /**
      * Creates a new currentFilter for this.filterDoc, 
      */
     createNewFilterDoc = () => {
-        const currentDocFilters = this.filterDoc._docFilters;
-        const currentDocRangeFilters = this.filterDoc._docRangeFilters;
-        this.filterDoc._docFilters = new List<string>();
-        this.filterDoc._docRangeFilters = new List<string>();
-        (this.filterDoc.currentFilter as Doc)._docFiltersList = currentDocFilters;
-        (this.filterDoc.currentFilter as Doc)._docRangeFiltersList = currentDocRangeFilters;
-        this.filterDoc.currentFilter = undefined;
-        CurrentUserUtils.setupFilterDocs(this.filterDoc);
+        const currentDocFilters = this.selectedDoc._docFilters;
+        const currentDocRangeFilters = this.selectedDoc._docRangeFilters;
+        this.selectedDoc._docFilters = new List<string>();
+        this.selectedDoc._docRangeFilters = new List<string>();
+        (this.selectedDoc.currentFilter as Doc)._docFiltersList = currentDocFilters;
+        (this.selectedDoc.currentFilter as Doc)._docRangeFiltersList = currentDocRangeFilters;
+        this.selectedDoc.currentFilter = undefined;
+        CurrentUserUtils.setupFilterDocs(this.selectedDoc);
     }
 
     /**
      * Updates this.filterDoc's currentFilter and saves the docFilters on the currentFilter
      */
     updateFilterDoc = (doc: Doc) => {
-        if (doc === this.filterDoc.currentFilter) return; // causes problems if you try to reapply the same doc
+        if (doc === this.selectedDoc.currentFilter) return; // causes problems if you try to reapply the same doc
         const savedDocFilters = doc._docFiltersList;
-        const currentDocFilters = this.filterDoc._docFilters;
-        this.filterDoc._docFilters = new List<string>();
-        (this.filterDoc.currentFilter as Doc)._docFiltersList = currentDocFilters;
-        this.filterDoc.currentFilter = doc;
+        const currentDocFilters = this.selectedDoc._docFilters;
+        this.selectedDoc._docFilters = new List<string>();
+        (this.selectedDoc.currentFilter as Doc)._docFiltersList = currentDocFilters;
+        this.selectedDoc.currentFilter = doc;
         doc._docFiltersList = new List<string>();
-        this.filterDoc._docFilters = savedDocFilters;
+        this.selectedDoc._docFilters = savedDocFilters;
 
         const savedDocRangeFilters = doc._docRangeFiltersList;
-        const currentDocRangeFilters = this.filterDoc._docRangeFilters;
-        this.filterDoc._docRangeFilters = new List<string>();
-        (this.filterDoc.currentFilter as Doc)._docRangeFiltersList = currentDocRangeFilters;
-        this.filterDoc.currentFilter = doc;
+        const currentDocRangeFilters = this.selectedDoc._docRangeFilters;
+        this.selectedDoc._docRangeFilters = new List<string>();
+        (this.selectedDoc.currentFilter as Doc)._docRangeFiltersList = currentDocRangeFilters;
+        this.selectedDoc.currentFilter = doc;
         doc._docRangeFiltersList = new List<string>();
-        this.filterDoc._docRangeFilters = savedDocRangeFilters;
+        this.selectedDoc._docRangeFilters = savedDocRangeFilters;
     }
 
     @computed get filtersSubMenu() {
-        return !(this.filterDoc?.currentFilter instanceof Doc) ? (null) : <div className="propertiesView-filters">
+        return !(this.selectedDoc?.currentFilter instanceof Doc) ? (null) : <div className="propertiesView-filters">
             <div className="propertiesView-filters-title"
                 onPointerDown={action(() => this.openFilters = !this.openFilters)}
                 style={{ backgroundColor: this.openFilters ? "black" : "" }}>
@@ -960,9 +956,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             </div>
             {
                 !this.openFilters ? (null) :
-                    <div className="propertiesView-filters-content" style={{ height: this.filterDoc.currentFilter[HeightSym]() + 15 }}>
+                    <div className="propertiesView-filters-content" style={{ height: this.selectedDoc.currentFilter[HeightSym]() + 15 }}>
                         <DocumentView
-                            Document={this.filterDoc.currentFilter}
+                            Document={this.selectedDoc.currentFilter}
                             DataDoc={undefined}
                             addDocument={undefined}
                             addDocTab={returnFalse}
@@ -971,9 +967,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             removeDocument={returnFalse}
                             ScreenToLocalTransform={this.getTransform}
                             PanelWidth={() => this.props.width}
-                            PanelHeight={this.filterDoc.currentFilter[HeightSym]}
+                            PanelHeight={this.selectedDoc.currentFilter[HeightSym]}
                             renderDepth={0}
-                            scriptContext={this.filterDoc.currentFilter}
+                            scriptContext={this.selectedDoc.currentFilter}
                             focus={emptyFunction}
                             styleProvider={DefaultStyleProvider}
                             isContentActive={returnTrue}

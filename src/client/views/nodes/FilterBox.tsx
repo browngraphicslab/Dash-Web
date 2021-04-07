@@ -27,7 +27,6 @@ import Select from "react-select";
 import { UserOptions } from "../../util/GroupManager";
 import { DocumentViewProps } from "./DocumentView";
 import { DefaultStyleProvider, StyleProp } from "../StyleProvider";
-import { CollectionViewType } from "../collections/CollectionView";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { EditableView } from "../EditableView";
 import { undoBatch } from "../../util/UndoManager";
@@ -45,7 +44,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(FilterBox, fieldKey); }
 
-    @observable static _filterScope = "Current Dashboard";
     public _filterSelected = false;
     public _filterMatch = "matched";
 
@@ -82,10 +80,10 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     * @returns the relevant doc according to the value of FilterBox._filterScope i.e. either the Current Dashboard or the Current Collection
     */
     @computed static get targetDoc() {
-        if (FilterBox._filterScope === "Current Collection") {
+        if (SelectionManager.Views().length) {
             return SelectionManager.Views()[0]?.Document.type === DocumentType.COL ? SelectionManager.Views()[0].Document : SelectionManager.Views()[0]?.props.ContainingCollectionDoc!;
         }
-        else return CurrentUserUtils.ActiveDashboard;
+        return CurrentUserUtils.ActiveDashboard;
     }
 
     @observable _loaded = false;
@@ -97,16 +95,17 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 runInAction(() => this._loaded = true);
             }, { fireImmediately: true });
     }
+    @observable _allDocs = [] as Doc[];
     @computed get allDocs() {
         // trace();
-        const allDocs = new Set<Doc>();
         const targetDoc = FilterBox.targetDoc;
         if (this._loaded && targetDoc) {
+            const allDocs = new Set<Doc>();
             const activeTabs = DocListCast(targetDoc.data);
             SearchBox.foreachRecursiveDoc(activeTabs, (doc: Doc) => allDocs.add(doc));
-            setTimeout(() => targetDoc.allDocuments = new List<Doc>(Array.from(allDocs)));
+            setTimeout(action(() => this._allDocs = Array.from(allDocs)));
         }
-        return allDocs;
+        return this._allDocs;
     }
 
     @computed get _allFacets() {
@@ -271,34 +270,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
 
     /**
-     * Changes the value of the variable that determines whether the filters should apply to the dashboard or the collection.
-     * 
-     * Saves the Dashboard's filters (on its currentFilter filterdoc) when it shifts to Current Collection so it doesn't get passed into this.props.docFIlters() in CollectionSubView (in the docFilters function).
-     */
-    @action
-    changeScope = (e: any) => {
-        if (FilterBox._filterScope === "Current Dashboard" && e.currentTarget.value === "Current Collection") {
-            const currentDashboardDocFilters = CurrentUserUtils.ActiveDashboard._docFilters;
-            CurrentUserUtils.ActiveDashboard._docFilters = new List<string>();
-            (CurrentUserUtils.ActiveDashboard.currentFilter as Doc)._docFilterList = currentDashboardDocFilters;
-
-            const currentDashboardDocRangeFilters = CurrentUserUtils.ActiveDashboard._docRangeFilters;
-            CurrentUserUtils.ActiveDashboard._docRangeFilters = new List<string>();
-            (CurrentUserUtils.ActiveDashboard.currentFilter as Doc)._docRangeFilterList = currentDashboardDocRangeFilters;
-        }
-        else if (FilterBox._filterScope === "Current Collection" && e.currentTarget.value === "Current Dashboard") {
-            const savedDashboardDocFilters = (CurrentUserUtils.ActiveDashboard.currentFilter as Doc)._docFilterList;
-            (CurrentUserUtils.ActiveDashboard.currentFilter as Doc)._docFilterList = undefined;
-            CurrentUserUtils.ActiveDashboard._docFilters = savedDashboardDocFilters;
-
-            const savedDashboardDocRangeFilters = (CurrentUserUtils.ActiveDashboard.currentFilter as Doc)._docRangeFilterList;
-            (CurrentUserUtils.ActiveDashboard.currentFilter as Doc)._docRangeFilterList = undefined;
-            CurrentUserUtils.ActiveDashboard._docRangeFilters = savedDashboardDocRangeFilters;
-        }
-        FilterBox._filterScope = e.currentTarget.value;
-    }
-
-    /**
      * Changes whether to select matched or unmatched documents
      */
     @action
@@ -415,14 +386,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     <option value="OR" key="OR" selected={(FilterBox.targetDoc.currentFilter as Doc)?.filterBoolean === "OR"}>OR</option>
                 </select>
                 <div className="filterBox-select-text">filters in </div>
-                <select className="filterBox-selection" onChange={this.changeScope}>
-                    <option value="Current Dashboard" key="Current Dashboard" selected={"Current Dashboard" === FilterBox._filterScope}>Current Dashboard</option>
-                    {/* <option value="Current Tab" key="Current Tab">Current Tab</option> */}
-                    {SelectionManager.Views()?.[0].Document.type === DocumentType.COL ?
-                        <option value="Current Collection" key="Current Collection" selected={"Current Collection" === FilterBox._filterScope}>Current Collection</option>
-                        : (null)}
-
-                </select>
             </div>
 
             <div className="filterBox-select">
@@ -526,7 +489,9 @@ Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: 
     return undefined;
 });
 Scripting.addGlobal(function readFacetData(layoutDoc: Doc, facetHeader: string) {
-    const allCollectionDocs = DocListCast(layoutDoc.allDocuments);
+    const allCollectionDocs = new Set<Doc>();
+    const activeTabs = DocListCast(layoutDoc.data);
+    SearchBox.foreachRecursiveDoc(activeTabs, (doc: Doc) => allCollectionDocs.add(doc));
     const set = new Set<string>();
     if (facetHeader === "tags") allCollectionDocs.forEach(child => Field.toString(child[facetHeader] as Field).split(":").forEach(key => set.add(key)));
     else allCollectionDocs.forEach(child => set.add(Field.toString(child[facetHeader] as Field)));
