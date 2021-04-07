@@ -15,7 +15,7 @@ import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, setupMoveUpEvents, Utils } from "../../../Utils";
+import { DeepCopy, emptyFunction, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DragManager } from "../../util/DragManager";
@@ -34,6 +34,9 @@ import "./CollectionMenu.scss";
 import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { TabDocView } from "./TabDocView";
 import { LightboxView } from "../LightboxView";
+import { Docs } from "../../documents/Documents";
+import { DocumentManager } from "../../util/DocumentManager";
+import { CollectionDockingView } from "./CollectionDockingView";
 
 @observer
 export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
@@ -388,7 +391,32 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         return !targetDoc ? (null) : <Tooltip key="pin" title={<div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div>} placement="top">
             <button className="antimodeMenu-button" style={{ backgroundColor: isPinned ? "121212" : undefined, borderLeft: "1px solid gray" }}
                 onClick={e => TabDocView.PinDoc(targetDoc, { unpin: isPinned })}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
+                <FontAwesomeIcon className="colMenu-icon" size="lg" icon="map-pin" />
+            </button>
+        </Tooltip>;
+    }
+
+    @undoBatch
+    @action
+    startRecording = () => {
+        const doc = Docs.Create.ScreenshotDocument("", { _fitWidth: true, _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
+        doc.x = 0;
+        doc.y = 0;
+        Doc.AddDocToList((Doc.UserDoc().myOverlayDocs as Doc), undefined, doc);
+        CollectionDockingView.AddSplit(doc, "right");
+        // doc.startRec = true;
+    }
+
+    @computed
+    get recordButton() {
+        const targetDoc = this.selectedDoc;
+        return <Tooltip key="record" title={<div className="dash-tooltip">{"Capture screen"}</div>} placement="top">
+            <button className="antimodeMenu-button"
+                onClick={e => this.startRecording()}>
+                <div className="recordButtonOutline" style={{}}>
+                    <div className="recordButtonInner" style={{}}>
+                    </div>
+                </div>
             </button>
         </Tooltip>;
     }
@@ -478,7 +506,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         const targetDoc = this.selectedDoc;
         return !targetDoc || targetDoc.type === DocumentType.PRES ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
             <button className="antimodeMenu-button" onPointerDown={this.onAliasButtonDown} onClick={this.onAlias} style={{ cursor: "drag" }}>
-                <FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />
+                <FontAwesomeIcon className="colMenu-icon" icon="copy" size="lg" />
             </button>
         </Tooltip>;
     }
@@ -486,13 +514,29 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed get lightboxButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"View in Lightbox"}</div>} placement="top">
-            <button className="antimodeMenu-button" style={{ borderRight: "1px solid gray", justifyContent: 'center' }} onPointerDown={() => {
+            <button className="antimodeMenu-button" onPointerDown={() => {
                 const docs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
                 LightboxView.SetLightboxDoc(targetDoc, undefined, docs);
             }}>
-                <FontAwesomeIcon className="documentdecorations-icon" icon="desktop" size="lg" />
+                <FontAwesomeIcon className="colMenu-icon" icon="desktop" size="lg" />
             </button>
         </Tooltip>;
+    }
+
+    @computed get toggleOverlayButton() {
+        return <>
+            <Tooltip title={<div className="dash-tooltip">Toggle Overlay Layer</div>} placement="bottom">
+                <button className={"antimodeMenu-button"} key="float"
+                    style={{
+                        backgroundColor: this.props.docView.layoutDoc.z ? "121212" : undefined,
+                        pointerEvents: this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? "none" : undefined,
+                        color: this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? "dimgrey" : undefined
+                    }}
+                    onClick={undoBatch(() => this.props.docView.props.CollectionFreeFormDocumentView?.().float())}>
+                    <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
+                </button>
+            </Tooltip>
+        </>
     }
 
     render() {
@@ -500,24 +544,18 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             <div className="collectionMenu-cont" >
                 <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
+                        {this.notACollection || this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes}
+                        <div className="collectionMenu-divider" key="divider1"></div>
                         {this.aliasButton}
                         {/* {this.pinButton} */}
-                        {this.pinWithViewButton}
-                        {this.lightboxButton}
-                        <Tooltip title={<div className="dash-tooltip">Toggle Overlay Layer</div>} placement="bottom">
-                            <button className={"antimodeMenu-button"} key="float"
-                                style={{
-                                    backgroundColor: this.props.docView.layoutDoc.z ? "121212" : undefined, borderRight: "1px solid gray",
-                                    pointerEvents: this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? "none" : undefined,
-                                    color: this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? "dimgrey" : undefined
-                                }}
-                                onClick={undoBatch(() => this.props.docView.props.CollectionFreeFormDocumentView?.().float())}>
-                                <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
-                            </button>
-                        </Tooltip>
+                        {/* {this.pinWithViewButton} */}
+                        {this.toggleOverlayButton}
+                        <div className="collectionMenu-divider" key="divider2"></div>
                         {this.subChrome}
-                        {this.notACollection || this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes}
-                        {!this._buttonizableCommands ? (null) : this.templateChrome}
+                        <div className="collectionMenu-divider" key="divider3"></div>
+                        {this.lightboxButton}
+                        {this.recordButton}
+                        {/* {!this._buttonizableCommands ? (null) : this.templateChrome} */}
                     </div>
                 </div>
             </div>

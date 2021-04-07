@@ -17,6 +17,7 @@ import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, return
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocUtils } from '../documents/Documents';
+import { CaptureManager } from '../util/CaptureManager';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DocumentManager } from '../util/DocumentManager';
 import { GroupManager } from '../util/GroupManager';
@@ -177,8 +178,8 @@ export class MainView extends React.Component {
             const targClass = targets[0].className.toString();
             if (SearchBox.Instance._searchbarOpen || SearchBox.Instance.open) {
                 const check = targets.some((thing) =>
-                    (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
-                        thing.className === "collectionSchema-header-menuOptions"));
+                (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
+                    thing.className === "collectionSchema-header-menuOptions"));
                 !check && SearchBox.Instance.resetSearch(true);
             }
             !targClass.includes("contextMenu") && ContextMenu.Instance.closeMenu();
@@ -619,6 +620,7 @@ export class MainView extends React.Component {
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />
+            <CaptureManager />
             <GroupManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations boundsLeft={this.leftOffset} boundsTop={this.topOffset} />
