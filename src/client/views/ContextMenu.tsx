@@ -15,6 +15,7 @@ export class ContextMenu extends React.Component {
     @observable private _pageY: number = 0;
     @observable private _display: boolean = false;
     @observable private _searchString: string = "";
+    @observable private _showSearch: boolean = false;
     // afaik displaymenu can be called before all the items are added to the menu, so can't determine in displayMenu what the height of the menu will be
     @observable private _yRelativeToTop: boolean = true;
     @observable selectedIndex = -1;
@@ -137,11 +138,13 @@ export class ContextMenu extends React.Component {
         return y;
     }
 
+
     @action
-    displayMenu = (x: number, y: number, initSearch = "") => {
+    displayMenu = (x: number, y: number, initSearch = "", showSearch = false) => {
         //maxX and maxY will change if the UI/font size changes, but will work for any amount
         //of items added to the menu
 
+        this._showSearch = showSearch;
         this._pageX = x;
         this._pageY = y;
         this._searchString = initSearch;
@@ -215,9 +218,13 @@ export class ContextMenu extends React.Component {
 
     @computed get menuItems() {
         if (!this._searchString) {
-            return this._items.map(item => <ContextMenuItem {...item} key={item.description} closeMenu={this.closeMenu} />);
+            return this._items.map(item => <ContextMenuItem {...item} noexpand={this.itemsNeedSearch ? true : (item as any).noexpand} key={item.description} closeMenu={this.closeMenu} />);
         }
         return this.filteredViews;
+    }
+
+    @computed get itemsNeedSearch() {
+        return this._showSearch ? 1 : this._items.reduce((p, mi) => p + ((mi as any).noexpand ? 1 : (mi as any).subitems?.length || 1), 0) > 15;
     }
 
     render() {
@@ -229,12 +236,13 @@ export class ContextMenu extends React.Component {
 
         const contents = (
             <>
-                <span className={"search-icon"}>
-                    <span className="icon-background">
-                        <FontAwesomeIcon icon="search" size="lg" />
-                    </span>
-                    <input className="contextMenu-item contextMenu-description search" type="text" placeholder="Filter Menu..." value={this._searchString} onKeyDown={this.onKeyDown} onChange={this.onChange} autoFocus />
-                </span>
+                {!this.itemsNeedSearch ? (null) :
+                    <span className={"search-icon"}>
+                        <span className="icon-background">
+                            <FontAwesomeIcon icon="search" size="lg" />
+                        </span>
+                        <input className="contextMenu-item contextMenu-description search" type="text" placeholder="Filter Menu..." value={this._searchString} onKeyDown={this.onKeyDown} onChange={this.onChange} autoFocus />
+                    </span>}
                 {this.menuItems}
             </>
         );
@@ -244,8 +252,7 @@ export class ContextMenu extends React.Component {
                     <div className="contextMenu-cont" style={style} ref={measureRef}>
                         {contents}
                     </div>
-                )
-                }
+                )}
             </Measure>
         );
     }

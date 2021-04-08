@@ -483,10 +483,10 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     @computed get headerElements() {
-        return this.props.treeViewHideHeaderFields() || Doc.IsSystem(this.doc) ? (null)
+        return this.props.treeViewHideHeaderFields() || (Doc.IsSystem(this.doc) && !this.doc.isFolder) ? (null)
             : <>
                 <FontAwesomeIcon key="bars" icon="bars" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />
-                {this.doc.treeViewExpandedViewLock ? (null) :
+                {this.doc.isFolder || this.doc.treeViewExpandedViewLock ? (null) :
                     <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView} onPointerDown={this.expandNextviewType}>
                         {this.treeViewExpandedView}
                     </span>}
@@ -494,11 +494,14 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     showContextMenu = (e: React.MouseEvent) => simulateMouseClick(this._docRef?.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
-    contextMenuItems = () => Doc.IsSystem(this.doc) ? [] : this.doc.isFolder ?
-        [{ script: ScriptField.MakeFunction(`scriptContext.makeFolder()`, { scriptContext: "any" })!, label: "New Folder" }] :
-        this.props.treeView.fileSysMode && this.doc === Doc.GetProto(this.doc) ?
-            [{ script: ScriptField.MakeFunction(`openOnRight(getAlias(self))`)!, label: "Open Alias" }] :
-            [{ script: ScriptField.MakeFunction(`DocFocusOrOpen(self)`)!, label: "Focus or Open" }]
+    contextMenuItems = () => {
+        const makeFolder = { script: ScriptField.MakeFunction(`scriptContext.makeFolder()`, { scriptContext: "any" })!, label: "New Folder" };
+        return this.doc.isFolder ? [makeFolder] :
+            Doc.IsSystem(this.doc) ? [] :
+                this.props.treeView.fileSysMode && this.doc === Doc.GetProto(this.doc) ?
+                    [{ script: ScriptField.MakeFunction(`openOnRight(getAlias(self))`)!, label: "Open Alias" }, makeFolder] :
+                    [{ script: ScriptField.MakeFunction(`DocFocusOrOpen(self)`)!, label: "Focus or Open" }];
+    }
     onChildClick = () => this.props.onChildClick?.() ?? (this._editTitleScript?.() || ScriptCast(this.doc.treeChildClick));
     onChildDoubleClick = () => (!this.props.treeView.outlineMode && this._openScript?.()) || ScriptCast(this.doc.treeChildDoubleClick);
 
