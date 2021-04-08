@@ -116,7 +116,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
         const target = LightboxView._docTarget = LightboxView._future?.pop();
         const targetDocView = target && DocumentManager.Instance.getLightboxDocumentView(target);
         if (targetDocView && target) {
-            const l = DocUtils.MakeLinkToActiveAudio(targetDocView.ComponentView?.getAnchor?.() || target).lastElement();
+            const l = DocUtils.MakeLinkToActiveAudio(() => targetDocView.ComponentView?.getAnchor?.() || target).lastElement();
             l && (Cast(l.anchor2, Doc, null).backgroundColor = "lightgreen");
             targetDocView.focus(target, { originalTarget: target, willZoom: true, scale: 0.9 });
             if (LightboxView._history?.lastElement().target !== target) LightboxView._history?.push({ doc, target });
@@ -282,7 +282,7 @@ interface LightboxTourBtnProps {
 export class LightboxTourBtn extends React.Component<LightboxTourBtnProps> {
     render() {
         return this.props.navBtn("50%", 0, 0, "chevron-down",
-            () => LightboxView.LightboxDoc && this.props.future()?.length ? "" : "none", e => {
+            () => LightboxView.LightboxDoc /*&& this.props.future()?.length*/ ? "" : "none", e => {
                 e.stopPropagation();
                 this.props.stepInto();
             },

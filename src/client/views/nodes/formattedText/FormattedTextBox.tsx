@@ -669,7 +669,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             if (this._break) {
                 const textanchor = Docs.Create.TextanchorDocument({ title: "dictation anchor" });
                 this.addDocument(textanchor);
-                const link = DocUtils.MakeLinkToActiveAudio(textanchor, false).lastElement();
+                const link = DocUtils.MakeLinkToActiveAudio(() => textanchor, false).lastElement();
                 link && (Doc.GetProto(link).isDictation = true);
                 if (!link) return;
                 const audioanchor = Cast(link.anchor2, Doc, null);
