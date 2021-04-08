@@ -4,7 +4,6 @@ import { observer } from "mobx-react";
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { UndoManager } from "../util/UndoManager";
-import { NumberLiteralType } from "typescript";
 
 export interface OriginalMenuProps {
     description: string;
@@ -33,8 +32,8 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
 
     constructor(props: ContextMenuProps | SubmenuProps) {
         super(props);
-        if ("subitems" in this.props) {
-            this.props.subitems?.forEach(i => this._items.push(i));
+        if ((this.props as SubmenuProps).subitems) {
+            (this.props as SubmenuProps).subitems?.forEach(i => this._items.push(i));
         }
     }
 
@@ -107,7 +106,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                     }}>
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
                 </div>;
-            if (!("noexpand" in this.props)) {
+            if (!(this.props as SubmenuProps).noexpand) {
                 return <div className="contextMenu-inlineMenu">
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
                 </div>;
