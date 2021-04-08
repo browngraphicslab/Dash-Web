@@ -74,7 +74,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const { Document, DataDoc } = this.props;
             const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, !this.props.isAnnotationOverlay ? DataDoc : undefined, doc)).
                 filter(pair => {  // filter out any documents that have a proto that we don't have permissions to (which we determine by not having any keys
-                    return pair.layout && !pair.layout.hidden && (!pair.layout.proto || (pair.layout.proto instanceof Doc && GetEffectiveAcl(pair.layout.proto) !== AclPrivate));// Object.keys(pair.layout.proto).length));
+                    return pair.layout && /*!pair.layout.hidden &&*/ (!pair.layout.proto || (pair.layout.proto instanceof Doc && GetEffectiveAcl(pair.layout.proto) !== AclPrivate));// Object.keys(pair.layout.proto).length));
                 });
             return validPairs.map(({ data, layout }) => ({ data: data as Doc, layout: layout! })); // this mapping is a bit of a hack to coerce types
         }
