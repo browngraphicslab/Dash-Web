@@ -23,7 +23,6 @@ import { EditableView } from "../EditableView";
 import { LightboxView } from "../LightboxView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocFocusOptions, DocumentView, DocumentViewProps, ViewAdjustment } from "../nodes/DocumentView";
-import { FieldViewProps } from "../nodes/FieldView";
 import { StyleProp } from "../StyleProvider";
 import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
 import "./CollectionStackingView.scss";
@@ -400,7 +399,6 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             observeHeight={ref => {
                 if (ref) {
                     this.refList.push(ref);
-                    const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             const height = this.headerMargin +

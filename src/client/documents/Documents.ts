@@ -668,7 +668,7 @@ export namespace Docs {
             viewProps["acl-Override"] = "None";
             viewProps["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
             const viewDoc = Doc.assign(Doc.MakeDelegate(dataDoc, delegId), viewProps, true, true);
-            ![DocumentType.LINK, DocumentType.TEXTANCHOR, DocumentType.LABEL].includes(viewDoc.type as any) && DocUtils.MakeLinkToActiveAudio(viewDoc);
+            ![DocumentType.LINK, DocumentType.TEXTANCHOR, DocumentType.LABEL].includes(viewDoc.type as any) && DocUtils.MakeLinkToActiveAudio(() => viewDoc);
 
             !Doc.IsSystem(dataDoc) && ![DocumentType.HTMLANCHOR, DocumentType.KVP, DocumentType.LINK, DocumentType.LINKANCHOR, DocumentType.TEXTANCHOR].includes(proto.type as any) &&
                 !dataDoc.isFolder && !dataProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
@@ -1046,10 +1046,10 @@ export namespace DocUtils {
 
     export let ActiveRecordings: { props: FieldViewProps, getAnchor: () => Doc }[] = [];
 
-    export function MakeLinkToActiveAudio(doc: Doc, broadcastEvent = true) {
+    export function MakeLinkToActiveAudio(getSourceDoc: () => Doc, broadcastEvent = true) {
         broadcastEvent && runInAction(() => DocumentManager.Instance.RecordingEvent = DocumentManager.Instance.RecordingEvent + 1);
         return DocUtils.ActiveRecordings.map(audio =>
-            DocUtils.MakeLink({ doc: doc }, { doc: audio.getAnchor() || audio.props.Document }, "recording link", "recording timeline"));
+            DocUtils.MakeLink({ doc: getSourceDoc() }, { doc: audio.getAnchor() || audio.props.Document }, "recording link", "recording timeline"));
     }
 
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string, allowParCollectionLink?: boolean, showPopup?: number[]) {

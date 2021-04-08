@@ -62,6 +62,7 @@ import { schema } from "./schema_rts";
 import { SummaryView } from "./SummaryView";
 import applyDevTools = require("prosemirror-dev-tools");
 import React = require("react");
+import { SidebarAnnos } from '../../SidebarAnnos';
 const translateGoogleApi = require("translate-google-api");
 
 export interface FormattedTextBoxProps {
@@ -91,6 +92,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     static _userStyleSheet: any = addStyleSheet();
     static _canAnnotate = true;
     static _hadSelection: boolean = false;
+    private _sidebarRef = React.createRef<SidebarAnnos>();
     private _ref: React.RefObject<HTMLDivElement> = React.createRef();
     private _scrollRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _editorView: Opt<EditorView>;
@@ -537,13 +539,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
 
+    @action
+    toggleSidebar = () => {
+        const prevWidth = this.sidebarWidth();
+        this.layoutDoc._showSidebar = ((this.layoutDoc._sidebarWidthPercent = StrCast(this.layoutDoc._sidebarWidthPercent, "0%") === "0%" ? "50%" : "0%")) !== "0%";
+        this.layoutDoc._width = this.layoutDoc._showSidebar ? NumCast(this.layoutDoc._width) * 2 : Math.max(20, NumCast(this.layoutDoc._width) - prevWidth);
+    }
     sidebarDown = (e: React.PointerEvent) => {
-        setupMoveUpEvents(this, e, this.sidebarMove, emptyFunction,
-            () => setTimeout(action(() => {
-                const prevWidth = this.sidebarWidth();
-                this.layoutDoc._showSidebar = ((this.layoutDoc._sidebarWidthPercent = StrCast(this.layoutDoc._sidebarWidthPercent, "0%") === "0%" ? "50%" : "0%")) !== "0%";
-                this.layoutDoc._width = this.layoutDoc._showSidebar ? NumCast(this.layoutDoc._width) * 2 : Math.max(20, NumCast(this.layoutDoc._width) - prevWidth);
-            })), false);
+        setupMoveUpEvents(this, e, this.sidebarMove, emptyFunction, () => setTimeout(this.toggleSidebar), false);
     }
     sidebarMove = (e: PointerEvent, down: number[], delta: number[]) => {
         const bounds = this._ref.current!.getBoundingClientRect();
@@ -666,7 +669,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             if (this._break) {
                 const textanchor = Docs.Create.TextanchorDocument({ title: "dictation anchor" });
                 this.addDocument(textanchor);
-                const link = DocUtils.MakeLinkToActiveAudio(textanchor, false).lastElement();
+                const link = DocUtils.MakeLinkToActiveAudio(() => textanchor, false).lastElement();
                 link && (Doc.GetProto(link).isDictation = true);
                 if (!link) return;
                 const audioanchor = Cast(link.anchor2, Doc, null);
@@ -1421,7 +1424,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
     fitToBox = () => this.props.Document._fitToBox;
     sidebarContentScaling = () => (this.props.scaling?.() || 1) * NumCast(this.layoutDoc._viewScale, 1);
-    sidebarAddDocument = (doc: Doc | Doc[]) => this.addDocument(doc, this.SidebarKey);
+    sidebarAddDocument = (doc: Doc | Doc[], sidebarKey?: string) => {
+        if (!this.layoutDoc._showSidebar) this.toggleSidebar();
+        return this.addDocument(doc, sidebarKey);
+    }
     sidebarMoveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean) => this.moveDocument(doc, targetCollection, addDocument, this.SidebarKey);
     sidebarRemDocument = (doc: Doc | Doc[]) => this.removeDocument(doc, this.SidebarKey);
     setSidebarHeight = (height: number) => this.rootDoc[this.SidebarKey + "-height"] = height;
@@ -1445,30 +1451,43 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @computed get sidebarCollection() {
         const renderComponent = (tag: string) => {
             const ComponentTag = tag === "freeform" ? CollectionFreeFormView : tag === "translation" ? FormattedTextBox : CollectionStackingView;
-            return <ComponentTag
-                {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
-                NativeWidth={returnZero}
-                NativeHeight={returnZero}
-                PanelHeight={this.props.PanelHeight}
-                PanelWidth={this.sidebarWidth}
-                xMargin={0}
-                yMargin={0}
-                scaleField={this.SidebarKey + "-scale"}
-                isAnnotationOverlay={false}
-                select={emptyFunction}
-                isContentActive={this.isContentActive}
-                scaling={this.sidebarContentScaling}
-                whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
-                removeDocument={this.sidebarRemDocument}
-                moveDocument={this.sidebarMoveDocument}
-                addDocument={this.sidebarAddDocument}
-                CollectionView={undefined}
-                ScreenToLocalTransform={this.sidebarScreenToLocal}
-                renderDepth={this.props.renderDepth + 1}
-                setHeight={this.setSidebarHeight}
-                fitContentsToDoc={this.fitToBox}
-                noSidebar={true}
-                fieldKey={this.layoutDoc.sidebarViewType === "translation" ? `${this.fieldKey}-translation` : this.SidebarKey} />;
+            return ComponentTag === CollectionStackingView ?
+                <SidebarAnnos ref={this._sidebarRef}
+                    {...this.props}
+                    fieldKey={this.annotationKey}
+                    rootDoc={this.rootDoc}
+                    layoutDoc={this.layoutDoc}
+                    dataDoc={this.dataDoc}
+                    PanelWidth={this.sidebarWidth}
+                    sidebarAddDocument={this.sidebarAddDocument}
+                    moveDocument={this.moveDocument}
+                    removeDocument={this.removeDocument}
+                    isContentActive={this.isContentActive}
+                /> :
+                <ComponentTag
+                    {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
+                    NativeWidth={returnZero}
+                    NativeHeight={returnZero}
+                    PanelHeight={this.props.PanelHeight}
+                    PanelWidth={this.sidebarWidth}
+                    xMargin={0}
+                    yMargin={0}
+                    scaleField={this.SidebarKey + "-scale"}
+                    isAnnotationOverlay={false}
+                    select={emptyFunction}
+                    isContentActive={this.isContentActive}
+                    scaling={this.sidebarContentScaling}
+                    whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
+                    removeDocument={this.sidebarRemDocument}
+                    moveDocument={this.sidebarMoveDocument}
+                    addDocument={this.sidebarAddDocument}
+                    CollectionView={undefined}
+                    ScreenToLocalTransform={this.sidebarScreenToLocal}
+                    renderDepth={this.props.renderDepth + 1}
+                    setHeight={this.setSidebarHeight}
+                    fitContentsToDoc={this.fitToBox}
+                    noSidebar={true}
+                    fieldKey={this.layoutDoc.sidebarViewType === "translation" ? `${this.fieldKey}-translation` : this.SidebarKey} />;
         };
         return <div className={"formattedTextBox-sidebar" + (CurrentUserUtils.SelectedTool !== InkTool.None ? "-inking" : "")}
             style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>

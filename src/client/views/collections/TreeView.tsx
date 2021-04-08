@@ -35,6 +35,8 @@ import React = require("react");
 export interface TreeViewProps {
     treeView: CollectionTreeView;
     parentTreeView: TreeView | CollectionTreeView | undefined;
+    observeHeight: (ref: any) => void;
+    unobserveHeight: (ref: any) => void;
     prevSibling?: Doc;
     document: Doc;
     dataDoc?: Doc;
@@ -76,13 +78,13 @@ export class TreeView extends React.Component<TreeViewProps> {
     static _editTitleOnLoad: Opt<{ id: string, parent: TreeView | CollectionTreeView | undefined }>;
     static _openTitleScript: Opt<ScriptField | undefined>;
     static _openLevelScript: Opt<ScriptField | undefined>;
-    private _header: React.RefObject<HTMLDivElement> = React.createRef();;
+    private _header: React.RefObject<HTMLDivElement> = React.createRef();
     private _tref = React.createRef<HTMLDivElement>();
     private _docRef: Opt<DocumentView>;
     private _selDisposer: Opt<IReactionDisposer>;
     private _editTitleScript: (() => ScriptField) | undefined;
     private _openScript: (() => ScriptField) | undefined;
-    private _treedropDisposer?: DragManager.DragDropDisposer
+    private _treedropDisposer?: DragManager.DragDropDisposer;
 
     get treeViewOpenIsTransient() { return this.props.treeView.doc.treeViewOpenIsTransient || Doc.IsPrototype(this.doc); }
     set treeViewOpen(c: boolean) {
@@ -162,13 +164,17 @@ export class TreeView extends React.Component<TreeViewProps> {
         this._editTitleScript = Doc.IsSystem(this.props.document) ? () => TreeView._openLevelScript! : () => TreeView._openTitleScript!;
     }
 
+    _treeEle: any;
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this._treedropDisposer?.();
         ele && (this._treedropDisposer = DragManager.MakeDropTarget(ele, this.treeDrop.bind(this), undefined, this.preTreeDrop.bind(this)), this.doc);
+        if (this._treeEle) this.props.unobserveHeight(this._treeEle);
+        this.props.observeHeight(this._treeEle = ele);
     }
 
     componentWillUnmount() {
         this._selDisposer?.();
+        this._treeEle && this.props.unobserveHeight(this._treeEle)
         document.removeEventListener("pointermove", this.onDragMove, true);
         document.removeEventListener("pointermove", this.onDragUp, true);
     }
@@ -322,7 +328,8 @@ export class TreeView extends React.Component<TreeViewProps> {
                     this.props.treeView, this, doc, undefined, this.props.containerCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                     this.props.dropAction, this.props.addDocTab, this.titleStyleProvider, this.props.ScreenToLocalTransform, this.props.isContentActive,
                     this.props.panelWidth, this.props.renderDepth, this.props.treeViewHideHeaderFields,
-                    [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenChildContentsActiveChanged, this.props.dontRegisterView);
+                    [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenChildContentsActiveChanged,
+                    this.props.dontRegisterView, emptyFunction, emptyFunction);
             } else {
                 contentElement = <EditableView key="editableView"
                     contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
@@ -403,7 +410,8 @@ export class TreeView extends React.Component<TreeViewProps> {
                         this.dataDoc, this.props.containerCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                         StrCast(this.doc.childDropAction, this.props.dropAction) as dropActionType, this.props.addDocTab, this.titleStyleProvider, this.props.ScreenToLocalTransform,
                         this.props.isContentActive, this.props.panelWidth, this.props.renderDepth, this.props.treeViewHideHeaderFields,
-                        [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenChildContentsActiveChanged, this.props.dontRegisterView)}
+                        [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenChildContentsActiveChanged,
+                        this.props.dontRegisterView, emptyFunction, emptyFunction)}
             </ul >;
         } else if (this.treeViewExpandedView === "fields") {
             return <ul key={this.doc[Id] + this.doc.title}>
@@ -534,7 +542,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             }
         }
     }
-    titleWidth = () => Math.max(20, Math.min(this.props.treeView.truncateTitleWidth(), this.props.panelWidth() - treeBulletWidth()))
+    titleWidth = () => Math.max(20, Math.min(this.props.treeView.truncateTitleWidth(), this.props.panelWidth() - treeBulletWidth()));
 
     /**
      * Renders the EditableView title element for placement into the tree.
@@ -782,6 +790,8 @@ export class TreeView extends React.Component<TreeViewProps> {
         firstLevel: boolean,
         whenChildContentsActiveChanged: (isActive: boolean) => void,
         dontRegisterView: boolean | undefined,
+        observerHeight: (ref: any) => void,
+        unobserveHeight: (ref: any) => void
     ) {
         const viewSpecScript = Cast(conainerCollection.viewSpecScript, ScriptField);
         if (viewSpecScript) {
@@ -843,7 +853,10 @@ export class TreeView extends React.Component<TreeViewProps> {
                 skipFields={skipFields}
                 firstLevel={firstLevel}
                 whenChildContentsActiveChanged={whenChildContentsActiveChanged}
-                parentTreeView={parentTreeView} />;
+                parentTreeView={parentTreeView}
+                observeHeight={observerHeight}
+                unobserveHeight={unobserveHeight}
+            />;
         });
     }
 }
