@@ -403,7 +403,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         doc.x = 0;
         doc.y = 0;
         doc.startRec = true;
-        Doc.AddDocToList((Doc.UserDoc().myOverlayDocs as Doc), undefined, doc);
         CollectionDockingView.AddSplit(doc, "right");
     }
 
@@ -548,8 +547,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                         <div className="collectionMenu-divider" key="divider1"></div>
                         {this.aliasButton}
                         {/* {this.pinButton} */}
-                        {/* {this.pinWithViewButton} */}
                         {this.toggleOverlayButton}
+                        {this.pinWithViewButton}
                         <div className="collectionMenu-divider" key="divider2"></div>
                         {this.subChrome}
                         <div className="collectionMenu-divider" key="divider3"></div>

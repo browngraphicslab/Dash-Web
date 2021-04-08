@@ -60,8 +60,7 @@
 }
 
 .capture-block {
-    display: flex;
-    border-bottom: 1px solid grey;
+    display: block;
     padding-bottom: 8px;
     padding-top: 6px;
 
@@ -72,10 +71,87 @@
         color: black;
         width: 80;
         margin-right: 50px;
+        margin-bottom: 5px;
     }
 
-    &:last-child {
-        border-bottom: none;
+    .capture-block-list {
+        height: 135px;
+        width: calc(100% + 15px);
+        overflow: scroll;
+    }
+
+    .capture-block-radio {
+        font-size: 12;
+        display: block;
+        font-weight: normal;
+
+        .radio-container {
+            display: flex;
+            justify-content: left;
+            align-items: center;
+            font-size: 13px;
+            font-family: 'Roboto';
+        }
+    }
+
+    .list-item {
+        display: flex;
+        height: 25px;
+        font-family: 'Roboto';
+        font-size: 13px;
+
+        .number {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #BDDBE8;
+            border-radius: 100%;
+            font-weight: 800;
+            margin-right: 5px;
+        }
+    }
+
+    .buttons {
+        display: flex;
+        position: absolute;
+        bottom: 0;
+        right: 15;
+        justify-content: flex-end;
+        align-items: center;
+        height: 60px;
+
+        .save {
+            cursor: pointer;
+            width: 80px;
+            height: 40px;
+            font-size: 14px;
+            display: flex;
+            font-weight: bold;
+            justify-content: center;
+            align-items: center;
+            background: #337ab7;
+            color: whitesmoke;
+            border-radius: 5px;
+            text-transform: uppercase;
+        }
+
+        .cancel {
+            cursor: pointer;
+            width: 80px;
+            height: 40px;
+            font-size: 14px;
+            display: flex;
+            font-weight: 100;
+            justify-content: center;
+            align-items: center;
+            background: #ccc;
+            color: black;
+            border-radius: 5px;
+            text-transform: uppercase;
+            margin-left: 10px;
+        }
     }
 }
 

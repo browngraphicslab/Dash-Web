@@ -417,12 +417,13 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
 
     onTimelineHdlDown = action((e: React.PointerEvent) => {
         this._clicking = true;
+        console.log('timeline click');
         setupMoveUpEvents(this, e,
             action((e: PointerEvent) => {
                 this._clicking = false;
                 if (this.isContentActive()) {
                     const local = this.props.ScreenToLocalTransform().scale(this.props.scaling?.() || 1).transformPoint(e.clientX, e.clientY);
-                    this.layoutDoc._timelineHeightPercent = Math.max(0, Math.min(100, local[1] / this.props.PanelHeight() * 100));
+                    this.layoutDoc._timelineHeightPercent = 50;
                 }
                 return false;
             }), emptyFunction,
