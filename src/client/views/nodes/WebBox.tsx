@@ -12,7 +12,7 @@ import { makeInterface, listSpec } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, getWordAtPoint, OmitKeys, returnOne, smoothScroll, Utils, setupMoveUpEvents } from "../../../Utils";
+import { emptyFunction, getWordAtPoint, OmitKeys, returnOne, smoothScroll, Utils, setupMoveUpEvents, returnFalse } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -32,6 +32,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { LinkDocPreview } from "./LinkDocPreview";
 import "./WebBox.scss";
 import React = require("react");
+import { ComputedField } from "../../../fields/ScriptField";
 const _global = (window /* browser */ || global /* node */) as any;
 const htmlToText = require("html-to-text");
 
@@ -80,6 +81,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
         runInAction(() => {
             this._url = this.webField?.toString() || "";
             this._annotationKey = "annotations-" + this.urlHash(this._url);
+            this.dataDoc[this.fieldKey + "-annotations"] = ComputedField.MakeFunction(`copyField(this["${this.annotationKey}"])`);
         });
 
         this._disposers.selection = reaction(() => this.props.isSelected(),
@@ -290,6 +292,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
             history.push(this._url);
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = future.pop()!));
             this._annotationKey = "annotations-" + this.urlHash(this._url);
+            this.dataDoc[this.fieldKey + "-annotations"] = ComputedField.MakeFunction(`copyField(this["${this.annotationKey}"])`);
             return true;
         }
         return false;
@@ -304,6 +307,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
             else future.push(this._url);
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = history.pop()!));
             this._annotationKey = "annotations-" + this.urlHash(this._url);
+            this.dataDoc[this.fieldKey + "-annotations"] = ComputedField.MakeFunction(`copyField(this["${this.annotationKey}"])`);
             return true;
         }
         return false;
@@ -332,6 +336,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
             }
             this._url = newUrl;
             this._annotationKey = "annotations-" + this.urlHash(this._url);
+            this.dataDoc[this.fieldKey + "-annotations"] = ComputedField.MakeFunction(`copyField(this["${this.annotationKey}"])`);
             this.dataDoc[this.fieldKey] = new WebField(new URL(newUrl));
         } catch (e) {
             console.log("WebBox URL error:" + this._url);
@@ -507,7 +512,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
                                 PanelHeight={this.panelHeight}
                                 dropAction={"alias"}
                                 select={emptyFunction}
-                                isContentActive={this.isContentActive}
+                                isContentActive={returnFalse}
                                 ContentScaling={returnOne}
                                 bringToFront={emptyFunction}
                                 whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
