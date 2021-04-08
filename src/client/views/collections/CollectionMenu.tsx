@@ -403,6 +403,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         doc.x = 0;
         doc.y = 0;
         doc.startRec = true;
+        //Doc.AddDocToList((Doc.UserDoc().myOverlayDocs as Doc), undefined, doc);
         CollectionDockingView.AddSplit(doc, "right");
     }
 
