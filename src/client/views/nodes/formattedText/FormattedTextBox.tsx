@@ -297,7 +297,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this._editorView.updateState(EditorState.fromJSON(this.config, json));
                 }
             }
-            if (window.getSelection()?.isCollapsed) AnchorMenu.Instance.fadeOut(true);
+            if (window.getSelection()?.isCollapsed && this.props.isSelected) {
+                AnchorMenu.Instance.fadeOut(true);
+            }
         }
     }
 
