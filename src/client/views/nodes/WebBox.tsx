@@ -32,6 +32,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { LinkDocPreview } from "./LinkDocPreview";
 import "./WebBox.scss";
 import React = require("react");
+import { ComputedField } from "../../../fields/ScriptField";
 const _global = (window /* browser */ || global /* node */) as any;
 const htmlToText = require("html-to-text");
 
@@ -80,6 +81,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
         runInAction(() => {
             this._url = this.webField?.toString() || "";
             this._annotationKey = "annotations-" + this.urlHash(this._url);
+            this.dataDoc["annotation-active"] = this._annotationKey;
+            this.dataDoc[this.fieldKey + "-annotations"] = ComputedField.MakeFunction(`copyField(this["${this.fieldKey}-"+this["annotation-active"]])`);
         });
 
         this._disposers.selection = reaction(() => this.props.isSelected(),
@@ -290,6 +293,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
             history.push(this._url);
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = future.pop()!));
             this._annotationKey = "annotations-" + this.urlHash(this._url);
+            this.dataDoc["annotation-active"] = this._annotationKey;
             return true;
         }
         return false;
@@ -304,6 +308,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
             else future.push(this._url);
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = history.pop()!));
             this._annotationKey = "annotations-" + this.urlHash(this._url);
+            this.dataDoc["annotation-active"] = this._annotationKey;
             return true;
         }
         return false;
@@ -332,6 +337,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
             }
             this._url = newUrl;
             this._annotationKey = "annotations-" + this.urlHash(this._url);
+            this.dataDoc["annotation-active"] = this._annotationKey;
             this.dataDoc[this.fieldKey] = new WebField(new URL(newUrl));
         } catch (e) {
             console.log("WebBox URL error:" + this._url);

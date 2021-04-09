@@ -178,8 +178,8 @@ export class MainView extends React.Component {
             const targClass = targets[0].className.toString();
             if (SearchBox.Instance._searchbarOpen || SearchBox.Instance.open) {
                 const check = targets.some((thing) =>
-                (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
-                    thing.className === "collectionSchema-header-menuOptions"));
+                    (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
+                        thing.className === "collectionSchema-header-menuOptions"));
                 !check && SearchBox.Instance.resetSearch(true);
             }
             !targClass.includes("contextMenu") && ContextMenu.Instance.closeMenu();
@@ -273,7 +273,11 @@ export class MainView extends React.Component {
 
     @computed get dockingContent() {
         return <div key="docking" className={`mainContent-div${this._flyoutWidth ? "-flyout" : ""}`} onDrop={e => { e.stopPropagation(); e.preventDefault(); }}
-            style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)` }}>
+            style={{
+                minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`,
+                transform: LightboxView.LightboxDoc ? "scale(0.0001)" : undefined,
+                width: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`
+            }}>
             {!this.mainContainer ? (null) : this.mainDocView}
         </div>;
     }
