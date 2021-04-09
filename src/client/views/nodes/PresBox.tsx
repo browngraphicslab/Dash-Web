@@ -29,6 +29,7 @@ import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
 import Color = require("color");
+import { LightboxView } from "../LightboxView";
 
 export enum PresMovement {
     Zoom = "zoom",
@@ -433,10 +434,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         };
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
-            openInTab(targetDoc);
+            LightboxView.SetLightboxDoc(targetDoc);
         } else if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
+            LightboxView.SetLightboxDoc(undefined);
             await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right
         } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
+            LightboxView.SetLightboxDoc(undefined);
             //awaiting jump so that new scale can be found, since jumping is async     
             await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right    
         }
@@ -574,6 +577,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (this._presTimer) clearTimeout(this._presTimer);
             this.layoutDoc.presStatus = PresStatus.Manual;
             this.layoutDoc.presLoop = false;
+            this.childDocs.forEach((doc) => {
+                this.stopTempMedia(Cast(doc.presentationTargetDoc, Doc, null));
+            });
         }
     }
 
@@ -633,10 +639,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     updateMinimize = () => {
         const docView = DocumentManager.Instance.getDocumentView(this.layoutDoc);
         if (CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+            console.log("case 1");
             this.layoutDoc.presStatus = PresStatus.Edit;
             Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
             CollectionDockingView.AddSplit(this.rootDoc, "right");
         } else if (this.layoutDoc.context && docView) {
+            console.log("case 2");
             this.layoutDoc.presStatus = PresStatus.Edit;
             clearTimeout(this._presTimer);
             const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
@@ -647,15 +655,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             docView.props.removeDocument?.(this.layoutDoc);
             Doc.AddDocToList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
         } else {
-            this.layoutDoc.presStatus = PresStatus.Edit;
-            clearTimeout(this._presTimer);
-            const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            this.rootDoc.x = pt[0] + (this.props.PanelWidth() - 250);
-            this.rootDoc.y = pt[1] + 10;
-            this.rootDoc._height = 35;
-            this.rootDoc._width = 250;
-            this.props.addDocTab?.(this.rootDoc, "close");
-            Doc.AddDocToList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
+            console.log("case 3");
+            // TODO glr: fix this case
         }
     }
 
@@ -1193,7 +1194,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const effect = targetDoc.presEffect ? targetDoc.presEffect : 'None';
             activeItem.presMovement = activeItem.presMovement ? activeItem.presMovement : 'Zoom';
             return (
-                <div className={`presBox-ribbon ${this.transitionTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = false; this.openEffectDropdown = false; })}>
+                <div className={`presBox-ribbon ${this.transitionTools && this.layoutDoc.presStatus === PresStatus.Edit ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = false; this.openEffectDropdown = false; })}>
                     <div className="ribbon-box">
                         Movement
                         {isPresCollection || (isPresCollection && isPinWithView) ?
@@ -1248,7 +1249,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         <div className="ribbon-doubleButton">
                             {isPresCollection ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideBefore ? "active" : ""}`} onClick={() => this.updateHideBefore(activeItem)}>Hide before</div></Tooltip>}
                             {isPresCollection ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideAfter ? "active" : ""}`} onClick={() => this.updateHideAfter(activeItem)}>Hide after</div></Tooltip>}
-                            <Tooltip title={<><div className="dash-tooltip">{"Open document in a new tab"}</div></>}><div className="ribbon-toggle" style={{ backgroundColor: activeItem.openDocument ? PresColor.LightBlue : "" }} onClick={() => this.updateOpenDoc(activeItem)}>Open</div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Open in lightbox view"}</div></>}><div className="ribbon-toggle" style={{ backgroundColor: activeItem.openDocument ? PresColor.LightBlue : "" }} onClick={() => this.updateOpenDoc(activeItem)}>Lightbox</div></Tooltip>
                         </div>
                         {(type === DocumentType.AUDIO || type === DocumentType.VID) ? (null) : <>
                             <div className="ribbon-doubleButton" >
