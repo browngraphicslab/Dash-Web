@@ -349,7 +349,8 @@ class StackedTimelineAnchor extends React.Component<StackedTimelineAnchorProps> 
             (time) => {
                 const dictationDoc = Cast(this.props.layoutDoc["data-dictation"], Doc, null);
                 const isDictation = dictationDoc && DocListCast(this.props.mark.links).some(link => Cast(link.anchor1, Doc, null)?.annotationOn === dictationDoc);
-                if ((isDictation || !Doc.AreProtosEqual(LightboxView.LightboxDoc, this.props.layoutDoc)) && DocListCast(this.props.mark.links).length &&
+                if ((!LightboxView.LightboxDoc
+                    /*isDictation || !Doc.AreProtosEqual(LightboxView.LightboxDoc, this.props.layoutDoc)*/) && DocListCast(this.props.mark.links).length &&
                     time > NumCast(this.props.mark[this.props.startTag]) &&
                     time < NumCast(this.props.mark[this.props.endTag]) &&
                     this._lastTimecode < NumCast(this.props.mark[this.props.startTag])) {
