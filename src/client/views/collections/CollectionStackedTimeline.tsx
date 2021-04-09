@@ -235,6 +235,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     }
 
     dictationHeight = () => "50%";
+    documentHeight = () => "100%";
     timelineContentHeight = () => this.props.PanelHeight() / 2;
     dictationScreenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(0, -this.timelineContentHeight());
     @computed get renderDictation() {
@@ -242,7 +243,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         return !dictation ? (null) : <div style={{ position: "absolute", height: this.dictationHeight(), top: "50%", background: "tan" }}>
             <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
                 Document={dictation}
-                PanelHeight={() => "100%"}
+                PanelHeight={this.documentHeight}
                 isAnnotationOverlay={true}
                 isDocumentActive={returnFalse}
                 select={emptyFunction}

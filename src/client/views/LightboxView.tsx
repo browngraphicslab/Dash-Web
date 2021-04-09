@@ -190,12 +190,8 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             const coll = LightboxView._docTarget;
             const doc = LightboxView.LightboxDoc;
             if (coll && doc) {
-                console.log('test');
-                console.log('target: ' + coll.title);
-                console.log('doc: ' + doc.title);
                 const fieldKey = Doc.LayoutFieldKey(coll);
-                LightboxView.SetLightboxDoc(doc);
-                // LightboxView.SetLightboxDoc(coll, undefined, [...DocListCast(coll[fieldKey]), ...DocListCast(coll[fieldKey + "-annotations"])]);
+                LightboxView.SetLightboxDoc(coll, undefined, [...DocListCast(coll[fieldKey]), ...DocListCast(coll[fieldKey + "-annotations"])]);
                 TabDocView.PinDoc(coll, { hidePresBox: true });
             }
         }
