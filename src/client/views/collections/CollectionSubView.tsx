@@ -90,7 +90,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         searchFilterDocs = () => {
             return [...this.props.searchFilterDocs(), ...DocListCast(this.props.Document._searchFilterDocs)];
         }
-        @computed get childDocs() {
+        @computed.struct get childDocs() {
+            TraceMobx();
             let rawdocs: (Doc | Promise<Doc>)[] = [];
             if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
                 rawdocs = [this.dataField];
@@ -114,10 +115,14 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 return childDocs.filter(cd => !cd.cookies); // remove any documents that require a cookie if there are no filters to provide one
             }
 
+            // console.log(CurrentUserUtils.ActiveDashboard._docFilters);
+            // if (!this.props.Document._docFilters && this.props.Document.currentFilter) {
+            //     (this.props.Document.currentFilter as Doc).filterBoolean = (this.props.ContainingCollectionDoc?.currentFilter as Doc)?.filterBoolean;
+            // }
             const docsforFilter: Doc[] = [];
             childDocs.forEach((d) => {
-                if (DocUtils.Excluded(d, docFilters)) return;
-                let notFiltered = d.z || ((!searchDocs.length || searchDocs.includes(d)) && (DocUtils.FilterDocs([d], docFilters, docRangeFilters, viewSpecScript).length > 0));
+                // if (DocUtils.Excluded(d, docFilters)) return;
+                let notFiltered = d.z || Doc.IsSystem(d) || ((!searchDocs.length || searchDocs.includes(d)) && (DocUtils.FilterDocs([d], docFilters, docRangeFilters, viewSpecScript, this.props.Document).length > 0));
                 const fieldKey = Doc.LayoutFieldKey(d);
                 const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
                 const data = d[annos ? fieldKey + "-annotations" : fieldKey];
@@ -125,13 +130,13 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     let subDocs = DocListCast(data);
                     if (subDocs.length > 0) {
                         let newarray: Doc[] = [];
-                        notFiltered = notFiltered || (!searchDocs.length && DocUtils.FilterDocs(subDocs, docFilters, docRangeFilters, viewSpecScript).length);
+                        notFiltered = notFiltered || (!searchDocs.length && DocUtils.FilterDocs(subDocs, docFilters, docRangeFilters, viewSpecScript, d).length);
                         while (subDocs.length > 0 && !notFiltered) {
                             newarray = [];
                             subDocs.forEach((t) => {
                                 const fieldKey = Doc.LayoutFieldKey(t);
                                 const annos = !Field.toString(Doc.LayoutField(t) as Field).includes("CollectionView");
-                                notFiltered = notFiltered || ((!searchDocs.length || searchDocs.includes(t)) && ((!docFilters.length && !docRangeFilters.length) || DocUtils.FilterDocs([t], docFilters, docRangeFilters, viewSpecScript).length));
+                                notFiltered = notFiltered || ((!searchDocs.length || searchDocs.includes(t)) && ((!docFilters.length && !docRangeFilters.length) || DocUtils.FilterDocs([t], docFilters, docRangeFilters, viewSpecScript, d).length));
                                 DocListCast(t[annos ? fieldKey + "-annotations" : fieldKey]).forEach((newdoc) => newarray.push(newdoc));
                             });
                             subDocs = newarray;
@@ -474,5 +479,6 @@ import { CollectionView, CollectionViewType, CollectionViewProps } from "./Colle
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
 import { Hypothesis } from "../../util/HypothesisUtils";
-import { GetEffectiveAcl } from "../../../fields/util";
+import { GetEffectiveAcl, TraceMobx } from "../../../fields/util";
+import { FilterBox } from "../nodes/FilterBox";
 

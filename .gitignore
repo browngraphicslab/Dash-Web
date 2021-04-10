@@ -16,3 +16,5 @@ src/server/session_manager/logs/**/*.log
 *.key
 *.pfx
 *.properties
+debug.log
+.vscodeignore

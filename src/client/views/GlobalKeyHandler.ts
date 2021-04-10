@@ -29,6 +29,7 @@ import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
 import { AnchorMenu } from "./pdf/AnchorMenu";
 import { SearchBox } from "./search/SearchBox";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
+import { SettingsManager } from "../util/SettingsManager";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -135,6 +136,7 @@ export class KeyManager {
                 // DictationManager.Controls.stop();
                 GoogleAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
+                if (!GroupManager.Instance.isOpen) SettingsManager.Instance.close();
                 GroupManager.Instance.close();
                 CollectionFreeFormViewChrome.Instance?.clearKeepPrimitiveMode();
                 window.getSelection()?.empty();

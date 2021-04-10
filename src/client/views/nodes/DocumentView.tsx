@@ -11,7 +11,7 @@ import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { AudioField } from "../../../fields/URLField";
-import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
+import { GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { emptyFunction, hasDescendantTarget, OmitKeys, returnVal, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
@@ -124,6 +124,8 @@ export interface DocumentViewSharedProps {
     disableDocBrushing?: boolean; // should highlighting for this view be disabled when same document in another view is hovered over.
     pointerEvents?: string;
     scriptContext?: any; // can be assigned anything and will be passed as 'scriptContext' to any OnClick script that executes on this document
+    createNewFilterDoc?: () => void;
+    updateFilterDoc?: (doc: Doc) => void;
 }
 export interface DocumentViewProps extends DocumentViewSharedProps {
     // properties specific to DocumentViews but not to FieldView
@@ -160,6 +162,7 @@ export interface DocumentViewInternalProps extends DocumentViewProps {
 
 @observer
 export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps, Document>(Document) {
+    public static SelectAfterContextMenu = true; //  whether a document should be selected after it's contextmenu is triggered.
     @observable _animateScalingTo = 0;
     @observable _mediaState = 0;
     @observable _pendingDoubleClick = false;
@@ -599,7 +602,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if (this.props.Document === CurrentUserUtils.ActiveDashboard) {
             alert((e.target as any)?.closest?.("*.lm_content") ?
                 "You can't perform this move most likely because you don't have permission to modify the destination." :
-                "linking to document tabs not yet supported.  Drop link on document content.");
+                "Linking to document tabs not yet supported. Drop link on document content.");
             return;
         }
         const linkdrag = de.complete.annoDragData ?? de.complete.linkDragData;
@@ -656,7 +659,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
         const customScripts = Cast(this.props.Document.contextMenuScripts, listSpec(ScriptField), []);
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>
-            cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ this: this.layoutDoc, scriptContext: this.props.scriptContext, self: this.rootDoc }), icon: "sticky-note" }));
+            cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ documentView: this, this: this.layoutDoc, scriptContext: this.props.scriptContext, self: this.rootDoc }), icon: "sticky-note" }));
         this.props.contextMenuItems?.().forEach(item =>
             item.label && cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, scriptContext: this.props.scriptContext, self: this.rootDoc }), icon: "sticky-note" }));
 
@@ -745,7 +748,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         }
         if (!this.topMost) e?.stopPropagation(); // DocumentViews should stop propagation of this event
         cm.displayMenu((e?.pageX || pageX || 0) - 15, (e?.pageY || pageY || 0) - 15);
-        !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectView(this.props.DocumentView(), false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
+        DocumentViewInternal.SelectAfterContextMenu && !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectView(this.props.DocumentView(), false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
     }
 
     rootSelected = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
@@ -791,6 +794,12 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
             {audioView}
         </div>;
+    }
+
+    get indicatorIcon() {
+        if (this.props.Document["acl-Public"] !== SharingPermissions.None) return "globe-americas";
+        else if (this.props.Document.numGroupsShared || NumCast(this.props.Document.numUsersShared, 0) > 1) return "users";
+        else return "user";
     }
 
     @undoBatch

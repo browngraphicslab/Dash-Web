@@ -1,4 +1,4 @@
-import { action, computed, observable } from 'mobx';
+import { computed, observable } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
