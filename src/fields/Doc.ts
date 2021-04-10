@@ -200,7 +200,7 @@ export class Doc extends RefField {
     public [FieldsSym] = () => this[Self].___fields; // Object.keys(this).reduce((fields, key) => { fields[key] = this[key]; return fields; }, {} as any);
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
-    public [ToScriptString] = () => `DOC-"${this[Self][Id]}"-`;
+    public [ToScriptString] = () => `idToDoc("${this[Self][Id]}")`;
     public [ToString] = () => `Doc(${GetEffectiveAcl(this[SelfProxy]) === AclPrivate ? "-inaccessible-" : this[SelfProxy].title})`;
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
     public get [DataSym]() {
@@ -1324,6 +1324,7 @@ export namespace Doc {
 
 }
 
+Scripting.addGlobal(function idToDoc(id: string) { return DocServer.GetCachedRefField(id); });
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function getDocTemplate(doc?: any) { return Doc.getDocTemplate(doc); });

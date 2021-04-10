@@ -497,11 +497,14 @@ export class TreeView extends React.Component<TreeViewProps> {
         simulateMouseClick(this._docRef?.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
         DocumentViewInternal.SelectAfterContextMenu = true;
     }
-    contextMenuItems = () => Doc.IsSystem(this.doc) ? [] : this.doc.isFolder ?
-        [{ script: ScriptField.MakeFunction(`scriptContext.makeFolder()`, { scriptContext: "any" })!, label: "New Folder" }] :
-        this.props.treeView.fileSysMode && this.doc === Doc.GetProto(this.doc) ?
-            [{ script: ScriptField.MakeFunction(`openOnRight(getAlias(self))`)!, label: "Open Alias" }] :
-            [{ script: ScriptField.MakeFunction(`DocFocusOrOpen(self)`)!, label: "Focus or Open" }]
+    contextMenuItems = () => {
+        const makeFolder = { script: ScriptField.MakeFunction(`scriptContext.makeFolder()`, { scriptContext: "any" })!, label: "New Folder" };
+        return this.doc.isFolder ? [makeFolder] :
+            Doc.IsSystem(this.doc) ? [] :
+                this.props.treeView.fileSysMode && this.doc === Doc.GetProto(this.doc) ?
+                    [{ script: ScriptField.MakeFunction(`openOnRight(getAlias(self))`)!, label: "Open Alias" }, makeFolder] :
+                    [{ script: ScriptField.MakeFunction(`DocFocusOrOpen(self)`)!, label: "Focus or Open" }];
+    }
     onChildClick = () => this.props.onChildClick?.() ?? (this._editTitleScript?.() || ScriptCast(this.doc.treeChildClick));
     onChildDoubleClick = () => (!this.props.treeView.outlineMode && this._openScript?.()) || ScriptCast(this.doc.treeChildDoubleClick);
 
@@ -544,7 +547,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             }
         }
     }
-    titleWidth = () => Math.max(20, Math.min(this.props.treeView.truncateTitleWidth(), this.props.panelWidth() - treeBulletWidth()));
+    titleWidth = () => Math.max(20, Math.min(this.props.treeView.truncateTitleWidth(), this.props.panelWidth() - 2 * treeBulletWidth()));
 
     /**
      * Renders the EditableView title element for placement into the tree.
