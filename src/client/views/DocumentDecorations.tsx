@@ -83,7 +83,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             UndoManager.RunInBatch(() => titleFieldKey && SelectionManager.Views().forEach(d => {
                 titleFieldKey === "title" && (d.dataDoc["title-custom"] = !this._accumulatedTitle.startsWith("-"));
                 //@ts-ignore
-                Doc.SetInPlace(d.rootDoc, titleFieldKey, +this._accumulatedTitle == this._accumulatedTitle ? +this._accumulatedTitle : this._accumulatedTitle, true);
+                Doc.SetInPlace(d.rootDoc, titleFieldKey, +this._accumulatedTitle === this._accumulatedTitle ? +this._accumulatedTitle : this._accumulatedTitle, true);
             }), "title blur");
         }
     }
@@ -376,10 +376,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         this._inkDragDocs.map(oldbds => ({ oldbds, inkPts: Cast(oldbds.doc.data, InkField)?.inkData || [] }))
             .forEach(({ oldbds: { doc, x, y, width, height }, inkPts }) => {
                 Doc.GetProto(doc).data = new InkField(inkPts.map(ipt =>  // (new x — oldx) + newWidth * (oldxpoint /oldWidth)
-                    ({
-                        X: (NumCast(doc.x) - x) + NumCast(doc.width) * ipt.X / width,
-                        Y: (NumCast(doc.y) - y) + NumCast(doc.height) * ipt.Y / height
-                    })));
+                ({
+                    X: (NumCast(doc.x) - x) + NumCast(doc.width) * ipt.X / width,
+                    Y: (NumCast(doc.y) - y) + NumCast(doc.height) * ipt.Y / height
+                })));
                 Doc.SetNativeWidth(doc, undefined);
                 Doc.SetNativeHeight(doc, undefined);
             });

@@ -9,7 +9,6 @@ import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 import { SelectionManager } from "../client/util/SelectionManager";
 import { afterDocDeserialize, autoObject, Deserializable, SerializationHelper } from "../client/util/SerializationHelper";
 import { UndoManager } from "../client/util/UndoManager";
-import { CollectionDockingView } from "../client/views/collections/CollectionDockingView";
 import { intersectRect, Utils } from "../Utils";
 import { DateField } from "./DateField";
 import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
@@ -202,7 +201,7 @@ export class Doc extends RefField {
     public [FieldsSym] = () => this[Self].___fields; // Object.keys(this).reduce((fields, key) => { fields[key] = this[key]; return fields; }, {} as any);
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
-    public [ToScriptString] = () => `DOC-"${this[Self][Id]}"-`;
+    public [ToScriptString] = () => `idToDoc("${this[Self][Id]}")`;
     public [ToString] = () => `Doc(${GetEffectiveAcl(this[SelfProxy]) === AclPrivate ? "-inaccessible-" : this[SelfProxy].title})`;
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
     public get [DataSym]() {
@@ -1063,8 +1062,8 @@ export namespace Doc {
         prevLayout === "icon" && (doc.deiconifyLayout = undefined);
         doc.layoutKey = deiconify || "layout";
     }
-    export function setDocFilterRange(target: Doc, key: string, range?: number[]) {
-        const container = target ?? CollectionDockingView.Instance.props.Document;
+    export function setDocRangeFilter(container: Opt<Doc>, key: string, range?: number[]) {
+        if (!container) return;
         const docRangeFilters = Cast(container._docRangeFilters, listSpec("string"), []);
         for (let i = 0; i < docRangeFilters.length; i += 3) {
             if (docRangeFilters[i] === key) {
@@ -1083,9 +1082,9 @@ export namespace Doc {
     // filters document in a container collection:
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
-    export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers: "remove" | "match" | "check" | "x", toggle?: boolean, fieldPrefix?: string, append: boolean = true) {
-        const container = target ?? CollectionDockingView.Instance.props.Document;
-        const filterField = "_" + (fieldPrefix ? fieldPrefix + "-" : "") + "docFilters";
+    export function setDocFilter(container: Opt<Doc>, key: string, value: any, modifiers: "remove" | "match" | "check" | "x", toggle?: boolean, fieldSuffix?: string, append: boolean = true) {
+        if (!container) return;
+        const filterField = "_" + (fieldSuffix ? fieldSuffix + "-" : "") + "docFilters";
         const docFilters = Cast(container[filterField], listSpec("string"), []);
         runInAction(() => {
             for (let i = 0; i < docFilters.length; i++) {
@@ -1167,12 +1166,12 @@ export namespace Doc {
         return ndoc;
     }
 
-    export function toIcon(doc: Doc) {
-        switch (StrCast(doc.type)) {
+    export function toIcon(doc?: Doc, isOpen?: boolean) {
+        switch (StrCast(doc?.type)) {
             case DocumentType.IMG: return "image";
             case DocumentType.COMPARISON: return "columns";
             case DocumentType.RTF: return "sticky-note";
-            case DocumentType.COL: return !doc.isFolder ? "folder" : "chevron-right";
+            case DocumentType.COL: return !doc?.isFolder ? "folder" + (isOpen ? "-open" : "") : "chevron-" + (isOpen ? "down" : "right");
             case DocumentType.WEB: return "globe-asia";
             case DocumentType.SCREENSHOT: return "photo-video";
             case DocumentType.WEBCAM: return "video";
@@ -1332,6 +1331,7 @@ export namespace Doc {
 
 }
 
+Scripting.addGlobal(function idToDoc(id: string) { return DocServer.GetCachedRefField(id); });
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function getDocTemplate(doc?: any) { return Doc.getDocTemplate(doc); });
@@ -1360,4 +1360,4 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
     return docs.length ? new List(docs) : prevValue;
 });
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers: "match" | "check" | "x" | "remove") { Doc.setDocFilter(container, key, value, modifiers); });
-Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number[]) { Doc.setDocFilterRange(container, key, range); });
+Scripting.addGlobal(function setDocRangeFilter(container: Doc, key: string, range: number[]) { Doc.setDocRangeFilter(container, key, range); });

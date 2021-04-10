@@ -11,7 +11,7 @@ import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { AudioField } from "../../../fields/URLField";
-import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
+import { GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { emptyFunction, hasDescendantTarget, OmitKeys, returnVal, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
@@ -124,6 +124,8 @@ export interface DocumentViewSharedProps {
     disableDocBrushing?: boolean; // should highlighting for this view be disabled when same document in another view is hovered over.
     pointerEvents?: string;
     scriptContext?: any; // can be assigned anything and will be passed as 'scriptContext' to any OnClick script that executes on this document
+    createNewFilterDoc?: () => void;
+    updateFilterDoc?: (doc: Doc) => void;
 }
 export interface DocumentViewProps extends DocumentViewSharedProps {
     // properties specific to DocumentViews but not to FieldView
@@ -160,6 +162,7 @@ export interface DocumentViewInternalProps extends DocumentViewProps {
 
 @observer
 export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps, Document>(Document) {
+    public static SelectAfterContextMenu = true; //  whether a document should be selected after it's contextmenu is triggered.
     @observable _animateScalingTo = 0;
     @observable _mediaState = 0;
     @observable _pendingDoubleClick = false;
@@ -599,7 +602,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if (this.props.Document === CurrentUserUtils.ActiveDashboard) {
             alert((e.target as any)?.closest?.("*.lm_content") ?
                 "You can't perform this move most likely because you don't have permission to modify the destination." :
-                "linking to document tabs not yet supported.  Drop link on document content.");
+                "Linking to document tabs not yet supported. Drop link on document content.");
             return;
         }
         const linkdrag = de.complete.annoDragData ?? de.complete.linkDragData;
@@ -656,96 +659,95 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
         const customScripts = Cast(this.props.Document.contextMenuScripts, listSpec(ScriptField), []);
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>
-            cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ this: this.layoutDoc, scriptContext: this.props.scriptContext, self: this.rootDoc }), icon: "sticky-note" }));
+            cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ documentView: this, this: this.layoutDoc, scriptContext: this.props.scriptContext, self: this.rootDoc }), icon: "sticky-note" }));
         this.props.contextMenuItems?.().forEach(item =>
             item.label && cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, scriptContext: this.props.scriptContext, self: this.rootDoc }), icon: "sticky-note" }));
 
-        const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
-        const appearance = cm.findByDescription("UI Controls...");
-        const appearanceItems: ContextMenuProps[] = appearance && "subitems" in appearance ? appearance.subitems : [];
-        !Doc.UserDoc().noviceMode && templateDoc && appearanceItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "add:right"), icon: "eye" });
-        DocListCast(this.Document.links).length && appearanceItems.splice(0, 0, { description: `${this.layoutDoc.hideLinkButton ? "Show" : "Hide"} Link Button`, event: action(() => this.layoutDoc.hideLinkButton = !this.layoutDoc.hideLinkButton), icon: "eye" });
-        !appearance && cm.addItem({ description: "UI Controls...", subitems: appearanceItems, icon: "compass" });
+        if (!this.props.Document.isFolder) {
+            const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
+            const appearance = cm.findByDescription("UI Controls...");
+            const appearanceItems: ContextMenuProps[] = appearance && "subitems" in appearance ? appearance.subitems : [];
+            !Doc.UserDoc().noviceMode && templateDoc && appearanceItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "add:right"), icon: "eye" });
+            DocListCast(this.Document.links).length && appearanceItems.splice(0, 0, { description: `${this.layoutDoc.hideLinkButton ? "Show" : "Hide"} Link Button`, event: action(() => this.layoutDoc.hideLinkButton = !this.layoutDoc.hideLinkButton), icon: "eye" });
+            !appearance && cm.addItem({ description: "UI Controls...", subitems: appearanceItems, icon: "compass" });
 
-        if (!Doc.IsSystem(this.rootDoc) && this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Tree) {
-            !Doc.UserDoc().noviceMode && appearanceItems.splice(0, 0, { description: `${!this.layoutDoc._showAudio ? "Show" : "Hide"} Audio Button`, event: action(() => this.layoutDoc._showAudio = !this.layoutDoc._showAudio), icon: "microphone" });
-            const existingOnClick = cm.findByDescription("OnClick...");
-            const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+            if (!Doc.IsSystem(this.rootDoc) && this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Tree) {
+                !Doc.UserDoc().noviceMode && appearanceItems.splice(0, 0, { description: `${!this.layoutDoc._showAudio ? "Show" : "Hide"} Audio Button`, event: action(() => this.layoutDoc._showAudio = !this.layoutDoc._showAudio), icon: "microphone" });
+                const existingOnClick = cm.findByDescription("OnClick...");
+                const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
 
-            const zorders = cm.findByDescription("ZOrder...");
-            const zorderItems: ContextMenuProps[] = zorders && "subitems" in zorders ? zorders.subitems : [];
-            zorderItems.push({ description: "Bring to Front", event: () => SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, false)), icon: "expand-arrows-alt" });
-            zorderItems.push({ description: "Send to Back", event: () => SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, true)), icon: "expand-arrows-alt" });
-            zorderItems.push({ description: this.rootDoc._raiseWhenDragged !== false ? "Keep ZIndex when dragged" : "Allow ZIndex to change when dragged", event: undoBatch(action(() => this.rootDoc._raiseWhenDragged = this.rootDoc._raiseWhenDragged === undefined ? false : undefined)), icon: "expand-arrows-alt" });
-            !zorders && cm.addItem({ description: "ZOrder...", subitems: zorderItems, icon: "compass" });
+                const zorders = cm.findByDescription("ZOrder...");
+                const zorderItems: ContextMenuProps[] = zorders && "subitems" in zorders ? zorders.subitems : [];
+                zorderItems.push({ description: "Bring to Front", event: () => SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, false)), icon: "expand-arrows-alt" });
+                zorderItems.push({ description: "Send to Back", event: () => SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, true)), icon: "expand-arrows-alt" });
+                zorderItems.push({ description: this.rootDoc._raiseWhenDragged !== false ? "Keep ZIndex when dragged" : "Allow ZIndex to change when dragged", event: undoBatch(action(() => this.rootDoc._raiseWhenDragged = this.rootDoc._raiseWhenDragged === undefined ? false : undefined)), icon: "expand-arrows-alt" });
+                !zorders && cm.addItem({ description: "ZOrder...", subitems: zorderItems, icon: "compass" });
 
-            onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
-            onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "concierge-bell" });
-            onClicks.push({ description: (this.Document.followLinkZoom ? "Don't" : "") + " zoom following link", event: () => this.Document.followLinkZoom = !this.Document.followLinkZoom, icon: this.Document.ignoreClick ? "unlock" : "lock" });
+                onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
+                onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "concierge-bell" });
+                onClicks.push({ description: (this.Document.followLinkZoom ? "Don't" : "") + " zoom following link", event: () => this.Document.followLinkZoom = !this.Document.followLinkZoom, icon: this.Document.ignoreClick ? "unlock" : "lock" });
 
-            if (!this.Document.annotationOn) {
-                const options = cm.findByDescription("Options...");
-                const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-                !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
+                if (!this.Document.annotationOn) {
+                    const options = cm.findByDescription("Options...");
+                    const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
+                    !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
-                onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
-                onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: () => this.toggleFollowLink("inPlace", true, false), icon: "link" });
-                !this.Document.isLinkButton && onClicks.push({ description: "Follow Link on Right", event: () => this.toggleFollowLink("add:right", false, false), icon: "link" });
-                onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: () => this.toggleFollowLink(undefined, false, false), icon: "link" });
-                onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: () => this.toggleFollowLink(undefined, false, true), icon: "map-pin" });
-                onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "terminal" });
-                !existingOnClick && cm.addItem({ description: "OnClick...", addDivider: true, noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
-            } else if (DocListCast(this.Document.links).length) {
-                onClicks.push({ description: "Select on Click", event: () => this.selectOnClick(), icon: "link" });
-                onClicks.push({ description: "Follow Link on Click", event: () => this.followLinkOnClick(undefined, false), icon: "link" });
-                onClicks.push({ description: "Toggle Link Target on Click", event: () => this.toggleTargetOnClick(), icon: "map-pin" });
-                !existingOnClick && cm.addItem({ description: "OnClick...", addDivider: true, subitems: onClicks, icon: "mouse-pointer" });
-            }
-        }
-
-        const funcs: ContextMenuProps[] = [];
-        if (!Doc.UserDoc().noviceMode && this.layoutDoc.onDragStart) {
-            funcs.push({ description: "Drag an Alias", icon: "edit", event: () => this.Document.dragFactory && (this.layoutDoc.onDragStart = ScriptField.MakeFunction('getAlias(this.dragFactory)')) });
-            funcs.push({ description: "Drag a Copy", icon: "edit", event: () => this.Document.dragFactory && (this.layoutDoc.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)')) });
-            funcs.push({ description: "Drag Document", icon: "edit", event: () => this.layoutDoc.onDragStart = undefined });
-            cm.addItem({ description: "OnDrag...", noexpand: true, subitems: funcs, icon: "asterisk" });
-        }
-
-        const more = cm.findByDescription("More...");
-        const moreItems = more && "subitems" in more ? more.subitems : [];
-        if (!Doc.IsSystem(this.rootDoc)) {
-            (this.rootDoc._viewType !== CollectionViewType.Docking || !Doc.UserDoc().noviceMode) && moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this.props.DocumentView()), icon: "users" });
-            if (!Doc.UserDoc().noviceMode) {
-                moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
-                moreItems.push({ description: `${this.Document._chromeHidden ? "Show" : "Hide"} Chrome`, event: () => this.Document._chromeHidden = !this.Document._chromeHidden, icon: "project-diagram" });
-
-                if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
-                    moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
-                    moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
-                    moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
+                    onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
+                    onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: () => this.toggleFollowLink("inPlace", true, false), icon: "link" });
+                    !this.Document.isLinkButton && onClicks.push({ description: "Follow Link on Right", event: () => this.toggleFollowLink("add:right", false, false), icon: "link" });
+                    onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: () => this.toggleFollowLink(undefined, false, false), icon: "link" });
+                    onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: () => this.toggleFollowLink(undefined, false, true), icon: "map-pin" });
+                    onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "terminal" });
+                    !existingOnClick && cm.addItem({ description: "OnClick...", addDivider: true, noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
+                } else if (DocListCast(this.Document.links).length) {
+                    onClicks.push({ description: "Select on Click", event: () => this.selectOnClick(), icon: "link" });
+                    onClicks.push({ description: "Follow Link on Click", event: () => this.followLinkOnClick(undefined, false), icon: "link" });
+                    onClicks.push({ description: "Toggle Link Target on Click", event: () => this.toggleTargetOnClick(), icon: "map-pin" });
+                    !existingOnClick && cm.addItem({ description: "OnClick...", addDivider: true, subitems: onClicks, icon: "mouse-pointer" });
                 }
-                moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
             }
+
+            const funcs: ContextMenuProps[] = [];
+            if (!Doc.UserDoc().noviceMode && this.layoutDoc.onDragStart) {
+                funcs.push({ description: "Drag an Alias", icon: "edit", event: () => this.Document.dragFactory && (this.layoutDoc.onDragStart = ScriptField.MakeFunction('getAlias(this.dragFactory)')) });
+                funcs.push({ description: "Drag a Copy", icon: "edit", event: () => this.Document.dragFactory && (this.layoutDoc.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)')) });
+                funcs.push({ description: "Drag Document", icon: "edit", event: () => this.layoutDoc.onDragStart = undefined });
+                cm.addItem({ description: "OnDrag...", noexpand: true, subitems: funcs, icon: "asterisk" });
+            }
+
+            const more = cm.findByDescription("More...");
+            const moreItems = more && "subitems" in more ? more.subitems : [];
+            if (!Doc.IsSystem(this.rootDoc)) {
+                (this.rootDoc._viewType !== CollectionViewType.Docking || !Doc.UserDoc().noviceMode) && moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this.props.DocumentView()), icon: "users" });
+                if (!Doc.UserDoc().noviceMode) {
+                    moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
+                    moreItems.push({ description: `${this.Document._chromeHidden ? "Show" : "Hide"} Chrome`, event: () => this.Document._chromeHidden = !this.Document._chromeHidden, icon: "project-diagram" });
+
+                    if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
+                        moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
+                        moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
+                        moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
+                    }
+                    moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
+                }
+            }
+
+            if (this.props.removeDocument && !Doc.IsSystem(this.rootDoc) && CurrentUserUtils.ActiveDashboard !== this.props.Document) { // need option to gray out menu items ... preferably with a '?' that explains why they're grayed out (eg., no permissions)
+                moreItems.push({ description: "Close", event: this.deleteClicked, icon: "times" });
+            }
+
+            const help = cm.findByDescription("Help...");
+            const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
+            !Doc.UserDoc().novice && helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "add:right"), icon: "layer-group" });
+            helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _width: 300, _height: 300 }), "add:right"), icon: "keyboard" });
+            !Doc.UserDoc().novice && helpItems.push({ description: "Print Document in Console", event: () => console.log(this.props.Document), icon: "hand-point-right" });
+            !Doc.UserDoc().novice && helpItems.push({ description: "Print DataDoc in Console", event: () => console.log(this.props.Document[DataSym]), icon: "hand-point-right" });
+            cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
         }
-
-        if (this.props.removeDocument && !Doc.IsSystem(this.rootDoc) && CurrentUserUtils.ActiveDashboard !== this.props.Document) { // need option to gray out menu items ... preferably with a '?' that explains why they're grayed out (eg., no permissions)
-            moreItems.push({ description: "Close", event: this.deleteClicked, icon: "times" });
-        }
-
-        !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
-        cm.moveAfter(cm.findByDescription("More...")!, cm.findByDescription("OnClick...")!);
-
-        const help = cm.findByDescription("Help...");
-        const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
-        !Doc.UserDoc().novice && helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "add:right"), icon: "layer-group" });
-        helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _width: 300, _height: 300 }), "add:right"), icon: "keyboard" });
-        !Doc.UserDoc().novice && helpItems.push({ description: "Print Document in Console", event: () => console.log(this.props.Document), icon: "hand-point-right" });
-        !Doc.UserDoc().novice && helpItems.push({ description: "Print DataDoc in Console", event: () => console.log(this.props.Document[DataSym]), icon: "hand-point-right" });
-        cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
 
         if (!this.topMost) e?.stopPropagation(); // DocumentViews should stop propagation of this event
         cm.displayMenu((e?.pageX || pageX || 0) - 15, (e?.pageY || pageY || 0) - 15);
-        !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectView(this.props.DocumentView(), false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
+        DocumentViewInternal.SelectAfterContextMenu && !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectView(this.props.DocumentView(), false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
     }
 
     rootSelected = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
@@ -791,6 +793,12 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
             {audioView}
         </div>;
+    }
+
+    get indicatorIcon() {
+        if (this.props.Document["acl-Public"] !== SharingPermissions.None) return "globe-americas";
+        else if (this.props.Document.numGroupsShared || NumCast(this.props.Document.numUsersShared, 0) > 1) return "users";
+        else return "user";
     }
 
     @undoBatch

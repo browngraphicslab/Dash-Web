@@ -101,7 +101,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             else if (e.key === ":") {
                 DocUtils.addDocumentCreatorMenuItems(this.props.addLiveTextDocument, this.props.addDocument || returnFalse, x, y);
 
-                cm.displayMenu(this._downX, this._downY);
+                cm.displayMenu(this._downX, this._downY, undefined, true);
                 e.stopPropagation();
             } else if (e.key === "a" && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();

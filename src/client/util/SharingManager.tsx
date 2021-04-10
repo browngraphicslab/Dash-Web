@@ -7,7 +7,7 @@ import Select from "react-select";
 import * as RequestPromise from "request-promise";
 import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, AclUnset, DataSym, Doc, DocListCast, DocListCastAsync, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
-import { Cast, StrCast } from "../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { distributeAcls, GetEffectiveAcl, normalizeEmail, SharingPermissions, TraceMobx } from "../../fields/util";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
@@ -79,7 +79,16 @@ export class SharingManager extends React.Component<{}> {
     @observable private showGroupOptions: boolean = false; // // whether to show groups as options when sharing (in the react-select component)
     private populating: boolean = false; // whether the list of users is populating or not
     @observable private layoutDocAcls: boolean = false; // whether the layout doc or data doc's acls are to be used
-    @observable private myDocAcls: boolean = false;
+    @observable private myDocAcls: boolean = false; // whether the My Docs checkbox is selected or not
+
+    // maps acl symbols to SharingPermissions
+    private AclMap = new Map<symbol, string>([
+        [AclPrivate, SharingPermissions.None],
+        [AclReadonly, SharingPermissions.View],
+        [AclAddonly, SharingPermissions.Add],
+        [AclEdit, SharingPermissions.Edit],
+        [AclAdmin, SharingPermissions.Admin]
+    ]);
 
     // private get linkVisible() {
     //     return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
@@ -155,6 +164,7 @@ export class SharingManager extends React.Component<{}> {
             });
         }
     }
+
     /**
      * Shares the document with a user.
      */
@@ -165,10 +175,16 @@ export class SharingManager extends React.Component<{}> {
         const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
 
         const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
-
-        // ! ensures it returns true if document has been shared successfully, false otherwise
         return !docs.map(doc => {
             doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
+
+            if (permission === SharingPermissions.None) {
+                if (doc[acl] && doc[acl] !== SharingPermissions.None) doc.numUsersShared = NumCast(doc.numUsersShared, 1) - 1;
+            }
+            else {
+                if (!doc[acl] || doc[acl] === SharingPermissions.None) doc.numUsersShared = NumCast(doc.numUsersShared, 0) + 1;
+            }
+
             distributeAcls(acl, permission as SharingPermissions, doc);
 
             this.setDashboardBackground(doc, permission as SharingPermissions);
@@ -193,6 +209,14 @@ export class SharingManager extends React.Component<{}> {
         // ! ensures it returns true if document has been shared successfully, false otherwise
         return !docs.map(doc => {
             doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmailNormalized}`] && distributeAcls(`acl-${Doc.CurrentUserEmailNormalized}`, SharingPermissions.Admin, doc);
+
+            if (permission === SharingPermissions.None) {
+                if (doc[acl] && doc[acl] !== SharingPermissions.None) doc.numGroupsShared = NumCast(doc.numGroupsShared, 1) - 1;
+            }
+            else {
+                if (!doc[acl] || doc[acl] === SharingPermissions.None) doc.numGroupsShared = NumCast(doc.numGroupsShared, 0) + 1;
+            }
+
             distributeAcls(acl, permission as SharingPermissions, doc);
             this.setDashboardBackground(doc, permission as SharingPermissions);
 
@@ -422,20 +446,12 @@ export class SharingManager extends React.Component<{}> {
     }
 
     distributeOverCollection = (targetDoc?: Doc) => {
-        const AclMap = new Map<symbol, string>([
-            [AclPrivate, SharingPermissions.None],
-            [AclReadonly, SharingPermissions.View],
-            [AclAddonly, SharingPermissions.Add],
-            [AclEdit, SharingPermissions.Edit],
-            [AclAdmin, SharingPermissions.Admin]
-        ]);
-
         const target = targetDoc || this.targetDoc!;
 
         const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
         docs.forEach(doc => {
             for (const [key, value] of Object.entries(doc[AclSym])) {
-                distributeAcls(key, AclMap.get(value)! as SharingPermissions, target);
+                distributeAcls(key, this.AclMap.get(value)! as SharingPermissions, target);
             }
         });
     }
@@ -496,7 +512,8 @@ export class SharingManager extends React.Component<{}> {
         const targetDoc = docs[0];
 
         // tslint:disable-next-line: no-unnecessary-callback-wrapper
-        const admin = this.myDocAcls ? Boolean(docs.length) : docs.map(doc => GetEffectiveAcl(doc)).every(acl => acl === AclAdmin); // if the user has admin access to all selected docs
+        const effectiveAcls = docs.map(doc => GetEffectiveAcl(doc));
+        const admin = this.myDocAcls ? Boolean(docs.length) : effectiveAcls.every(acl => acl === AclAdmin);
 
         // users in common between all docs
         const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym]?.[AclSym] && Object.keys(doc[DataSym][AclSym])));
@@ -560,7 +577,7 @@ export class SharingManager extends React.Component<{}> {
                         <span className={"padding"}>Me</span>
                         <div className="edit-actions">
                             <div className={"permissions-dropdown"}>
-                                {targetDoc?.[`acl-${Doc.CurrentUserEmailNormalized}`]}
+                                {effectiveAcls.every(acl => acl === effectiveAcls[0]) ? this.AclMap.get(effectiveAcls[0])! : "-multiple-"}
                             </div>
                         </div>
                     </div>
@@ -570,7 +587,7 @@ export class SharingManager extends React.Component<{}> {
 
         // the list of groups shared with
         const groupListMap: (Doc | { title: string })[] = groups.filter(({ title }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(StrCast(title))}`) : true);
-        groupListMap.unshift({ title: "Public" }, { title: "Override" });
+        groupListMap.unshift({ title: "Public" });//, { title: "Override" });
         const groupListContents = groupListMap.map(group => {
             const groupKey = `acl-${StrCast(group.title)}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[groupKey] === docs[0]?.[AclSym]?.[groupKey] : doc?.[DataSym]?.[AclSym]?.[groupKey] === docs[0]?.[DataSym]?.[AclSym]?.[groupKey]);
@@ -622,9 +639,10 @@ export class SharingManager extends React.Component<{}> {
                     {<div className="share-container">
                         <div className="share-setup">
                             <Select
-                                className={"user-search"}
-                                placeholder={"Enter user or group name..."}
+                                className="user-search"
+                                placeholder="Enter user or group name..."
                                 isMulti
+                                isSearchable
                                 closeMenuOnSelect={false}
                                 options={options}
                                 onChange={this.handleUsersChange}
@@ -648,16 +666,10 @@ export class SharingManager extends React.Component<{}> {
                         </div>
 
                         <div className="acl-container">
-                            <div className="myDocs-acls">
-                                <input type="checkbox" onChange={action(() => this.myDocAcls = !this.myDocAcls)} checked={this.myDocAcls} /> <label>My Docs</label>
-                            </div>
                             {Doc.UserDoc().noviceMode ? (null) :
                                 <div className="layoutDoc-acls">
                                     <input type="checkbox" onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)} checked={this.layoutDocAcls} /> <label>Layout</label>
                                 </div>}
-                            <button className="distribute-button" onClick={() => this.distributeOverCollection()}>
-                                Distribute
-                        </button>
                         </div>
                     </div>
                     }

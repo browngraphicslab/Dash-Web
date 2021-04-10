@@ -14,14 +14,18 @@ import { CollectionViewType } from './collections/CollectionView';
 import { MainView } from './MainView';
 import { DocumentViewProps } from "./nodes/DocumentView";
 import "./StyleProvider.scss";
+import "./collections/TreeView.scss";
+import "./nodes/FilterBox.scss";
 import React = require("react");
 import Color = require('color');
+import { FieldViewProps } from './nodes/FieldView';
 
 export enum StyleLayers {
     Background = "background"
 }
 
 export enum StyleProp {
+    TreeViewIcon = "treeViewIcon",
     DocContents = "docContents",          // when specified, the JSX returned will replace the normal rendering of the document view
     Opacity = "opacity",                  // opacity of the document view
     Hidden = "hidden",                    // whether the document view should not be isplayed
@@ -65,12 +69,14 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
     const isCaption = property.includes(":caption");
     const isAnchor = property.includes(":anchor");
     const isAnnotated = property.includes(":annotated");
+    const isOpen = property.includes(":open");
     const isBackground = () => StrListCast(doc?._layerTags).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
     const showTitle = () => props?.styleProvider?.(doc, props, StyleProp.ShowTitle);
 
     switch (property.split(":")[0]) {
+        case StyleProp.TreeViewIcon: return Doc.toIcon(doc, isOpen);
         case StyleProp.DocContents: return undefined;
         case StyleProp.WidgetColor: return isAnnotated ? "lightBlue" : darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
@@ -158,6 +164,8 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
             if (doc?.type !== DocumentType.INK && layer === true) return "all";
             return undefined;
         case StyleProp.Decorations:
+            // if (isFooter)
+
             if (props?.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform) {
                 return doc && (isBackground() || selected) && (props?.renderDepth || 0) > 0 &&
                     ((doc.type === DocumentType.COL && doc._viewType !== CollectionViewType.Pile) || [DocumentType.RTF, DocumentType.IMG, DocumentType.INK].includes(doc.type as DocumentType)) ?
@@ -168,6 +176,60 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
             }
     }
 }
+
+
+function toggleHidden(e: React.MouseEvent, doc: Doc) {
+    UndoManager.RunInBatch(() => runInAction(() => {
+        e.stopPropagation();
+        doc.hidden = doc.hidden ? undefined : true;
+    }), "toggleHidden");
+}
+
+function toggleLock(e: React.MouseEvent, doc: Doc) {
+    UndoManager.RunInBatch(() => runInAction(() => {
+        e.stopPropagation();
+        doc.lockedPosition = doc.lockedPosition ? undefined : true;
+    }), "toggleHidden");
+}
+
+/**
+ * add lock and hide button decorations for the "Dashboards" flyout TreeView
+ */
+export function DashboardStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
+    switch (property.split(":")[0]) {
+        case StyleProp.Decorations:
+            if (doc) {
+                const hidden = doc.hidden;
+                const locked = doc.lockedPosition;
+                return doc._viewType === CollectionViewType.Docking || (Doc.IsSystem(doc) && Doc.UserDoc().noviceMode) ? (null) :
+                    <>
+                        <div className={`styleProvider-treeView-hide${hidden ? "-active" : ""}`} onClick={(e) => toggleHidden(e, doc)}>
+                            <FontAwesomeIcon icon={hidden ? "eye-slash" : "eye"} size="sm" />
+                        </div>
+                        <div className={`styleProvider-treeView-lock${locked ? "-active" : ""}`} onClick={(e) => toggleLock(e, doc)}>
+                            <FontAwesomeIcon icon={locked ? "lock" : "unlock"} size="sm" />
+                        </div>
+                    </>;
+            }
+        default: return DefaultStyleProvider(doc, props, property);
+
+    }
+}
+
+function changeFilterBool(e: any, doc: Doc) {
+    UndoManager.RunInBatch(() => runInAction(() => {
+        //e.stopPropagation();
+        //doc.lockedPosition = doc.lockedPosition ? undefined : true;
+    }), "changeFilterBool");
+}
+
+function closeFilter(e: React.MouseEvent, doc: Doc) {
+    UndoManager.RunInBatch(() => runInAction(() => {
+        e.stopPropagation();
+        //doc.lockedPosition = doc.lockedPosition ? undefined : true;
+    }), "closeFilter");
+}
+
 
 //
 // a preliminary semantic-"layering/grouping" mechanism for determining interactive properties of documents
