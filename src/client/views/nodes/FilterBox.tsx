@@ -385,7 +385,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     <option value="AND" key="AND" selected={(FilterBox.targetDoc.currentFilter as Doc)?.filterBoolean === "AND"}>AND</option>
                     <option value="OR" key="OR" selected={(FilterBox.targetDoc.currentFilter as Doc)?.filterBoolean === "OR"}>OR</option>
                 </select>
-                <div className="filterBox-select-text">filters in </div>
+                <div className="filterBox-select-text">filters together</div>
             </div>
 
             <div className="filterBox-select">
