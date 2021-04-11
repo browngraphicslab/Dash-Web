@@ -11,20 +11,21 @@ import { makeInterface } from "../../../fields/Schema";
 import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { AudioField, VideoField } from "../../../fields/URLField";
+import { TraceMobx } from "../../../fields/util";
 import { emptyFunction, OmitKeys, returnFalse, returnOne, Utils } from "../../../Utils";
 import { DocUtils } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Networking } from "../../Network";
+import { CaptureManager } from "../../util/CaptureManager";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionStackedTimeline } from "../collections/CollectionStackedTimeline";
 import { ContextMenu } from "../ContextMenu";
 import { ViewBoxAnnotatableComponent, ViewBoxAnnotatableProps } from "../DocComponent";
 import { FieldView, FieldViewProps } from './FieldView';
+import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 import "./ScreenshotBox.scss";
 import { VideoBox } from "./VideoBox";
-import { TraceMobx } from "../../../fields/util";
-import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 declare class MediaRecorder {
     constructor(e: any, options?: any);  // whatever MediaRecorder has
 }
@@ -35,7 +36,7 @@ const ScreenshotDocument = makeInterface(documentSchema);
 @observer
 export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ScreenshotBox, fieldKey); }
-    private _videoRef = React.createRef<HTMLVideoElement>();
+    private _videoRef: HTMLVideoElement | null = null;
     private _audioRec: any;
     private _videoRec: any;
     @observable _screenCapture = false;
@@ -53,7 +54,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
     }
 
     videoLoad = () => {
-        const aspect = this._videoRef.current!.videoWidth / this._videoRef.current!.videoHeight;
+        const aspect = this._videoRef!.videoWidth / this._videoRef!.videoHeight;
         const nativeWidth = Doc.NativeWidth(this.layoutDoc);
         const nativeHeight = Doc.NativeHeight(this.layoutDoc);
         if (!nativeWidth || !nativeHeight) {
@@ -79,9 +80,17 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
 
     @computed get content() {
         const interactive = CurrentUserUtils.SelectedTool !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
-        return <video className={"videoBox-content" + interactive} key="video" ref={this._videoRef}
-            autoPlay={this._screenCapture}
-            style={{ width: this._screenCapture ? "100%" : undefined, height: this._screenCapture ? "100%" : undefined }}
+        return <video className={"videoBox-content" + interactive} key="video"
+            ref={r => {
+                this._videoRef = r;
+                setTimeout(() => {
+                    if (this.rootDoc.mediaState === "pendingRecording" && this._videoRef) { // TODO glr: use mediaState
+                        this.toggleRecording();
+                    }
+                }, 1000);
+            }}
+            autoPlay={true}
+            style={{ width: "100%", height: "100%" }}
             onCanPlay={this.videoLoad}
             controls={true}
             onClick={e => e.preventDefault()}>
@@ -102,8 +111,8 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
                     this.dataDoc[this.props.fieldKey + "-audio"] = new AudioField(Utils.prepend(result.accessPaths.agnostic.client));
                 }
             };
-            this._videoRef.current!.srcObject = await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
-            this._videoRec = new MediaRecorder(this._videoRef.current!.srcObject);
+            this._videoRef!.srcObject = await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
+            this._videoRec = new MediaRecorder(this._videoRef!.srcObject);
             const vid_chunks: any = [];
             this._videoRec.onstart = () => this.dataDoc[this.props.fieldKey + "-recordingStart"] = new DateField(new Date());
             this._videoRec.ondataavailable = (e: any) => vid_chunks.push(e.data);
@@ -129,6 +138,8 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
             this.dataDoc.mediaState = "paused";
             const ind = DocUtils.ActiveRecordings.indexOf(this);
             ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
+
+            CaptureManager.Instance.open(this.rootDoc);
         }
     });
 

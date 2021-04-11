@@ -17,6 +17,7 @@ import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, return
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocUtils } from '../documents/Documents';
+import { CaptureManager } from '../util/CaptureManager';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DocumentManager } from '../util/DocumentManager';
 import { GroupManager } from '../util/GroupManager';
@@ -274,7 +275,11 @@ export class MainView extends React.Component {
 
     @computed get dockingContent() {
         return <div key="docking" className={`mainContent-div${this._flyoutWidth ? "-flyout" : ""}`} onDrop={e => { e.stopPropagation(); e.preventDefault(); }}
-            style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)` }}>
+            style={{
+                minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`,
+                transform: LightboxView.LightboxDoc ? "scale(0.0001)" : undefined,
+                width: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`
+            }}>
             {!this.mainContainer ? (null) : this.mainDocView}
         </div>;
     }
@@ -621,6 +626,7 @@ export class MainView extends React.Component {
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />
+            <CaptureManager />
             <GroupManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations boundsLeft={this.leftOffset} boundsTop={this.topOffset} />

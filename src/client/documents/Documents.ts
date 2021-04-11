@@ -164,6 +164,7 @@ export class DocumentOptions {
     version?: string; // version identifier for a document
     label?: string;
     hidden?: boolean;
+    mediaState?: string; // status of media document: "pendingRecording", "recording", "paused", "playing"
     autoPlayAnchors?: boolean; // whether to play audio/video when an anchor is clicked in a stackedTimeline.
     dontPlayLinkOnSelect?: boolean;  // whether an audio/video should start playing when a link is followed to it.
     toolTip?: string; // tooltip to display on hover
@@ -703,8 +704,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.WEBCAM), "", options);
         }
 
-        export function ScreenshotDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.SCREENSHOT), "", options);
+        export function ScreenshotDocument(title: string, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SCREENSHOT), "", { ...options, title });
         }
 
         export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
@@ -1340,7 +1341,7 @@ export namespace DocUtils {
         }
     }
 
-    export function LeavePushpin(doc: Doc) {
+    export function LeavePushpin(doc: Doc, annotationField: string) {
         if (doc.isPushpin) return undefined;
         const context = Cast(doc.context, Doc, null) ?? Cast(doc.annotationOn, Doc, null);
         const hasContextAnchor = DocListCast(doc.links).
@@ -1353,7 +1354,7 @@ export namespace DocUtils {
                 icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), backgroundColor: "#ACCEF7",
                 _width: 15, _height: 15, _xPadding: 0, _isLinkButton: true, _timecodeToShow: Cast(doc._timecodeToShow, "number", null)
             });
-            Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
+            Doc.AddDocToList(context, annotationField, pushpin);
             const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
             doc._timecodeToShow = undefined;
             return pushpin;
