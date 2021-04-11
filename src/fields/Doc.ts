@@ -1324,7 +1324,7 @@ export namespace Doc {
 
 }
 
-Scripting.addGlobal(function idToDoc(id: string) { return DocServer.GetCachedRefField(id); });
+Scripting.addGlobal(function idToDoc(id: string): any { return DocServer.GetCachedRefField(id); });
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function getDocTemplate(doc?: any) { return Doc.getDocTemplate(doc); });

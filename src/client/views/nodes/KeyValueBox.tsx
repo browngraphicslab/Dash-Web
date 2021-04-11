@@ -58,7 +58,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         value = eq ? value.substr(1) : value;
         const dubEq = value.startsWith(":=") ? "computed" : value.startsWith(";=") ? "script" : false;
         value = dubEq ? value.substr(2) : value;
-        const options: ScriptOptions = { addReturn: true, params: { this: "Doc", _last_: "any" }, globals: true, editable: false };
+        const options: ScriptOptions = { addReturn: true, params: { this: "Doc", _last_: "any" }, editable: false };
         if (dubEq) options.typecheck = false;
         const script = CompileScript(value, options);
         return !script.compiled ? undefined : { script, type: dubEq, onDelegate: eq };

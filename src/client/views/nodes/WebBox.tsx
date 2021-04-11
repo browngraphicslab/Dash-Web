@@ -2,20 +2,22 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as WebRequest from 'web-request';
-import { Doc, DocListCast, HeightSym, Opt, StrListCast, WidthSym } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { HtmlField } from "../../../fields/HtmlField";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
-import { makeInterface, listSpec } from "../../../fields/Schema";
+import { listSpec, makeInterface } from "../../../fields/Schema";
+import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, getWordAtPoint, OmitKeys, returnOne, smoothScroll, Utils, setupMoveUpEvents, returnFalse } from "../../../Utils";
+import { emptyFunction, getWordAtPoint, OmitKeys, returnFalse, returnOne, setupMoveUpEvents, smoothScroll, Utils } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { Scripting } from "../../util/Scripting";
 import { SnappingManager } from "../../util/SnappingManager";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -32,7 +34,6 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { LinkDocPreview } from "./LinkDocPreview";
 import "./WebBox.scss";
 import React = require("react");
-import { ComputedField } from "../../../fields/ScriptField";
 const _global = (window /* browser */ || global /* node */) as any;
 const htmlToText = require("html-to-text");
 
@@ -80,14 +81,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
 
         runInAction(() => {
             this._url = this.webField?.toString() || "";
-            this._annotationKey = "annotations-" + this.urlHash(this._url);
-            // bcz: this is messy.  logically, setting the url alone should direct where annotations should go.  But 
-            // right now we need to set doc.annotation-active to be the field suffix for the annotations
-            // and we need to set a computed field to copy the annotations to where everyone else expects them in doc.field-annotations
-            // TODO: always write annotations to doc.field-anotations and then copy them to doc.field-annotaitons-hash only when the page is changed.
-            this.dataDoc["annotation-active"] = this._annotationKey;
-            // bcz: need to make sure that doc.data-annotations points to the currently active web page's annotations (this could/should be in the constructor)
-            this.dataDoc[this.fieldKey + "-annotations"] = ComputedField.MakeFunction(`copyField(this["${this.fieldKey}-"+this["annotation-active"]])`);
+            this._annotationKey = "annotations-" + WebBox.urlHash(this._url);
+            // bcz: need to make sure that doc.data-annotations points to the currently active web page's annotations (this could/should be when the doc is created)
+            this.dataDoc[this.fieldKey + "-annotations"] = ComputedField.MakeFunction(`copyField(this["${this.fieldKey}-annotations-"+urlHash(this["${this.fieldKey}"]?.url?.toString()))`);
         });
 
         this._disposers.selection = reaction(() => this.props.isSelected(),
@@ -297,8 +293,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
         if (future.length) {
             history.push(this._url);
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = future.pop()!));
-            this._annotationKey = "annotations-" + this.urlHash(this._url);
-            this.dataDoc["annotation-active"] = this._annotationKey;
+            this._annotationKey = "annotations-" + WebBox.urlHash(this._url);
             return true;
         }
         return false;
@@ -312,14 +307,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
             if (future === undefined) this.dataDoc[this.fieldKey + "-future"] = new List<string>([this._url]);
             else future.push(this._url);
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = history.pop()!));
-            this._annotationKey = "annotations-" + this.urlHash(this._url);
-            this.dataDoc["annotation-active"] = this._annotationKey;
+            this._annotationKey = "annotations-" + WebBox.urlHash(this._url);
             return true;
         }
         return false;
     }
 
-    urlHash = (s: string) => {
+    static urlHash = (s: string) => {
         return s.split('').reduce((a: any, b: any) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
     }
 
@@ -341,8 +335,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
                 future && (future.length = 0);
             }
             this._url = newUrl;
-            this._annotationKey = "annotations-" + this.urlHash(this._url);
-            this.dataDoc["annotation-active"] = this._annotationKey;
+            this._annotationKey = "annotations-" + WebBox.urlHash(this._url);
             this.dataDoc[this.fieldKey] = new WebField(new URL(newUrl));
         } catch (e) {
             console.log("WebBox URL error:" + this._url);
@@ -567,3 +560,4 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
             </div>);
     }
 }
+Scripting.addGlobal(function urlHash(url: string) { return WebBox.urlHash(url); });
