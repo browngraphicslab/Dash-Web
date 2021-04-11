@@ -84,9 +84,8 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
             ref={r => {
                 this._videoRef = r;
                 setTimeout(() => {
-                    if (this.rootDoc.startRec && this._videoRef) { // TODO glr: use mediaState
+                    if (this.rootDoc.mediaState === "pendingRecording" && this._videoRef) { // TODO glr: use mediaState
                         this.toggleRecording();
-                        this.rootDoc.startRec = undefined;
                     }
                 }, 1000);
             }}

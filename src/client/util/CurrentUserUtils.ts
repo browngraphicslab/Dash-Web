@@ -423,7 +423,7 @@ export class CurrentUserUtils {
             ((doc.emptyScript as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyScreenshot === undefined) {
-            doc.emptyScreenshot = Docs.Create.ScreenshotDocument("", { _fitWidth: true, _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyScreenshot = Docs.Create.ScreenshotDocument("empty screenshot", { _fitWidth: true, _width: 400, _height: 200, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyAudio === undefined) {
             doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "audio recording", system: true, cloneFieldFilter: new List<string>(["system"]) });

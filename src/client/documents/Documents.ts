@@ -164,6 +164,7 @@ export class DocumentOptions {
     version?: string; // version identifier for a document
     label?: string;
     hidden?: boolean;
+    mediaState?: string; // status of media document: "pendingRecording", "recording", "paused", "playing"
     autoPlayAnchors?: boolean; // whether to play audio/video when an anchor is clicked in a stackedTimeline.
     dontPlayLinkOnSelect?: boolean;  // whether an audio/video should start playing when a link is followed to it.
     toolTip?: string; // tooltip to display on hover
@@ -703,8 +704,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.WEBCAM), "", options);
         }
 
-        export function ScreenshotDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.SCREENSHOT), "", options);
+        export function ScreenshotDocument(title: string, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SCREENSHOT), "", { ...options, title });
         }
 
         export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {

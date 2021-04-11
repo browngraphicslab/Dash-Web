@@ -399,10 +399,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @undoBatch
     @action
     startRecording = () => {
-        const doc = Docs.Create.ScreenshotDocument("", { _fitWidth: true, _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
-        doc.x = 0;
-        doc.y = 0;
-        doc.startRec = true;
+        const doc = Docs.Create.ScreenshotDocument("screen recording", { _fitWidth: true, _width: 400, _height: 200, mediaState: "pendingRecording" });
         //Doc.AddDocToList((Doc.UserDoc().myOverlayDocs as Doc), undefined, doc);
         CollectionDockingView.AddSplit(doc, "right");
     }
