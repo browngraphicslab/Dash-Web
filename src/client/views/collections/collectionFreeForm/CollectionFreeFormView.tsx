@@ -1032,7 +1032,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             docRangeFilters={this.freeformRangeDocFilters}
             searchFilterDocs={this.searchFilterDocs}
             isContentActive={this.isAnnotationOverlay ? this.props.isContentActive : returnFalse}
-            isDocumentActive={this.props.layoutEngine?.() === "starburst" ? this.props.isDocumentActive : this.isContentActive}
+            isDocumentActive={this.props.childDocumentsActive ? this.props.isDocumentActive : this.isContentActive}
             focus={this.focusDocument}
             addDocTab={this.addDocTab}
             addDocument={this.props.addDocument}
