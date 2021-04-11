@@ -1,6 +1,6 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction, trace } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { DateField } from "../../../fields/DateField";
 import { Doc, WidthSym } from "../../../fields/Doc";
@@ -11,21 +11,21 @@ import { makeInterface } from "../../../fields/Schema";
 import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { AudioField, VideoField } from "../../../fields/URLField";
+import { TraceMobx } from "../../../fields/util";
 import { emptyFunction, OmitKeys, returnFalse, returnOne, Utils } from "../../../Utils";
 import { DocUtils } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Networking } from "../../Network";
+import { CaptureManager } from "../../util/CaptureManager";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionStackedTimeline } from "../collections/CollectionStackedTimeline";
 import { ContextMenu } from "../ContextMenu";
 import { ViewBoxAnnotatableComponent, ViewBoxAnnotatableProps } from "../DocComponent";
 import { FieldView, FieldViewProps } from './FieldView';
+import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 import "./ScreenshotBox.scss";
 import { VideoBox } from "./VideoBox";
-import { TraceMobx } from "../../../fields/util";
-import { FormattedTextBox } from "./formattedText/FormattedTextBox";
-import { CaptureManager } from "../../util/CaptureManager";
 declare class MediaRecorder {
     constructor(e: any, options?: any);  // whatever MediaRecorder has
 }
@@ -41,8 +41,6 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
     private _videoRec: any;
     @observable _screenCapture = false;
     @computed get recordingStart() { return Cast(this.dataDoc[this.props.fieldKey + "-recordingStart"], DateField)?.date.getTime(); }
-    private _disposers: { [name: string]: IReactionDisposer } = {};
-
 
     constructor(props: any) {
         super(props);
@@ -73,7 +71,6 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
     componentWillUnmount() {
         const ind = DocUtils.ActiveRecordings.indexOf(this);
         ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
-        Object.values(this._disposers).forEach(disposer => disposer?.());
     }
 
     specificContextMenu = (e: React.MouseEvent): void => {
