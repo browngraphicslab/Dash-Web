@@ -234,16 +234,16 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         return level;
     }
 
-    dictationHeight = () => "50%";
-    documentHeight = () => "100%";
-    timelineContentHeight = () => this.props.PanelHeight() / 2;
+    dictationHeightPercent = 50;
+    dictationHeight = () => `${this.dictationHeightPercent}%`;
+    timelineContentHeight = () => this.props.PanelHeight() * this.dictationHeightPercent / 100;
     dictationScreenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(0, -this.timelineContentHeight());
     @computed get renderDictation() {
         const dictation = Cast(this.dataDoc[this.props.dictationKey], Doc, null);
-        return !dictation ? (null) : <div style={{ position: "absolute", height: this.dictationHeight(), top: "50%", background: "tan" }}>
+        return !dictation ? (null) : <div style={{ position: "absolute", height: this.dictationHeight(), top: this.timelineContentHeight(), background: "tan" }}>
             <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
                 Document={dictation}
-                PanelHeight={this.documentHeight}
+                PanelHeight={this.dictationHeight}
                 isAnnotationOverlay={true}
                 isDocumentActive={returnFalse}
                 select={emptyFunction}
@@ -349,8 +349,11 @@ class StackedTimelineAnchor extends React.Component<StackedTimelineAnchorProps> 
             (time) => {
                 const dictationDoc = Cast(this.props.layoutDoc["data-dictation"], Doc, null);
                 const isDictation = dictationDoc && DocListCast(this.props.mark.links).some(link => Cast(link.anchor1, Doc, null)?.annotationOn === dictationDoc);
-                if ((!LightboxView.LightboxDoc
-                    /*isDictation || !Doc.AreProtosEqual(LightboxView.LightboxDoc, this.props.layoutDoc)*/) && DocListCast(this.props.mark.links).length &&
+                if (!LightboxView.LightboxDoc
+                    // bcz: when should links be followed?  we don't want to move away from the video to follow a link but we can open it in a sidebar/etc.  But we don't know that upfront.
+                    // for now, we won't follow any links when the lightbox is oepn to avoid "losing" the video.
+                    /*(isDictation || !Doc.AreProtosEqual(LightboxView.LightboxDoc, this.props.layoutDoc))*/
+                    && DocListCast(this.props.mark.links).length &&
                     time > NumCast(this.props.mark[this.props.startTag]) &&
                     time < NumCast(this.props.mark[this.props.endTag]) &&
                     this._lastTimecode < NumCast(this.props.mark[this.props.startTag])) {

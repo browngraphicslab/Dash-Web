@@ -36,7 +36,7 @@ const ScreenshotDocument = makeInterface(documentSchema);
 @observer
 export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ScreenshotBox, fieldKey); }
-    private _videoRef: HTMLVideoElement | undefined | null;
+    private _videoRef: HTMLVideoElement | null = null;
     private _audioRec: any;
     private _videoRec: any;
     @observable _screenCapture = false;
@@ -82,12 +82,9 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
     }
 
     @computed get content() {
-        trace();
-        console.log('content');
         const interactive = CurrentUserUtils.SelectedTool !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
         return <video className={"videoBox-content" + interactive} key="video"
             ref={r => {
-                console.log('ref: ', r);
                 this._videoRef = r;
                 setTimeout(() => {
                     if (this.rootDoc.startRec && this._videoRef) { // TODO glr: use mediaState
@@ -107,12 +104,8 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
     }
 
     toggleRecording = action(async () => {
-        console.log("toggleRecording");
-        console.log("2:" + this._videoRef!.srcObject);
-
         this._screenCapture = !this._screenCapture;
         if (this._screenCapture) {
-            console.log("opening");
             this._audioRec = new MediaRecorder(await navigator.mediaDevices.getUserMedia({ audio: true }));
             const aud_chunks: any = [];
             this._audioRec.ondataavailable = (e: any) => aud_chunks.push(e.data);
@@ -128,7 +121,6 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
             this._videoRec.onstart = () => this.dataDoc[this.props.fieldKey + "-recordingStart"] = new DateField(new Date());
             this._videoRec.ondataavailable = (e: any) => vid_chunks.push(e.data);
             this._videoRec.onstop = async (e: any) => {
-                console.log("onStop: video end");
                 const file = new File(vid_chunks, `${this.rootDoc[Id]}.mkv`, { type: vid_chunks[0].type, lastModified: Date.now() });
                 const [{ result }] = await Networking.UploadFilesToServer(file);
                 this.dataDoc[this.fieldKey + "-duration"] = (new Date().getTime() - this.recordingStart!) / 1000;
@@ -152,7 +144,6 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
             ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
 
             CaptureManager.Instance.open(this.rootDoc);
-            console.log("closing");
         }
     });
 
@@ -173,7 +164,6 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
     formattedPanelHeight = () => Math.max(0, this.props.PanelHeight() - this.videoPanelHeight());
     render() {
         TraceMobx();
-        console.log('rendering');
         return <div className="videoBox" onContextMenu={this.specificContextMenu} style={{ width: "100%", height: "100%" }} >
             <div className="videoBox-viewer" >
                 <div style={{ position: "relative", height: this.videoPanelHeight() }}>

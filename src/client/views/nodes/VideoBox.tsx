@@ -417,7 +417,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
 
     onTimelineHdlDown = action((e: React.PointerEvent) => {
         this._clicking = true;
-        console.log('timeline click');
         setupMoveUpEvents(this, e,
             action((e: PointerEvent) => {
                 this._clicking = false;

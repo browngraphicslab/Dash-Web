@@ -5,7 +5,7 @@ import { action, computed, IReactionDisposer, observable, ObservableMap, reactio
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
 import { Bounce, Fade, Flip, LightSpeed, Roll, Rotate, Zoom } from 'react-reveal';
-import { Doc, DocListCast, DocListCastAsync } from "../../../fields/Doc";
+import { Doc, DocListCast, DocListCastAsync, FieldResult } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
@@ -247,11 +247,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // }
     }
 
-    stopTempMedia = (targetDoc: Doc) => {
-        if (targetDoc.type === DocumentType.AUDIO) {
+    stopTempMedia = (targetDocField: FieldResult) => {
+        const targetDoc = Cast(targetDocField, Doc, null);
+        if (targetDoc?.type === DocumentType.AUDIO) {
             if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
             targetDoc._audioStop = true;
-        } else if (targetDoc.type === DocumentType.VID) {
+        } else if (targetDoc?.type === DocumentType.VID) {
             if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
             targetDoc._triggerVideoStop = true;
         }
@@ -331,14 +332,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.rootDoc._itemIndex = index;
             const activeItem: Doc = this.activeItem;
             const targetDoc: Doc = this.targetDoc;
-            if (from && from.mediaStopTriggerList && this.layoutDoc.presStatus !== PresStatus.Edit) {
-                const mediaDocList = DocListCast(from.mediaStopTriggerList);
-                mediaDocList.forEach((doc) => {
-                    this.stopTempMedia(Cast(doc.presentationTargetDoc, Doc, null));
-                });
+            if (from?.mediaStopTriggerList && this.layoutDoc.presStatus !== PresStatus.Edit) {
+                DocListCast(from.mediaStopTriggerList).forEach(this.stopTempMedia);
             }
-            if (from && from.mediaStop === "auto" && this.layoutDoc.presStatus !== PresStatus.Edit) {
-                this.stopTempMedia(Cast(from.presentationTargetDoc, Doc, null));
+            if (from?.mediaStop === "auto" && this.layoutDoc.presStatus !== PresStatus.Edit) {
+                this.stopTempMedia(from.presentationTargetDoc);
             }
             // If next slide is audio / video 'Play automatically' then the next slide should be played
             if (this.layoutDoc.presStatus !== PresStatus.Edit && (targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && (activeItem.mediaStart === "auto")) {
@@ -577,9 +575,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (this._presTimer) clearTimeout(this._presTimer);
             this.layoutDoc.presStatus = PresStatus.Manual;
             this.layoutDoc.presLoop = false;
-            this.childDocs.forEach((doc) => {
-                this.stopTempMedia(Cast(doc.presentationTargetDoc, Doc, null));
-            });
+            this.childDocs.forEach(this.stopTempMedia);
         }
     }
 

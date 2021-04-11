@@ -15,7 +15,7 @@ import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { DeepCopy, emptyFunction, setupMoveUpEvents, Utils } from "../../../Utils";
+import { emptyFunction, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DragManager } from "../../util/DragManager";

@@ -81,7 +81,12 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
         runInAction(() => {
             this._url = this.webField?.toString() || "";
             this._annotationKey = "annotations-" + this.urlHash(this._url);
+            // bcz: this is messy.  logically, setting the url alone should direct where annotations should go.  But 
+            // right now we need to set doc.annotation-active to be the field suffix for the annotations
+            // and we need to set a computed field to copy the annotations to where everyone else expects them in doc.field-annotations
+            // TODO: always write annotations to doc.field-anotations and then copy them to doc.field-annotaitons-hash only when the page is changed.
             this.dataDoc["annotation-active"] = this._annotationKey;
+            // bcz: need to make sure that doc.data-annotations points to the currently active web page's annotations (this could/should be in the constructor)
             this.dataDoc[this.fieldKey + "-annotations"] = ComputedField.MakeFunction(`copyField(this["${this.fieldKey}-"+this["annotation-active"]])`);
         });
 
