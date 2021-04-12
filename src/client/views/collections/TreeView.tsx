@@ -150,6 +150,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         if (this.props.document.isFolder || Doc.IsSystem(this.props.document)) {
             this.treeViewOpen = !this.treeViewOpen;
         } else {
+            // choose an appropriate alias or make one. --- choose the first alias that (1) user owns,  (2) has no context field ... otherwise make a new alias
             this.props.addDocTab(this.props.document, "add:right");
         }
     }
