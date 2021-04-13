@@ -151,7 +151,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                 if (toRemove.length !== 0) {
                     const recent = Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc) as Doc;
                     toRemove.forEach(doc => {
-                        leavePushpin && DocUtils.LeavePushpin(doc);
+                        leavePushpin && DocUtils.LeavePushpin(doc, annotationKey ?? this.annotationKey);
                         Doc.RemoveDocFromList(targetDataDoc, annotationKey ?? this.annotationKey, doc);
                         doc.context = undefined;
                         recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
@@ -216,7 +216,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     else {
                         added.filter(doc => [AclAdmin, AclEdit].includes(GetEffectiveAcl(doc))).map(doc => {  // only make a pushpin if we have acl's to edit the document
                             this.props.layerProvider?.(doc, true);
-                            DocUtils.LeavePushpin(doc);
+                            //DocUtils.LeavePushpin(doc);
                             doc._stayInCollection = undefined;
                             doc.context = this.props.Document;
                             if (annotationKey ?? this._annotationKey) Doc.GetProto(doc).annotationOn = this.props.Document;

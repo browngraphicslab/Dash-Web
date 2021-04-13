@@ -215,5 +215,6 @@ declare const Docs: {
     StackingDocument(documents: Doc[], options?: DocumentOptions): Doc;
 };
 
+declare function idToDoc(id:string):any;
 declare function assignDoc(doc:Doc, field:any, id:any):string;
 declare function d(...args:any[]):any;

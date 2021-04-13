@@ -9,7 +9,7 @@ import { createSchema } from "../../../fields/Schema";
 import { Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { PdfField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
-import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, OmitKeys, smoothScroll, Utils } from "../../../Utils";
+import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, OmitKeys, smoothScroll, Utils, returnFalse } from "../../../Utils";
 import { DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -516,6 +516,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
             }}>
             <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
                 isAnnotationOverlay={true}
+                isContentActive={returnFalse}
                 fieldKey={this.props.fieldKey + "-annotations"}
                 setPreviewCursor={this.setPreviewCursor}
                 PanelHeight={this.panelHeight}

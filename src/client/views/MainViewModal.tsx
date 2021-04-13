@@ -34,7 +34,7 @@ export class MainViewModal extends React.Component<MainViewOverlayProps> {
                 <div className="overlay"
                     onClick={this.props?.closeOnExternalClick}
                     style={{
-                        backgroundColor: "gainsboro",
+                        backgroundColor: "black",
                         ...(p.overlayStyle || {}),
                         opacity: p.isDisplayed ? overlayOpacity : 0
                     }}
