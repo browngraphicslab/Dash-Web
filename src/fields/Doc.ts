@@ -539,7 +539,7 @@ export namespace Doc {
                     const clones = await Promise.all(docs.map(async d => Doc.makeClone(d, cloneMap, rtfs, exclusions, dontCreate, asBranch)));
                     !dontCreate && assignKey(new List<Doc>(clones));
                 } else if (doc[key] instanceof Doc) {
-                    assignKey(key.includes("layout[") ? undefined : key.startsWith("layout") ? doc[key] as Doc : await Doc.makeClone(doc[key] as Doc, cloneMap, rtfs, exclusions, dontCreate, asBranch)); // reference documents except copy documents that are expanded teplate fields 
+                    assignKey(key.includes("layout[") ? undefined : key.startsWith("layout") ? doc[key] as Doc : await Doc.makeClone(doc[key] as Doc, cloneMap, rtfs, exclusions, dontCreate, asBranch)); // reference documents except copy documents that are expanded template fields 
                 } else {
                     !dontCreate && assignKey(ObjectField.MakeCopy(field));
                     if (field instanceof RichTextField) {
@@ -562,7 +562,7 @@ export namespace Doc {
                 } else if (field instanceof ObjectField) {
                     await copyObjectField(field);
                 } else if (field instanceof Promise) {
-                    debugger; //This shouldn't happend...
+                    debugger; //This shouldn't happen...
                 } else {
                     assignKey(field);
                 }
