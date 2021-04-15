@@ -7,7 +7,7 @@ import { collectionSchema, documentSchema } from '../../../fields/documentSchema
 import { makeInterface } from '../../../fields/Schema';
 import { NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { OmitKeys, returnFalse } from '../../../Utils';
-import { DragManager, dropActionType } from '../../util/DragManager';
+import { DragManager } from '../../util/DragManager';
 import { DocumentView } from '../nodes/DocumentView';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { StyleProp } from '../StyleProvider';
@@ -47,34 +47,15 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
         return !(curDoc?.layout instanceof Doc) ? (null) :
             <>
                 <div className="collectionCarouselView-image" key="image">
-                    <DocumentView
-                        Document={curDoc.layout}
-                        DataDoc={curDoc.layout.resolvedDataDoc as Doc}
-                        styleProvider={this.props.styleProvider}
-                        layerProvider={this.props.layerProvider}
-                        docViewPath={this.props.docViewPath}
+                    <DocumentView  {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "childLayoutTemplate", "childLayoutString"]).omit}
+                        onDoubleClick={this.onContentDoubleClick}
+                        onClick={this.onContentClick}
+                        renderDepth={this.props.renderDepth + 1}
                         LayoutTemplate={this.props.childLayoutTemplate}
                         LayoutTemplateString={this.props.childLayoutString}
-                        freezeDimensions={this.props.childFreezeDimensions}
-                        renderDepth={this.props.renderDepth + 1}
-                        PanelWidth={this.props.PanelWidth}
+                        Document={curDoc.layout}
+                        DataDoc={curDoc.layout.resolvedDataDoc as Doc}
                         PanelHeight={this.panelHeight}
-                        rootSelected={this.rootSelected}
-                        dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
-                        ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                        focus={this.props.focus}
-                        docFilters={this.docFilters}
-                        isContentActive={returnFalse}
-                        docRangeFilters={this.docRangeFilters}
-                        searchFilterDocs={this.searchFilterDocs}
-                        ContainingCollectionDoc={this.props.CollectionView?.props.Document}
-                        ContainingCollectionView={this.props.CollectionView}
-                        addDocument={this.props.addDocument}
-                        moveDocument={this.props.moveDocument}
-                        removeDocument={this.props.removeDocument}
-                        whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
-                        addDocTab={this.props.addDocTab}
-                        pinToPres={this.props.pinToPres}
                         bringToFront={returnFalse}
                     />
                 </div>
