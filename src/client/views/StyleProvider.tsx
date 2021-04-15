@@ -65,6 +65,7 @@ export function testDocProps(toBeDetermined: any): toBeDetermined is DocumentVie
 // 
 export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any {
     const docProps = testDocProps(props) ? props : undefined;
+    const fieldKey = (props as any)?.fieldKey ? (props as any).fieldKey + "-" : "";
     const selected = property.includes(":selected");
     const isCaption = property.includes(":caption");
     const isAnchor = property.includes(":anchor");
@@ -99,7 +100,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         case StyleProp.BackgroundColor: {
             if (isCaption) return "rgba(0,0,0 ,0.4)";
             if (Doc.UserDoc().renderStyle === "comic") return "transparent";
-            let docColor: Opt<string> = StrCast(doc?._backgroundColor);
+            let docColor: Opt<string> = StrCast(doc?.[fieldKey + "backgroundColor"], StrCast(doc?._backgroundColor));
             if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
             switch (doc?.type) {
                 case DocumentType.PRESELEMENT: docColor = docColor || (darkScheme() ? "" : ""); break;

@@ -124,8 +124,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                 return ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name, scale: "number" })?.script.run({ self: this.rootDoc, this: this.layoutDoc, scale }).result as string || "";
             };
             divKeys.map((prop: string) => {
-                const p = (this.props as any)[prop] as string;
-                p && (style[prop] = p?.replace(/{([^.'][^}']+)}/g, replacer));
+                const p = (this.props as any)[prop];
+                typeof p === "string" && (style[prop] = p?.replace(/{([^.'][^}']+)}/g, replacer));
             });
             return style;
         }

@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { isEqual } from "lodash";
-import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction, observable } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap, selectAll } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -1132,6 +1132,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     componentWillUnmount() {
+        FormattedTextBox.Focused === this && (FormattedTextBox.Focused = undefined);
         Object.values(this._disposers).forEach(disposer => disposer?.());
         this.endUndoTypingBatch();
         this.unhighlightSearchTerms();
@@ -1236,8 +1237,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @action
     onFocused = (e: React.FocusEvent): void => {
         //applyDevTools.applyDevTools(this._editorView);
+        FormattedTextBox.Focused = this;
         this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props);
     }
+    @observable public static Focused: FormattedTextBox | undefined;
 
     onClick = (e: React.MouseEvent): void => {
         if (Math.abs(e.clientX - this._downX) > 4 || Math.abs(e.clientY - this._downY) > 4) {
@@ -1340,6 +1343,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return wasUndoing;
     }
     onBlur = (e: any) => {
+        FormattedTextBox.Focused === this && (FormattedTextBox.Focused = undefined);
         if (RichTextMenu.Instance?.view === this._editorView && !this.props.isSelected(true)) {
             RichTextMenu.Instance?.updateMenu(undefined, undefined, undefined);
         }

@@ -62,53 +62,37 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                 </div>
                 <div className="collectionCarouselView-caption" key="caption"
                     style={{
-                        background: StrCast(this.layoutDoc._captionBackgroundColor, this.props.styleProvider?.(this.props.Document, this.props, StyleProp.BackgroundColor)),
-                        color: StrCast(this.layoutDoc._captionColor, StrCast(this.layoutDoc.color)),
-                        borderRadius: StrCast(this.layoutDoc._captionBorderRounding),
+                        background: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor + ":caption"),
+                        color: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Color + ":caption"),
+                        borderRadius: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding + ":caption"),
                     }}>
                     <FormattedTextBox key={index} {...this.props}
-                        xMargin={NumCast(this.layoutDoc["_carousel-caption-xMargin"])}
-                        yMargin={NumCast(this.layoutDoc["_carousel-caption-yMargin"])}
-                        Document={curDoc.layout} DataDoc={undefined} fieldKey={"caption"} />
+                        Document={curDoc.layout} DataDoc={undefined} fieldKey={"caption"}
+                        fontSize={NumCast(this.layoutDoc["caption-fontSize"])}
+                        xMargin={NumCast(this.layoutDoc["caption-xMargin"])}
+                        yMargin={NumCast(this.layoutDoc["caption-yMargin"])} />
                 </div>
             </>;
     }
     @computed get buttons() {
         return <>
-            <div key="back" className="carouselView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.goback}>
+            <div key="back" className="carouselView-back" style={{ background: `${StrCast(this.layoutDoc.backgroundColor)}` }} onClick={this.goback}>
                 <FontAwesomeIcon icon={"caret-left"} size={"2x"} />
             </div>
-            <div key="fwd" className="carouselView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.advance}>
+            <div key="fwd" className="carouselView-fwd" style={{ background: `${StrCast(this.layoutDoc.backgroundColor)}` }} onClick={this.advance}>
                 <FontAwesomeIcon icon={"caret-right"} size={"2x"} />
             </div>
         </>;
     }
 
-    _downX = 0;
-    _downY = 0;
-    onPointerDown = (e: React.PointerEvent) => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        document.addEventListener("pointerup", this.onpointerup);
-    }
-    private _lastTap: number = 0;
-    private _doubleTap = false;
-    onpointerup = (e: PointerEvent) => {
-        this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
-        this._lastTap = Date.now();
-    }
-
-    onClick = (e: React.MouseEvent) => {
-        if (this._doubleTap) {
-            e.stopPropagation();
-            this.props.Document.isLightboxOpen = true;
-        }
-    }
-
     render() {
-        return <div className="collectionCarouselView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget}>
+        return <div className="collectionCarouselView-outer" ref={this.createDashEventsTarget}
+            style={{
+                background: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
+                color: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Color),
+            }}>
             {this.content}
-            {!this.props.Document._chromeHidden ? (null) : this.buttons}
+            {this.props.Document._chromeHidden ? (null) : this.buttons}
         </div>;
     }
 }

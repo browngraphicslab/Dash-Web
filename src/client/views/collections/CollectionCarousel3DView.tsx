@@ -104,27 +104,6 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         }, 1500);
     }
 
-    _downX = 0;
-    _downY = 0;
-    onPointerDown = (e: React.PointerEvent) => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        document.addEventListener("pointerup", this.onpointerup);
-    }
-    private _lastTap: number = 0;
-    private _doubleTap = false;
-    onpointerup = (e: PointerEvent) => {
-        this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
-        this._lastTap = Date.now();
-    }
-
-    onClick = (e: React.MouseEvent) => {
-        if (this._doubleTap) {
-            e.stopPropagation();
-            this.props.Document.isLightboxOpen = true;
-        }
-    }
-
     @computed get buttons() {
         if (!this.props.isContentActive()) return null;
         return <div className="arrow-buttons" >
@@ -167,7 +146,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         const index = NumCast(this.layoutDoc._itemIndex);
         const translateX = this.panelWidth() * (1 - index);
 
-        return <div className="collectionCarousel3DView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget}>
+        return <div className="collectionCarousel3DView-outer" ref={this.createDashEventsTarget}>
             <div className="carousel-wrapper" style={{ transform: `translateX(${translateX}px)` }}>
                 {this.content}
             </div>

@@ -92,7 +92,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 };
                 tab.element[0].style.borderTopRightRadius = "8px";
                 tab.element[0].children[1].appendChild(toggle);
-                tab._disposers.layerDisposer = reaction(() => ({ layer: tab.DashDoc.activeLayer, color: this.tabColor }),
+                tab._disposers.layerDisposer = reaction(() =>
+                    ({ layer: tab.DashDoc.activeLayer, color: this.tabColor }),
                     ({ layer, color }) => toggle.style.background = !layer ? color : "dimgrey", { fireImmediately: true });
             }
             // shifts the focus to this tab when another tab is dragged over it

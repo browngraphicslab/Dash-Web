@@ -102,8 +102,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
                 const targetDoc = layoutDoc[DataSym];
                 if (targetDoc[targetField] instanceof ImageField) {
                     this.dataDoc[this.fieldKey] = ObjectField.MakeCopy(targetDoc[targetField] as ImageField);
-                    Doc.SetNativeWidth(this.dataDoc, Doc.NativeWidth(targetDoc));
-                    Doc.SetNativeWidth(this.dataDoc, Doc.NativeHeight(targetDoc));
+                    Doc.SetNativeWidth(this.dataDoc, Doc.NativeWidth(targetDoc), this.fieldKey);
+                    Doc.SetNativeHeight(this.dataDoc, Doc.NativeHeight(targetDoc), this.fieldKey);
                     e.stopPropagation();
                 }
             }
