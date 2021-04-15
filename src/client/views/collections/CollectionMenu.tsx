@@ -554,7 +554,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                         <div className="collectionMenu-divider" key="divider3"></div>
                         {this.lightboxButton}
                         {this.recordButton}
-                        {/* {!this._buttonizableCommands ? (null) : this.templateChrome} */}
+                        {!this._buttonizableCommands ? (null) : this.templateChrome}
                     </div>
                 </div>
             </div>

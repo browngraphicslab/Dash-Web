@@ -9,10 +9,11 @@ import { makeInterface } from '../../../fields/Schema';
 import { ScriptField } from '../../../fields/ScriptField';
 import { NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { OmitKeys, returnFalse, Utils } from '../../../Utils';
-import { DragManager } from '../../util/DragManager';
+import { DragManager, dropActionType } from '../../util/DragManager';
 import { DocumentView } from '../nodes/DocumentView';
 import "./CollectionCarousel3DView.scss";
 import { CollectionSubView } from './CollectionSubView';
+import { StyleProp } from '../StyleProvider';
 
 type Carousel3DDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
 const Carousel3DDocument = makeInterface(documentSchema, collectionSchema);
@@ -42,17 +43,36 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         const displayDoc = (childPair: { layout: Doc, data: Doc }) => {
             const script = ScriptField.MakeScript("this._showCaption = 'caption'", { this: Doc.name });
             const onChildClick = script && (() => script);
-            return <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
-                onDoubleClick={this.onChildDoubleClick}
-                onClick={onChildClick}
-                renderDepth={this.props.renderDepth + 1}
+            return <DocumentView
+                Document={childPair.layout}
+                DataDoc={childPair.layout.resolvedDataDoc as Doc}
+                styleProvider={this.props.styleProvider}
+                layerProvider={this.props.layerProvider}
+                docViewPath={this.props.docViewPath}
                 LayoutTemplate={this.props.childLayoutTemplate}
                 LayoutTemplateString={this.props.childLayoutString}
-                Document={childPair.layout}
-                DataDoc={childPair.data}
+                freezeDimensions={this.props.childFreezeDimensions}
+                renderDepth={this.props.renderDepth + 1}
                 PanelWidth={this.panelWidth}
                 PanelHeight={this.panelHeight}
+                rootSelected={this.rootSelected}
+                dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                focus={this.props.focus}
+                docFilters={this.docFilters}
+                onDoubleClick={this.onChildDoubleClick}
+                onClick={onChildClick}
+                isContentActive={returnFalse}
+                docRangeFilters={this.docRangeFilters}
+                searchFilterDocs={this.searchFilterDocs}
+                ContainingCollectionDoc={this.props.CollectionView?.props.Document}
+                ContainingCollectionView={this.props.CollectionView}
+                addDocument={this.props.addDocument}
+                moveDocument={this.props.moveDocument}
+                removeDocument={this.props.removeDocument}
+                whenChildContentsActiveChanged={this.props.whenChildContentsActiveChanged}
+                addDocTab={this.props.addDocTab}
+                pinToPres={this.props.pinToPres}
                 bringToFront={returnFalse}
             />;
         };
@@ -146,7 +166,11 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         const index = NumCast(this.layoutDoc._itemIndex);
         const translateX = this.panelWidth() * (1 - index);
 
-        return <div className="collectionCarousel3DView-outer" ref={this.createDashEventsTarget}>
+        return <div className="collectionCarousel3DView-outer" ref={this.createDashEventsTarget}
+            style={{
+                background: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
+                color: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Color),
+            }}  >
             <div className="carousel-wrapper" style={{ transform: `translateX(${translateX}px)` }}>
                 {this.content}
             </div>

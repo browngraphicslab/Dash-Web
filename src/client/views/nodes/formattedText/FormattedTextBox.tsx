@@ -1342,6 +1342,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this._undoTyping = undefined;
         return wasUndoing;
     }
+    @action
     onBlur = (e: any) => {
         FormattedTextBox.Focused === this && (FormattedTextBox.Focused = undefined);
         if (RichTextMenu.Instance?.view === this._editorView && !this.props.isSelected(true)) {
