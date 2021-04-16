@@ -1556,7 +1556,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         onScroll={this.onScroll} onDrop={this.ondrop} >
                         <div className={minimal ? "formattedTextBox-minimal" : `formattedTextBox-inner${rounded}${selPaddingClass}`} ref={this.createDropTarget}
                             style={{
-                                padding: this.layoutDoc._textBoxPadding ? StrCast(this.layoutDoc._textBoxPadding) : `${padding}px`,
+                                padding: StrCast(this.layoutDoc._textBoxPadding, `${padding}px`),
                                 pointerEvents: !active && !SnappingManager.GetIsDragging() ? (this.layoutDoc.isLinkButton ? "none" : undefined) : undefined
                             }}
                         />

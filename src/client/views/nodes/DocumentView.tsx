@@ -47,6 +47,7 @@ import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
 import { ScriptingBox } from "./ScriptingBox";
+import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 const { Howl } = require('howler');
 
 interface Window {
@@ -670,6 +671,20 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             const appearance = cm.findByDescription("UI Controls...");
             const appearanceItems: ContextMenuProps[] = appearance && "subitems" in appearance ? appearance.subitems : [];
             !Doc.UserDoc().noviceMode && templateDoc && appearanceItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "add:right"), icon: "eye" });
+            appearanceItems.push({
+                description: "Add a Field", event: () => {
+                    const alias = Doc.MakeAlias(this.rootDoc);
+                    alias.layout = FormattedTextBox.LayoutString("newfield");
+                    alias.title = "newfield";
+                    alias._yMargin = 10;
+                    alias._height = 35;
+                    alias._width = 100;
+                    alias.syncLayoutFieldWithTitle = true;
+                    alias.x = NumCast(this.rootDoc.x) + NumCast(this.rootDoc.width);
+                    alias.y = NumCast(this.rootDoc.y);
+                    this.props.addDocument?.(alias);
+                }, icon: "eye"
+            });
             DocListCast(this.Document.links).length && appearanceItems.splice(0, 0, { description: `${this.layoutDoc.hideLinkButton ? "Show" : "Hide"} Link Button`, event: action(() => this.layoutDoc.hideLinkButton = !this.layoutDoc.hideLinkButton), icon: "eye" });
             !appearance && cm.addItem({ description: "UI Controls...", subitems: appearanceItems, icon: "compass" });
 

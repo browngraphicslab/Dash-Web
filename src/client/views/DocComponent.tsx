@@ -182,7 +182,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         addDocument(doc: Doc | Doc[], annotationKey?: string): boolean {
             const docs = doc instanceof Doc ? [doc] : doc;
             if (this.props.filterAddDocument?.(docs) === false ||
-                docs.find(doc => Doc.AreProtosEqual(doc, this.props.Document))) {
+                docs.find(doc => Doc.AreProtosEqual(doc, this.props.Document) && Doc.LayoutField(doc) === Doc.LayoutField(this.props.Document))) {
                 return false;
             }
             const targetDataDoc = this.props.Document[DataSym];
