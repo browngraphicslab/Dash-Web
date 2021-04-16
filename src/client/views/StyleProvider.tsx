@@ -86,21 +86,23 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
             !Doc.IsSystem(doc) && doc.type === DocumentType.RTF ?
                 (doc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") : "") || "";
         case StyleProp.Color:
+            const docColor: Opt<string> = StrCast(doc?.[fieldKey + "color"], StrCast(doc?._color));
+            if (docColor) return docColor;
             if (isCaption) return "white";
-            const backColor = backgroundCol() || "black";
+            const backColor = backgroundCol();// || (darkScheme() ? "black" : "white");
+            if (!backColor) return undefined;
             const col = Color(backColor).rgb();
             const colsum = (col.red() + col.green() + col.blue());
             if (colsum / col.alpha() > 400 || col.alpha() < 0.25) return "black";
             return "white";
         case StyleProp.Hidden: return BoolCast(doc?._hidden);
-        case StyleProp.BorderRounding: return StrCast(doc?._borderRounding);
+        case StyleProp.BorderRounding: return StrCast(doc?.[fieldKey + "borderRounding"], StrCast(doc?._borderRounding));
         case StyleProp.TitleHeight: return 15;
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) ||
             doc?.type === DocumentType.RTF) && showTitle() && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
         case StyleProp.BackgroundColor: {
-            if (isCaption) return "rgba(0,0,0 ,0.4)";
             if (Doc.UserDoc().renderStyle === "comic") return "transparent";
-            let docColor: Opt<string> = StrCast(doc?.[fieldKey + "backgroundColor"], StrCast(doc?._backgroundColor));
+            let docColor: Opt<string> = StrCast(doc?.[fieldKey + "backgroundColor"], StrCast(doc?._backgroundColor, isCaption ? "rbga(0,0,0,0.4)" : ""));
             if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
             switch (doc?.type) {
                 case DocumentType.PRESELEMENT: docColor = docColor || (darkScheme() ? "" : ""); break;
@@ -131,7 +133,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
                                             Doc.UserDoc().activeCollectionBackground));
                     break;
                 //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
-                default: docColor = darkScheme() ? "black" : "white"; break;
+                default: docColor = docColor || (darkScheme() ? "black" : "white"); break;
             }
             if (docColor && (!doc || props?.layerProvider?.(doc) === false)) docColor = Color(docColor.toLowerCase()).fade(0.5).toString();
             return docColor;

@@ -273,6 +273,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                 <ResizeBar
                     width={resizerWidth}
                     key={"resizer" + i}
+                    styleProvider={this.props.styleProvider}
+                    isContentActive={this.props.isContentActive}
                     select={this.props.select}
                     columnUnitLength={this.getColumnUnitLength}
                     toLeft={layout}

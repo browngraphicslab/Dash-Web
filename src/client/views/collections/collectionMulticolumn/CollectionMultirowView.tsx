@@ -267,6 +267,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
                 </div>,
                 <ResizeBar
                     height={resizerHeight}
+                    styleProvider={this.props.styleProvider}
+                    isContentActive={this.props.isContentActive}
                     key={"resizer" + i}
                     columnUnitLength={this.getRowUnitLength}
                     toTop={layout}

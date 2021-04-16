@@ -508,6 +508,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             // if this is part of a template, let the event go up to the tempalte root unless right/ctrl clicking
             !(this.props.Document.rootDocument && !(e.ctrlKey || e.button > 0))) {
             if ((this.props.isDocumentActive?.() || this.layoutDoc.onDragStart) &&
+                !this.Document.ignoreClick &&
                 !e.ctrlKey &&
                 (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
                 !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
@@ -891,7 +892,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         TraceMobx();
         const showTitle = this.ShowTitle?.split(":")[0];
         const showTitleHover = this.ShowTitle?.includes(":hover");
-        const showCaption = StrCast(this.layoutDoc._showCaption);
+        const showCaption = StrCast(this.layoutDoc._showCaption) && this.Document._viewType !== CollectionViewType.Carousel;
         const captionView = !showCaption ? (null) :
             <div className="documentView-captionWrapper"
                 style={{
@@ -899,8 +900,8 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     color: StrCast(this.layoutDoc["caption-color"])
                 }}>
                 <DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
-                    yMargin={10}
-                    xMargin={10}
+                    yPadding={10}
+                    xPadding={10}
                     hideOnLeave={true}
                     styleProvider={this.captionStyleProvider}
                     dontRegisterView={true}

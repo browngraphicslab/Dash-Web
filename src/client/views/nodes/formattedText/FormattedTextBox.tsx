@@ -68,8 +68,8 @@ const translateGoogleApi = require("translate-google-api");
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
     hideOnLeave?: boolean;  // used by DocumentView for setting caption's hide on leave (bcz: would prefer to have caption-hideOnLeave field set or something similar)
-    xMargin?: number;   // used to override document's settings for xMargin --- see CollectionCarouselView
-    yMargin?: number;
+    xPadding?: number;   // used to override document's settings for xMargin --- see CollectionCarouselView
+    yPadding?: number;
     noSidebar?: boolean;
     dontSelectOnLoad?: boolean; // suppress selecting the text box when loaded
 }
@@ -1477,8 +1477,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     NativeHeight={returnZero}
                     PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.sidebarWidth}
-                    xMargin={0}
-                    yMargin={0}
+                    xPadding={0}
+                    yPadding={0}
                     scaleField={this.SidebarKey + "-scale"}
                     isAnnotationOverlay={false}
                     select={emptyFunction}
@@ -1510,7 +1510,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const interactive = (CurrentUserUtils.SelectedTool === InkTool.None || SnappingManager.GetIsDragging()) && (this.layoutDoc.z || this.props.layerProvider?.(this.layoutDoc) !== false);
         if (!selected && FormattedTextBoxComment.textBox === this) setTimeout(FormattedTextBoxComment.Hide);
         const minimal = this.props.ignoreAutoHeight;
-        const margins = NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0);
+        const margins = NumCast(this.layoutDoc._yMargin, this.props.yPadding || 0);
         const selPad = Math.min(margins, 10);
         const padding = Math.max(margins + ((selected && !this.layoutDoc._singleLine) || minimal ? -selPad : 0), 0);
         const selPaddingClass = selected && !this.layoutDoc._singleLine && margins >= 10 ? "-selected" : "";
@@ -1529,8 +1529,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     style={{
                         overflow: this.autoHeight ? "hidden" : undefined,
                         height: this.props.height || (this.autoHeight && this.props.renderDepth ? "max-content" : undefined),
-                        background: this.props.background ? this.props.background : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor)),
-                        color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Color)),
+                        background: this.props.background ? this.props.background : this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
+                        color: this.props.color ? this.props.color : this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Color),
                         pointerEvents: interactive ? undefined : "none",
                         fontSize: this.props.fontSize || Cast(this.layoutDoc._fontSize, "string", null),
                         fontWeight: Cast(this.layoutDoc._fontWeight, "number", null),
@@ -1565,7 +1565,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     {(this.props.noSidebar || this.Document._noSidebar) || this.Document._singleLine ? (null) : this.sidebarHandle}
                     {!this.layoutDoc._showAudio ? (null) : this.audioHandle}
                 </div>
-            </div>
+            </div >
         );
     }
 }

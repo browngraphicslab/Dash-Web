@@ -194,8 +194,8 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
                         select={emptyFunction}
                         isContentActive={returnFalse}
                         scaling={returnOne}
-                        xMargin={25}
-                        yMargin={10}
+                        xPadding={25}
+                        yPadding={10}
                         whenChildContentsActiveChanged={emptyFunction}
                         removeDocument={returnFalse}
                         moveDocument={returnFalse}
