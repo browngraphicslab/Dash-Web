@@ -49,6 +49,11 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         return this.childLayoutPairs.map(pair => pair.layout).filter(layout => StrCast(layout._dimUnit, "*") === DimUnit.Ratio);
     }
 
+    @computed
+    private get minimumDim() {
+        return Math.min(...this.ratioDefinedDocs.filter(layout => layout._dimMagnitude).map(layout => NumCast(layout._dimMagnitude)));
+    }
+
     /**
      * This loops through all childLayoutPairs and extracts the values for _dimUnit
      * and _dimUnit, ignoring any that are malformed. Additionally, it then
@@ -63,7 +68,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         const heightSpecifiers: HeightSpecifier[] = [];
         this.childLayoutPairs.map(pair => {
             const unit = StrCast(pair.layout._dimUnit, "*");
-            const magnitude = NumCast(pair.layout._dimMagnitude, 1);
+            const magnitude = NumCast(pair.layout._dimMagnitude, this.minimumDim);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
                 (unit === DimUnit.Ratio) && (starSum += magnitude);
                 heightSpecifiers.push({ magnitude, unit });
@@ -80,15 +85,15 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
          * themselves to drift toward zero. Thus, whenever we change any of the values,
          * we normalize everything (dividing by the smallest magnitude).
          */
-        setTimeout(() => {
-            const { ratioDefinedDocs } = this;
-            if (this.childLayoutPairs.length) {
-                const minimum = Math.min(...ratioDefinedDocs.map(layout => NumCast(layout._dimMagnitude, 1)));
-                if (minimum !== 0) {
-                    ratioDefinedDocs.forEach(layout => layout._dimMagnitude = NumCast(layout._dimMagnitude, 1) / minimum);
-                }
-            }
-        });
+        // setTimeout(() => {
+        //     const { ratioDefinedDocs } = this;
+        //     if (this.childLayoutPairs.length) {
+        //         const minimum = Math.min(...ratioDefinedDocs.map(layout => NumCast(layout._dimMagnitude, 1)));
+        //         if (minimum !== 0) {
+        //             ratioDefinedDocs.forEach(layout => layout._dimMagnitude = NumCast(layout._dimMagnitude, 1) / minimum);
+        //         }
+        //     }
+        // });
 
         return { heightSpecifiers, starSum };
     }
@@ -161,7 +166,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         if (rowUnitLength === undefined) {
             return 0; // we're still waiting on promises to resolve
         }
-        let height = NumCast(layout._dimMagnitude, 1);
+        let height = NumCast(layout._dimMagnitude, this.minimumDim);
         if (StrCast(layout._dimUnit, "*") === DimUnit.Ratio) {
             height *= rowUnitLength;
         }
@@ -261,7 +266,9 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             const height = () => this.lookupPixels(layout);
             const width = () => PanelWidth() - 2 * NumCast(Document._xMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(
-                <div className={"document-wrapper"} key={"wrapper" + i} >
+                <div className={"document-wrapper"}
+                    style={{ height: height() }}
+                    key={"wrapper" + i} >
                     {this.getDisplayDoc(layout, dxf, width, height)}
                     <HeightLabel layout={layout} collectionDoc={Document} />
                 </div>,

@@ -9,7 +9,7 @@ import * as ReactDOM from 'react-dom';
 import { DataSym, Doc, DocListCast, DocListCastAsync, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
 import { FieldId } from "../../../fields/RefField";
-import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { Cast, NumCast, StrCast, BoolCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
 import { emptyFunction, returnEmptyDoclist, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
@@ -299,6 +299,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     PanelHeight = () => this._panelHeight;
     miniMapColor = () => this.tabColor;
     tabView = () => this._view;
+    disableMinimap = () => !this._document || (this._document.layout !== CollectionView.LayoutString(Doc.LayoutFieldKey(this._document)) || this._document?._viewType !== CollectionViewType.Freeform);
+    hideMinimap = () => this.disableMinimap() || BoolCast(this._document?.hideMinimap);
 
     @computed get layerProvider() { return this._document && DefaultLayerProvider(this._document); }
     @computed get docView() {
@@ -330,13 +332,14 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 bringToFront={emptyFunction}
                 pinToPres={TabDocView.PinDoc} />
                 <TabMinimapView key="minimap"
+                    hideMinimap={this.hideMinimap}
                     addDocTab={this.addDocTab}
                     PanelHeight={this.PanelHeight}
                     PanelWidth={this.PanelWidth}
                     background={this.miniMapColor}
                     document={this._document}
                     tabView={this.tabView} />
-                <Tooltip style={{ display: this._document.layout !== CollectionView.LayoutString(Doc.LayoutFieldKey(this._document)) || this._document?._viewType !== CollectionViewType.Freeform ? "none" : undefined }} key="ttip" title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
+                <Tooltip style={{ display: this.disableMinimap() ? "none" : undefined }} key="ttip" title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
                     <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
                         <FontAwesomeIcon icon={"globe-asia"} size="lg" />
                     </div>
@@ -361,6 +364,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
 
 interface TabMinimapViewProps {
     document: Doc;
+    hideMinimap: () => boolean;
     tabView: () => DocumentView | undefined;
     addDocTab: (doc: Doc, where: string) => boolean;
     PanelWidth: () => number;
@@ -411,7 +415,7 @@ export class TabMinimapView extends React.Component<TabMinimapViewProps> {
         const miniLeft = 50 + (NumCast(this.props.document._panX) - this.renderBounds.cx) / this.renderBounds.dim * 100 - miniWidth / 2;
         const miniTop = 50 + (NumCast(this.props.document._panY) - this.renderBounds.cy) / this.renderBounds.dim * 100 - miniHeight / 2;
         const miniSize = this.returnMiniSize();
-        return this.props.document.hideMinimap ? (null) :
+        return this.props.hideMinimap() ? (null) :
             <div className="miniMap" style={{ width: miniSize, height: miniSize, background: this.props.background() }}>
                 <CollectionFreeFormView
                     Document={this.props.document}

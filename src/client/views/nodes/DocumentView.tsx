@@ -200,7 +200,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     @computed get finalLayoutKey() { return StrCast(this.Document.layoutKey, "layout"); }
     @computed get nativeWidth() { return this.props.NativeWidth(); }
     @computed get nativeHeight() { return this.props.NativeHeight(); }
-    @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
+    @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onfClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
     @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() ?? (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) ?? this.Document.onDoubleClick); }
     @computed get onPointerDownHandler() { return this.props.onPointerDown?.() ?? ScriptCast(this.Document.onPointerDown); }
     @computed get onPointerUpHandler() { return this.props.onPointerUp?.() ?? ScriptCast(this.Document.onPointerUp); }
@@ -453,10 +453,11 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     }, console.log);
                     UndoManager.RunInBatch(() => func().result?.select === true ? this.props.select(false) : "", "on double click");
                 } else if (!Doc.IsSystem(this.rootDoc)) {
-                    if (this.props.Document.type !== DocumentType.LABEL) {
-                        UndoManager.RunInBatch(() => this.props.addDocTab((this.rootDoc._fullScreenView as Doc) || this.rootDoc, "lightbox"), "double tap");
-                        SelectionManager.DeselectAll();
-                    }
+                    UndoManager.RunInBatch(() =>
+                        LightboxView.AddDocTab(this.rootDoc, "lightbox", this.props.LayoutTemplate?.())
+                        //this.props.addDocTab((this.rootDoc._fullScreenView as Doc) || this.rootDoc, "lightbox")
+                        , "double tap");
+                    SelectionManager.DeselectAll();
                     Doc.UnBrushDoc(this.props.Document);
                 }
             } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes(ScriptingBox.name)) { // bcz: hack? don't execute script if you're clicking on a scripting box itself

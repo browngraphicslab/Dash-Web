@@ -1064,8 +1064,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         });
     }
     setupEditor(config: any, fieldKey: string) {
-        const curText = Cast(this.dataDoc[this.props.fieldKey], RichTextField, null);
-        const rtfField = Cast((!curText?.Text && this.layoutDoc[this.props.fieldKey]) || this.dataDoc[fieldKey], RichTextField);
+        const curText = Cast(this.dataDoc[this.props.fieldKey], RichTextField, null) || StrCast(this.dataDoc[this.props.fieldKey]);
+        const rtfField = Cast((!curText && this.layoutDoc[this.props.fieldKey]) || this.dataDoc[fieldKey], RichTextField);
         if (this.ProseRef) {
             const self = this;
             this._editorView?.destroy();
@@ -1118,7 +1118,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 const tr = this._editorView.state.tr.setStoredMarks(storedMarks).insertText(FormattedTextBox.SelectOnLoadChar, this._editorView.state.doc.content.size - 1, this._editorView.state.doc.content.size).setStoredMarks(storedMarks);
                 this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(tr.doc.content.size))));
                 FormattedTextBox.SelectOnLoadChar = "";
-            } else if (curText?.Text && !FormattedTextBox.DontSelectInitialText) {
+            } else if (curText && !FormattedTextBox.DontSelectInitialText) {
                 selectAll(this._editorView!.state, this._editorView?.dispatch);
                 this.startUndoTypingBatch();
             }
