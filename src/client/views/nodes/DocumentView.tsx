@@ -978,6 +978,8 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         let highlighting = !this.props.disableDocBrushing && highlightIndex && !excludeTypes.includes(this.layoutDoc.type as any) && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction && this.layoutDoc.title !== "[pres element template]";  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
 
+        const borderPath = this.props.styleProvider?.(this.props.Document, this.props, StyleProp.BorderPath) || { path: undefined };
+        const internal = PresBox.EffectsProvider(this.layoutDoc, this.renderDoc) || this.renderDoc;
         const boxShadow = highlighting && this.borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :
             this.boxShadow || (this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined);
         return <div className={DocumentView.ROOT_DIV} ref={this._mainCont}
@@ -993,8 +995,18 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 outline: highlighting && !this.borderRounding ? `${highlightColor} ${highlightStyle} ${highlightIndex}px` : "solid 0px",
                 border: highlighting && this.borderRounding && highlightStyle === "dashed" ? `${highlightStyle} ${highlightColor} ${highlightIndex}px` : undefined,
                 boxShadow,
+                clipPath: `path('${borderPath.path}')`,
             }}>
-            {PresBox.EffectsProvider(this.layoutDoc, this.renderDoc) || this.renderDoc}
+            {!borderPath.path ? internal :
+                <>
+                    {internal}
+                    <div key="border" className="documentView-customBorder" style={{ pointerEvents: "none" }} >
+                        <svg style={{ overflow: "visible" }} viewBox={`0 0 ${this.props.PanelWidth()} ${this.props.PanelHeight()}`}>
+                            <path d={borderPath.path} style={{ stroke: "black", fill: "transparent", strokeWidth: borderPath.width }} />
+                        </svg>
+                    </div>
+                </>
+            }
         </div>;
     }
 }
