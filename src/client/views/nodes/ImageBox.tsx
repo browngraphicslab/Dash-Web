@@ -1,14 +1,13 @@
-import { action, computed, IReactionDisposer, observable, reaction, runInAction, ObservableMap, untracked } from 'mobx';
+import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction } from 'mobx';
 import { observer } from "mobx-react";
-import { Dictionary } from 'typescript-collections';
 import { DataSym, Doc, DocListCast, WidthSym } from '../../../fields/Doc';
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
-import { createSchema, listSpec, makeInterface } from '../../../fields/Schema';
+import { createSchema, makeInterface } from '../../../fields/Schema';
 import { ComputedField } from '../../../fields/ScriptField';
-import { Cast, NumCast, StrCast } from '../../../fields/Types';
+import { Cast, NumCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
 import { emptyFunction, OmitKeys, returnOne, Utils } from '../../../Utils';
@@ -59,8 +58,12 @@ export class ImageBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
         this._dropDisposer?.();
         ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.props.Document));
     }
+    setViewSpec = (anchor: Doc, preview: boolean) => {
+
+    } // sets viewing information for a componentview, typically when following a link. 'preview' tells the view to use the values without writing to the document
 
     componentDidMount() {
+        this.props.setContentView?.(this); // bcz: do not remove this.  without it, stepping into an image in the lightbox causes an infinite loop....
         this._disposers.sizer = reaction(() => (
             {
                 forceFull: this.props.renderDepth < 1 || this.layoutDoc._showFullRes,
@@ -315,6 +318,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
     @observable _marqueeing: number[] | undefined;
     @observable _savedAnnotations = new ObservableMap<number, HTMLDivElement[]>();
     @computed get annotationLayer() {
+        TraceMobx();
         return <div className="imageBox-annotationLayer" style={{ height: this.props.PanelHeight() }} ref={this._annotationLayer} />;
     }
     @action
@@ -331,7 +335,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
         TraceMobx();
         const borderRad = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding);
         const borderRadius = borderRad?.includes("px") ? `${Number(borderRad.split("px")[0]) / (this.props.scaling?.() || 1)}px` : borderRad;
-        return (<div className={`imageBox`} onContextMenu={this.specificContextMenu} ref={this._mainCont}
+        return (<div className="imageBox" onContextMenu={this.specificContextMenu} ref={this._mainCont}
             style={{
                 width: this.props.PanelWidth() ? undefined : `100%`,
                 height: this.props.PanelWidth() ? undefined : `100%`,
@@ -340,32 +344,28 @@ export class ImageBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
             }} >
             <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
                 renderDepth={this.props.renderDepth + 1}
-                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                CollectionView={undefined}
-                PanelHeight={this.props.PanelHeight}
-                scaling={returnOne}
-                ScreenToLocalTransform={this.screenToLocalTransform}
-                PanelWidth={this.props.PanelWidth}
                 fieldKey={this.annotationKey}
+                CollectionView={undefined}
                 isAnnotationOverlay={true}
-                docFilters={this.props.docFilters}
-                docRangeFilters={this.props.docRangeFilters}
-                searchFilterDocs={this.props.searchFilterDocs}
-                removeDocument={this.removeDocument}
-                moveDocument={this.moveDocument}
-                addDocument={this.addDocument}
                 annotationLayerHostsContent={true}
-                focus={this.props.focus}
-                isSelected={this.props.isSelected}
+                PanelWidth={this.props.PanelWidth}
+                PanelHeight={this.props.PanelHeight}
+                ScreenToLocalTransform={this.screenToLocalTransform}
                 select={emptyFunction}
                 isContentActive={this.isContentActive}
-                whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}>
+                scaling={returnOne}
+                whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
+                removeDocument={this.removeDocument}
+                moveDocument={this.moveDocument}
+                addDocument={this.addDocument}>
                 {this.contentFunc}
             </CollectionFreeFormView>
             {this.annotationLayer}
             {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
-                <MarqueeAnnotator rootDoc={this.rootDoc}
-                    scrollTop={0} down={this._marqueeing}
+                <MarqueeAnnotator
+                    rootDoc={this.rootDoc}
+                    scrollTop={0}
+                    down={this._marqueeing}
                     scaling={this.props.scaling}
                     docView={this.props.docViewPath().lastElement()}
                     addDocument={this.addDocument}
