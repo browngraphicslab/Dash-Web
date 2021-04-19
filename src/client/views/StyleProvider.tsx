@@ -101,7 +101,6 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) ||
             doc?.type === DocumentType.RTF) && showTitle() && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
         case StyleProp.BackgroundColor: {
-            if (Doc.UserDoc().renderStyle === "comic") return "transparent";
             let docColor: Opt<string> = StrCast(doc?.[fieldKey + "backgroundColor"], StrCast(doc?._backgroundColor, isCaption ? "rbga(0,0,0,0.4)" : ""));
             if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
             switch (doc?.type) {

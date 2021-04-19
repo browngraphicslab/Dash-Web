@@ -350,7 +350,10 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     render() {
         this.tab && CollectionDockingView.Instance.tabMap.delete(this.tab);
         return (
-            <div className="collectionDockingView-content" style={{ height: "100%", width: "100%" }} ref={ref => {
+            <div className="collectionDockingView-content" style={{
+                fontFamily: Doc.UserDoc().renderStyle === "comic" ? "Comic Sans MS" : undefined,
+                height: "100%", width: "100%"
+            }} ref={ref => {
                 if (this._mainCont = ref) {
                     (this._mainCont as any).InitTab = (tab: any) => this.init(tab, this._document);
                     DocServer.GetRefField(this.props.documentId).then(action(doc => doc instanceof Doc && (this._document = doc) && this.tab && this.init(this.tab, this._document)));
