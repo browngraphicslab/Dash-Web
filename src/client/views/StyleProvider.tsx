@@ -62,8 +62,8 @@ export function testDocProps(toBeDetermined: any): toBeDetermined is DocumentVie
     return (toBeDetermined?.isContentActive) ? toBeDetermined : undefined;
 }
 
-function wavyBorderPath(pw: number, ph: number) {
-    return `M ${pw * .5} ${ph * .05}   C ${pw * .6} ${ph * .05} ${pw * .9} 0 ${pw * .95} ${ph * .05}   C ${pw} ${ph * .1} ${pw * .95} ${ph * .2} ${pw * .95} ${ph * .25}   C ${pw * .95} ${ph * .35} ${pw} ${ph * .9} ${pw * .95} ${ph * .95}  C ${pw * .9} ${ph} ${pw * .6} ${ph * .95} ${pw * .5} ${ph * .95}   C ${pw * .3} ${ph * .95} ${pw * .1} ${ph} ${pw * .05} ${ph * .95}  C 0 ${ph * .9} ${pw * .05} ${ph * .85} ${pw * .05} ${ph * .8}   C ${pw * .05} ${ph * .75} 0 ${ph * .1} ${pw * .05} ${ph * .05}   C ${pw * .1} 0 ${pw * .25} ${ph * .05} ${pw * .5} ${ph * .05}`;
+function wavyBorderPath(pw: number, ph: number, inset: number = 0.05) {
+    return `M ${pw * .5} ${ph * inset}   C ${pw * .6} ${ph * inset} ${pw * (1 - 2 * inset)} 0 ${pw * (1 - inset)} ${ph * inset}   C ${pw} ${ph * (2 * inset)} ${pw * (1 - inset)} ${ph * .25} ${pw * (1 - inset)} ${ph * .3}   C ${pw * (1 - inset)} ${ph * .4} ${pw} ${ph * (1 - 2 * inset)} ${pw * (1 - inset)} ${ph * (1 - inset)}  C ${pw * (1 - 2 * inset)} ${ph} ${pw * .6} ${ph * (1 - inset)} ${pw * .5} ${ph * (1 - inset)}   C ${pw * .3} ${ph * (1 - inset)} ${pw * (2 * inset)} ${ph} ${pw * inset} ${ph * (1 - inset)}  C 0 ${ph * (1 - 2 * inset)} ${pw * inset} ${ph * .8} ${pw * inset} ${ph * .75}   C ${pw * inset} ${ph * .7} 0 ${ph * (2 * inset)} ${pw * inset} ${ph * inset}   C ${pw * (2 * inset)} 0 ${pw * .25} ${ph * inset} ${pw * .5} ${ph * inset}`;
 }
 
 // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
@@ -104,7 +104,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         case StyleProp.Hidden: return BoolCast(doc?._hidden);
         case StyleProp.BorderRounding: return StrCast(doc?.[fieldKey + "borderRounding"], StrCast(doc?._borderRounding));
         case StyleProp.TitleHeight: return 15;
-        case StyleProp.BorderPath: return comicStyle() ? { path: wavyBorderPath(props?.PanelWidth?.() || 0, props?.PanelHeight?.() || 0), width: 3 } : { path: undefined, width: 0 };
+        case StyleProp.BorderPath: return comicStyle() ? { path: wavyBorderPath(props?.PanelWidth?.() || 0, props?.PanelHeight?.() || 0), fill: wavyBorderPath(props?.PanelWidth?.() || 0, props?.PanelHeight?.() || 0, .08), width: 3 } : { path: undefined, width: 0 };
         case StyleProp.JitterRotation: return comicStyle() ? random(-1, 1, NumCast(doc?.x), NumCast(doc?.y)) * ((props?.PanelWidth() || 0) > (props?.PanelHeight() || 0) ? 5 : 10) : 0;
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) ||
             doc?.type === DocumentType.RTF) && showTitle() && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;

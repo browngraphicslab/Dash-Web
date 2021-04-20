@@ -995,12 +995,15 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 outline: highlighting && !this.borderRounding ? `${highlightColor} ${highlightStyle} ${highlightIndex}px` : "solid 0px",
                 border: highlighting && this.borderRounding && highlightStyle === "dashed" ? `${highlightStyle} ${highlightColor} ${highlightIndex}px` : undefined,
                 boxShadow,
-                clipPath: `path('${borderPath.path}')`,
+                clipPath: `path('${borderPath.path}')`
             }}>
             {!borderPath.path ? internal :
                 <>
+                    {/* <div style={{ clipPath: `path('${borderPath.fill}')` }}>
+                        {internal}
+                    </div> */}
                     {internal}
-                    <div key="border" className="documentView-customBorder" style={{ pointerEvents: "none" }} >
+                    <div key="border2" className="documentView-customBorder" style={{ pointerEvents: "none" }} >
                         <svg style={{ overflow: "visible" }} viewBox={`0 0 ${this.props.PanelWidth()} ${this.props.PanelHeight()}`}>
                             <path d={borderPath.path} style={{ stroke: "black", fill: "transparent", strokeWidth: borderPath.width }} />
                         </svg>
