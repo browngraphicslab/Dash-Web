@@ -14,7 +14,7 @@ import { Transform } from '../util/Transform';
 import { TabDocView } from './collections/TabDocView';
 import "./LightboxView.scss";
 import { DocumentView, ViewAdjustment } from './nodes/DocumentView';
-import { DefaultStyleProvider } from './StyleProvider';
+import { DefaultStyleProvider, wavyBorderPath } from './StyleProvider';
 
 interface LightboxViewProps {
     PanelWidth: number;
@@ -217,7 +217,8 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                     left: this.leftBorder,
                     top: this.topBorder,
                     width: this.lightboxWidth(),
-                    height: this.lightboxHeight()
+                    height: this.lightboxHeight(),
+                    clipPath: `path('${Doc.UserDoc().renderStyle === "comic" ? wavyBorderPath(this.lightboxWidth(), this.lightboxHeight()) : undefined}')`
                 }}>
                     <DocumentView ref={action((r: DocumentView | null) => {
                         LightboxView._docView = r !== null ? r : undefined;

@@ -62,7 +62,7 @@ export function testDocProps(toBeDetermined: any): toBeDetermined is DocumentVie
     return (toBeDetermined?.isContentActive) ? toBeDetermined : undefined;
 }
 
-function wavyBorderPath(pw: number, ph: number, inset: number = 0.05) {
+export function wavyBorderPath(pw: number, ph: number, inset: number = 0.05) {
     return `M ${pw * .5} ${ph * inset}   C ${pw * .6} ${ph * inset} ${pw * (1 - 2 * inset)} 0 ${pw * (1 - inset)} ${ph * inset}   C ${pw} ${ph * (2 * inset)} ${pw * (1 - inset)} ${ph * .25} ${pw * (1 - inset)} ${ph * .3}   C ${pw * (1 - inset)} ${ph * .4} ${pw} ${ph * (1 - 2 * inset)} ${pw * (1 - inset)} ${ph * (1 - inset)}  C ${pw * (1 - 2 * inset)} ${ph} ${pw * .6} ${ph * (1 - inset)} ${pw * .5} ${ph * (1 - inset)}   C ${pw * .3} ${ph * (1 - inset)} ${pw * (2 * inset)} ${ph} ${pw * inset} ${ph * (1 - inset)}  C 0 ${ph * (1 - 2 * inset)} ${pw * inset} ${ph * .8} ${pw * inset} ${ph * .75}   C ${pw * inset} ${ph * .7} 0 ${ph * (2 * inset)} ${pw * inset} ${ph * inset}   C ${pw * (2 * inset)} 0 ${pw * .25} ${ph * inset} ${pw * .5} ${ph * inset}`;
 }
 
@@ -76,7 +76,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
     const isAnchor = property.includes(":anchor");
     const isAnnotated = property.includes(":annotated");
     const isOpen = property.includes(":open");
-    const comicStyle = () => doc && !Doc.IsSystem(doc) && Doc.UserDoc().renderStyle === "comic";
+    const comicStyle = () => doc && props?.renderDepth && !Doc.IsSystem(doc) && Doc.UserDoc().renderStyle === "comic";
     const isBackground = () => StrListCast(doc?._layerTags).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
