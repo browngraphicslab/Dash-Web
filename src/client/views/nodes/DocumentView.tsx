@@ -995,7 +995,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 outline: highlighting && !this.borderRounding ? `${highlightColor} ${highlightStyle} ${highlightIndex}px` : "solid 0px",
                 border: highlighting && this.borderRounding && highlightStyle === "dashed" ? `${highlightStyle} ${highlightColor} ${highlightIndex}px` : undefined,
                 boxShadow,
-                clipPath: `path('${borderPath.path}')`
+                clipPath: borderPath.path ? `path('${borderPath.path}')` : undefined
             }}>
             {!borderPath.path ? internal :
                 <>

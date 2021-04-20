@@ -76,7 +76,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
     const isAnchor = property.includes(":anchor");
     const isAnnotated = property.includes(":annotated");
     const isOpen = property.includes(":open");
-    const comicStyle = () => doc && props?.renderDepth && !Doc.IsSystem(doc) && Doc.UserDoc().renderStyle === "comic";
+    const comicStyle = () => doc && !Doc.IsSystem(doc) && Doc.UserDoc().renderStyle === "comic";
     const isBackground = () => StrListCast(doc?._layerTags).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
@@ -104,7 +104,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         case StyleProp.Hidden: return BoolCast(doc?._hidden);
         case StyleProp.BorderRounding: return StrCast(doc?.[fieldKey + "borderRounding"], StrCast(doc?._borderRounding));
         case StyleProp.TitleHeight: return 15;
-        case StyleProp.BorderPath: return comicStyle() ? { path: wavyBorderPath(props?.PanelWidth?.() || 0, props?.PanelHeight?.() || 0), fill: wavyBorderPath(props?.PanelWidth?.() || 0, props?.PanelHeight?.() || 0, .08), width: 3 } : { path: undefined, width: 0 };
+        case StyleProp.BorderPath: return comicStyle() && props?.renderDepth ? { path: wavyBorderPath(props?.PanelWidth?.() || 0, props?.PanelHeight?.() || 0), fill: wavyBorderPath(props?.PanelWidth?.() || 0, props?.PanelHeight?.() || 0, .08), width: 3 } : { path: undefined, width: 0 };
         case StyleProp.JitterRotation: return comicStyle() ? random(-1, 1, NumCast(doc?.x), NumCast(doc?.y)) * ((props?.PanelWidth() || 0) > (props?.PanelHeight() || 0) ? 5 : 10) : 0;
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) ||
             doc?.type === DocumentType.RTF) && showTitle() && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
