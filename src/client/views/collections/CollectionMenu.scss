@@ -14,35 +14,53 @@
     top: 0;
     width: 100%;
 
-    .antimodeMenu-button {
-        padding: 0;
-        width: 30px;
+    .recordButtonOutline {
+        border-radius: 100%;
+        width: 18px;
+        height: 18px;
+        border: solid 1px #f5f5f5;
         display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-        svg {
-            margin: auto;
-        }
+    .recordButtonInner {
+        border-radius: 100%;
+        width: 70%;
+        height: 70%;
+        background: white;
     }
 
     .collectionMenu {
         display: flex;
-        padding-bottom: 1px;
-        height: 32px;
-        border-bottom: .5px solid rgb(180, 180, 180);
+        height: 100%;
         overflow: visible;
         z-index: 901;
         border: unset;
 
+        .collectionMenu-divider {
+            height: 85%;
+            margin-left: 3px;
+            margin-right: 3px;
+            width: 1.5px;
+            background-color: #656060;
+        }
+
         .collectionViewBaseChrome {
             display: flex;
+            align-items: center;
 
             .collectionViewBaseChrome-viewPicker {
                 font-size: 75%;
-                background: #323232;
                 outline-color: black;
                 color: white;
                 border: none;
-                border-right: solid gray 1px;
+                background: #323232;               
+            }
+
+            .collectionViewBaseChrome-viewPicker:focus {
+                outline: none;
+                border: none;
             }
 
             .collectionViewBaseChrome-viewPicker:active {
@@ -65,24 +83,41 @@
                 margin-left: 3px;
                 margin-right: 0px;
                 font-size: 75%;
-                background: #323232;
+                text-transform: capitalize;
                 color: white;
                 border: none;
-                border-right: solid gray 1px;
+                background: #323232;     
+            }
+
+            .collectionViewBaseChrome-cmdPicker:focus {
+                border: none;
+                outline: none;
             }
 
             .commandEntry-outerDiv {
                 pointer-events: all;
-                background-color: #323232;
+                background-color: transparent;
                 display: flex;
                 flex-direction: row;
-                height: 30px;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                overflow: hidden;
 
                 .commandEntry-drop {
                     color: white;
                     width: 30px;
                     margin-top: auto;
                     margin-bottom: auto;
+                }
+            }
+
+            .commandEntry-outerDiv:hover{
+                background-color: rgba(0,0,0,0.2);
+
+                .collectionViewBaseChrome-viewPicker,
+                .collectionViewBaseChrome-cmdPicker{
+                    background: rgb(41,41,41);
                 }
             }
 
@@ -103,11 +138,12 @@
 
             .collectionViewBaseChrome-template,
             .collectionViewBaseChrome-viewModes {
-                display: grid;
-                background: rgb(238, 238, 238);
+                align-items: center;
+                height: 100%;
+                display: flex;
+                background: transparent;
                 color: grey;
-                margin-top: auto;
-                margin-bottom: auto;
+                justify-content: center;
             }
 
             .collectionViewBaseChrome-viewSpecs {
@@ -263,27 +299,52 @@
         .collectionTreeViewChrome-pivotField-cont,
         .collection3DCarouselViewChrome-scrollSpeed-cont {
             justify-self: right;
+            align-items: center;
             display: flex;
+            grid-auto-columns: auto;
             font-size: 75%;
             letter-spacing: 2px;
 
             .collectionStackingViewChrome-pivotField-label,
             .collectionTreeViewChrome-pivotField-label,
             .collection3DCarouselViewChrome-scrollSpeed-label {
-                vertical-align: center;
-                padding-left: 10px;
-                margin: auto;
+                grid-column: 1;
+                margin-right: 7px;
+                user-select: none;
+                font-family: 'Roboto';
+                letter-spacing: normal;
+            }
+
+            .collectionStackingViewChrome-sortIcon {
+                transition: transform .5s;
+                grid-column: 3;
+                text-align: center;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                cursor: pointer;
+                width: 25px;
+                height: 25px;
+                border-radius: 100%;
+            }
+
+            .collectionStackingViewChrome-sortIcon:hover {
+                background-color: rgba(0,0,0,0.2);
             }
 
             .collectionStackingViewChrome-pivotField,
             .collectionTreeViewChrome-pivotField,
             .collection3DCarouselViewChrome-scrollSpeed {
                 color: white;
-                width: 100%;
+                grid-column: 2;
+                grid-row: 1;
+                width: 90%;
                 min-width: 100px;
                 display: flex;
+                height: 80%;
+                border-radius: 7px;
                 align-items: center;
-                background: rgb(238, 238, 238);
+                background: #eeeeee;
 
                 .editable-view-input,
                 input,
@@ -378,20 +439,13 @@
     display: inline-flex;
     position: relative;
     align-items: center;
-    margin-left: 10px;
-
-    .antimodeMenu-button {
-        text-align: center;
-        display: block;
-        position: relative;
-    }
+    height: 100%;
 
     .color-previewI {
-        width: 80%;
-        height: 20%;
-        bottom: 0;
+        width: 60%;
+        top: 80%;
         position: absolute;
-        margin-left: 2px;
+        height: 4px;
     }
 
     .color-previewII {

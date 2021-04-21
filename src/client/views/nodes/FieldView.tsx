@@ -20,6 +20,7 @@ export interface FieldViewProps extends DocumentViewSharedProps {
 
     select: (isCtrlPressed: boolean) => void;
     isContentActive: (outsideReaction?: boolean) => boolean;
+    isDocumentActive?: () => boolean;
     isSelected: (outsideReaction?: boolean) => boolean;
     scaling?: () => number;
     setHeight: (height: number) => void;
@@ -31,8 +32,8 @@ export interface FieldViewProps extends DocumentViewSharedProps {
     width?: number;
     background?: string;
     color?: string;
-    xMargin?: number;
-    yMargin?: number;
+    xPadding?: number;
+    yPadding?: number;
 }
 
 @observer

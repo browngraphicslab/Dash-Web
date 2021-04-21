@@ -164,6 +164,7 @@ export class DocumentOptions {
     version?: string; // version identifier for a document
     label?: string;
     hidden?: boolean;
+    mediaState?: string; // status of media document: "pendingRecording", "recording", "paused", "playing"
     autoPlayAnchors?: boolean; // whether to play audio/video when an anchor is clicked in a stackedTimeline.
     dontPlayLinkOnSelect?: boolean;  // whether an audio/video should start playing when a link is followed to it.
     toolTip?: string; // tooltip to display on hover
@@ -171,7 +172,7 @@ export class DocumentOptions {
     description?: string; // added for links
     layout?: string | Doc; // default layout string for a document
     contentPointerEvents?: string;  // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
-    childLimitHeight?: number; // whether to limit the height of colleciton children.  0 - means  height can be no bigger than width
+    childLimitHeight?: number; // whether to limit the height of collection children.  0 - means  height can be no bigger than width
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children
     childDontRegisterViews?: boolean;
@@ -248,6 +249,7 @@ export class DocumentOptions {
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewShowClearButton?: boolean; // whether a clear button should be displayed 
     treeViewOpenIsTransient?: boolean; // ignores the treeViewOpen Doc flag, allowing a treeViewItem's expand/collapse state to be independent of other views of the same document in the same or any other tree view
+    _treeViewOpen?: boolean; // whether this document is expanded in a tree view  (note: need _ and regular versions since this can be specified for both proto and layout docs)
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
     treeViewExpandedViewLock?: boolean; // whether the expanded view can be changed
@@ -668,7 +670,7 @@ export namespace Docs {
             viewProps["acl-Override"] = "None";
             viewProps["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
             const viewDoc = Doc.assign(Doc.MakeDelegate(dataDoc, delegId), viewProps, true, true);
-            ![DocumentType.LINK, DocumentType.TEXTANCHOR, DocumentType.LABEL].includes(viewDoc.type as any) && DocUtils.MakeLinkToActiveAudio(viewDoc);
+            ![DocumentType.LINK, DocumentType.TEXTANCHOR, DocumentType.LABEL].includes(viewDoc.type as any) && DocUtils.MakeLinkToActiveAudio(() => viewDoc);
 
             !Doc.IsSystem(dataDoc) && ![DocumentType.HTMLANCHOR, DocumentType.KVP, DocumentType.LINK, DocumentType.LINKANCHOR, DocumentType.TEXTANCHOR].includes(proto.type as any) &&
                 !dataDoc.isFolder && !dataProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
@@ -702,8 +704,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.WEBCAM), "", options);
         }
 
-        export function ScreenshotDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.SCREENSHOT), "", options);
+        export function ScreenshotDocument(title: string, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SCREENSHOT), "", { ...options, title });
         }
 
         export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
@@ -947,7 +949,14 @@ export namespace DocUtils {
         }
         return false;
     }
-    export function FilterDocs(docs: Doc[], docFilters: string[], docRangeFilters: string[], viewSpecScript?: ScriptField) {
+    /**
+     * @param docs 
+     * @param docFilters 
+     * @param docRangeFilters 
+     * @param viewSpecScript 
+     * Given a list of docs and docFilters, @returns the list of Docs that match those filters 
+     */
+    export function FilterDocs(docs: Doc[], docFilters: string[], docRangeFilters: string[], viewSpecScript?: ScriptField, parentCollection?: Doc) {
         const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
         if (!docFilters?.length && !docRangeFilters?.length) {
             return childDocs.filter(d => !d.cookies);  // remove documents that need a cookie if there are no filters to provide one
@@ -971,11 +980,20 @@ export namespace DocUtils {
             if (d.cookies && (!filterFacets.cookies || !Object.keys(filterFacets.cookies).some(key => d.cookies === key))) {
                 return false;
             }
+
             for (const facetKey of Object.keys(filterFacets).filter(fkey => fkey !== "cookies")) {
                 const facet = filterFacets[facetKey];
+
+                // facets that match some value in the field of the document (e.g. some text field)
                 const matches = Object.keys(facet).filter(value => value !== "cookies" && facet[value] === "match");
+
+                // facets that have a check next to them
                 const checks = Object.keys(facet).filter(value => facet[value] === "check");
+
+                // facets that have an x next to them
                 const xs = Object.keys(facet).filter(value => facet[value] === "x");
+
+                if (!xs.length && !checks.length && !matches.length) return true;
                 const failsNotEqualFacets = !xs.length ? false : xs.some(value => Doc.matchFieldValue(d, facetKey, value));
                 const satisfiesCheckFacets = !checks.length ? true : checks.some(value => Doc.matchFieldValue(d, facetKey, value));
                 const satisfiesMatchFacets = !matches.length ? true : matches.some(value => {
@@ -987,11 +1005,17 @@ export namespace DocUtils {
                     }
                     return Field.toString(d[facetKey] as Field).includes(value);
                 });
-                if (!satisfiesCheckFacets || !satisfiesMatchFacets || failsNotEqualFacets) {
-                    return false;
+                // if we're ORing them together, the default return is false, and we return true for a doc if it satisfies any one set of criteria
+                if ((parentCollection?.currentFilter as Doc)?.filterBoolean === "OR") {
+                    if (satisfiesCheckFacets && !failsNotEqualFacets && satisfiesMatchFacets) return true;
                 }
+                // if we're ANDing them together, the default return is true, and we return false for a doc if it doesn't satisfy any set of criteria
+                else {
+                    if (!satisfiesCheckFacets || failsNotEqualFacets || (matches.length && !satisfiesMatchFacets)) return false;
+                }
+
             }
-            return true;
+            return (parentCollection?.currentFilter as Doc)?.filterBoolean === "OR" ? false : true;
         }) : childDocs;
         const rangeFilteredDocs = filteredDocs.filter(d => {
             for (let i = 0; i < docRangeFilters.length; i += 3) {
@@ -1046,10 +1070,10 @@ export namespace DocUtils {
 
     export let ActiveRecordings: { props: FieldViewProps, getAnchor: () => Doc }[] = [];
 
-    export function MakeLinkToActiveAudio(doc: Doc, broadcastEvent = true) {
+    export function MakeLinkToActiveAudio(getSourceDoc: () => Doc, broadcastEvent = true) {
         broadcastEvent && runInAction(() => DocumentManager.Instance.RecordingEvent = DocumentManager.Instance.RecordingEvent + 1);
         return DocUtils.ActiveRecordings.map(audio =>
-            DocUtils.MakeLink({ doc: doc }, { doc: audio.getAnchor() || audio.props.Document }, "recording link", "recording timeline"));
+            DocUtils.MakeLink({ doc: getSourceDoc() }, { doc: audio.getAnchor() || audio.props.Document }, "recording link", "recording timeline"));
     }
 
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string, allowParCollectionLink?: boolean, showPopup?: number[]) {
@@ -1317,7 +1341,7 @@ export namespace DocUtils {
         }
     }
 
-    export function LeavePushpin(doc: Doc) {
+    export function LeavePushpin(doc: Doc, annotationField: string) {
         if (doc.isPushpin) return undefined;
         const context = Cast(doc.context, Doc, null) ?? Cast(doc.annotationOn, Doc, null);
         const hasContextAnchor = DocListCast(doc.links).
@@ -1330,7 +1354,7 @@ export namespace DocUtils {
                 icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), backgroundColor: "#ACCEF7",
                 _width: 15, _height: 15, _xPadding: 0, _isLinkButton: true, _timecodeToShow: Cast(doc._timecodeToShow, "number", null)
             });
-            Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
+            Doc.AddDocToList(context, annotationField, pushpin);
             const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
             doc._timecodeToShow = undefined;
             return pushpin;

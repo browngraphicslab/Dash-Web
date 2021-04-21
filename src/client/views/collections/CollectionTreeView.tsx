@@ -49,7 +49,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     @computed get doc() { return this.props.Document; }
     @computed get dataDoc() { return this.props.DataDoc || this.doc; }
     @computed get treeViewtruncateTitleWidth() { return NumCast(this.doc.treeViewTruncateTitleWidth, this.panelWidth()); }
-    @computed get treeChildren() { return this.props.childDocuments || this.childDocs; }
+    @computed get treeChildren() { TraceMobx(); return this.props.childDocuments || this.childDocs; }
     @computed get outlineMode() { return this.doc.treeViewType === "outline"; }
     @computed get fileSysMode() { return this.doc.treeViewType === "fileSystem"; }
 
@@ -67,19 +67,23 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         Object.values(this._disposers).forEach(disposer => disposer?.());
     }
 
-    componentWillMount() {
+    componentDidMount() {
         this._disposers.autoheight = reaction(() => this.rootDoc.autoHeight,
             auto => auto && this.computeHeight(),
-            { fireImmediately: true })
+            { fireImmediately: true });
     }
 
     refList: Set<any> = new Set();
     observer: any;
     computeHeight = () => {
-        this.rootDoc._height = this.paddingTop() + 26/* bcz: ugh: title bar height hack ... get ref and compute instead */ +
+        const hgt = this.paddingTop() + 26/* bcz: ugh: title bar height hack ... get ref and compute instead */ +
             Array.from(this.refList).reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
+        this.props.setHeight(hgt);
     }
-    unobserveHeight = (ref: any) => this.refList.delete(ref);
+    unobserveHeight = (ref: any) => {
+        this.refList.delete(ref);
+        this.rootDoc.autoHeight && this.computeHeight();
+    }
     observerHeight = (ref: any) => {
         if (ref) {
             this.refList.add(ref);
@@ -111,15 +115,14 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         const targetDataDoc = this.doc[DataSym];
         const value = DocListCast(targetDataDoc[this.props.fieldKey]);
         const result = value.filter(v => !docs.includes(v));
-        SelectionManager.DeselectAll();
+        if ((doc instanceof Doc ? [doc] : doc).some(doc => SelectionManager.Views().some(dv => Doc.AreProtosEqual(dv.rootDoc, doc)))) SelectionManager.DeselectAll();
         if (result.length !== value.length) {
             const ind = targetDataDoc[this.props.fieldKey].indexOf(doc);
             const prev = ind && targetDataDoc[this.props.fieldKey][ind - 1];
-            targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
+            this.props.removeDocument?.(doc);
             if (ind > 0) {
                 FormattedTextBox.SelectOnLoad = prev[Id];
-                const prevView = DocumentManager.Instance.getDocumentView(prev, this.props.CollectionView);
-                prevView?.select(false);
+                DocumentManager.Instance.getDocumentView(prev, this.props.CollectionView)?.select(false);
             }
             return true;
         }

@@ -49,6 +49,11 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         return this.childLayoutPairs.map(pair => pair.layout).filter(layout => StrCast(layout._dimUnit, "*") === DimUnit.Ratio);
     }
 
+    @computed
+    private get minimumDim() {
+        return Math.min(...this.ratioDefinedDocs.filter(layout => layout._dimMagnitude).map(layout => NumCast(layout._dimMagnitude)));
+    }
+
     /**
      * This loops through all childLayoutPairs and extracts the values for _dimUnit
      * and _dimMagnitude, ignoring any that are malformed. Additionally, it then
@@ -63,7 +68,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         const widthSpecifiers: WidthSpecifier[] = [];
         this.childLayoutPairs.map(pair => {
             const unit = StrCast(pair.layout._dimUnit, "*");
-            const magnitude = NumCast(pair.layout._dimMagnitude, 1);
+            const magnitude = NumCast(pair.layout._dimMagnitude, this.minimumDim);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
                 (unit === DimUnit.Ratio) && (starSum += magnitude);
                 widthSpecifiers.push({ magnitude, unit });
@@ -80,15 +85,15 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
          * themselves to drift toward zero. Thus, whenever we change any of the values,
          * we normalize everything (dividing by the smallest magnitude).
          */
-        setTimeout(() => {
-            const { ratioDefinedDocs } = this;
-            if (this.childLayoutPairs.length) {
-                const minimum = Math.min(...ratioDefinedDocs.map(doc => NumCast(doc._dimMagnitude, 1)));
-                if (minimum !== 0) {
-                    ratioDefinedDocs.forEach(layout => layout._dimMagnitude = NumCast(layout._dimMagnitude, 1) / minimum, 1);
-                }
-            }
-        });
+        // setTimeout(() => {
+        //     const { ratioDefinedDocs } = this;
+        //     if (this.childLayoutPairs.length) {
+        //         const minimum = this.minimumDim;
+        //         if (minimum !== 0) {
+        //             ratioDefinedDocs.forEach(layout => layout._dimMagnitude = NumCast(layout._dimMagnitude, 1) / minimum, 1);
+        //         }
+        //     }
+        // });
 
         return { widthSpecifiers, starSum };
     }
@@ -161,7 +166,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         if (columnUnitLength === undefined) {
             return 0; // we're still waiting on promises to resolve
         }
-        let width = NumCast(layout._dimMagnitude, 1);
+        let width = NumCast(layout._dimMagnitude, this.minimumDim);
         if (StrCast(layout._dimUnit, "*") === DimUnit.Ratio) {
             width *= columnUnitLength;
         }
@@ -273,6 +278,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                 <ResizeBar
                     width={resizerWidth}
                     key={"resizer" + i}
+                    styleProvider={this.props.styleProvider}
+                    isContentActive={this.props.isContentActive}
                     select={this.props.select}
                     columnUnitLength={this.getColumnUnitLength}
                     toLeft={layout}

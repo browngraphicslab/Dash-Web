@@ -8,6 +8,7 @@
     width: 100%;
     overflow: hidden;
 }
+
 .treeView-container,
 .treeView-container-active {
     .bullet-outline {
@@ -21,21 +22,26 @@
 
     .treeView-bulletIcons {
         width: $TREE_BULLET_WIDTH;
+
         .treeView-expandIcon {
             display: none;
             left: -10px;
             position: absolute;
         }
+
         .treeView-checkIcon {
-            left: -10px;
+            left: 3.5px;
+            top: 2px;
             position: absolute;
         }
+
         &:hover {
             .treeView-expandIcon {
                 display: unset;
             }
         }
     }
+
     .bullet {
         position: relative;
         width: $TREE_BULLET_WIDTH;
@@ -46,9 +52,11 @@
         border-radius: 4px;
     }
 }
+
 .treeView-container-active {
     z-index: 100;
     position: relative;
+
     .formattedTextbox-sidebar {
         background-color: #ffff001f !important;
         height: 500px !important;
@@ -71,7 +79,8 @@
     display: flex;
     overflow: hidden;
 }
-.treeView-border{
+
+.treeView-border {
     border-left: dashed 1px #00000042;
 }
 
@@ -79,15 +88,20 @@
 .treeView-header {
     border: transparent 1px solid;
     display: flex;
+
     //align-items: center;
     ::-webkit-scrollbar {
-            display: none;
+        display: none;
     }
+
     .formattedTextBox-cont {
-        .formattedTextbox-sidebar, .formattedTextbox-sidebar-inking {
+
+        .formattedTextbox-sidebar,
+        .formattedTextbox-sidebar-inking {
             overflow: visible !important;
             border-left: unset;
         }
+
         overflow: visible !important;
     }
 
@@ -105,12 +119,18 @@
         margin-left: 0.25rem;
         opacity: 0.75;
 
-        >svg, .styleProvider-treeView-lock, .styleProvider-treeView-hide, .styleProvider-treeView-lock-active, .styleProvider-treeView-hide-active {
+        >svg,
+        .styleProvider-treeView-lock,
+        .styleProvider-treeView-hide,
+        .styleProvider-treeView-lock-active,
+        .styleProvider-treeView-hide-active {
             margin-left: 0.25rem;
-            margin-right: 0.25rem; 
+            margin-right: 0.25rem;
         }
-    
-        >svg, .styleProvider-treeView-lock, .styleProvider-treeView-hide {
+
+        >svg,
+        .styleProvider-treeView-lock,
+        .styleProvider-treeView-hide {
             display: none;
         }
     }
@@ -135,7 +155,10 @@
     }
 
     .right-buttons-container {
-        >svg, .styleProvider-treeView-lock, .styleProvider-treeView-hide {
+
+        >svg,
+        .styleProvider-treeView-lock,
+        .styleProvider-treeView-hide {
             display: inherit;
         }
     }

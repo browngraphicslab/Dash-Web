@@ -1032,7 +1032,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             docRangeFilters={this.freeformRangeDocFilters}
             searchFilterDocs={this.searchFilterDocs}
             isContentActive={this.isAnnotationOverlay ? this.props.isContentActive : returnFalse}
-            isDocumentActive={this.isContentActive}
+            isDocumentActive={this.props.childDocumentsActive ? this.props.isDocumentActive : this.isContentActive}
             focus={this.focusDocument}
             addDocTab={this.addDocTab}
             addDocument={this.props.addDocument}
@@ -1051,7 +1051,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             dontRegisterView={this.props.dontRegisterView}
             pointerEvents={this.backgroundActive || this.props.childPointerEvents ? "all" :
                 (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? "none" : undefined}
-            jitterRotation={NumCast(this.props.Document._jitterRotation) || ((Doc.UserDoc().renderStyle === "comic" ? 10 : 0))}
+            jitterRotation={this.props.styleProvider?.(childLayout, this.props, StyleProp.JitterRotation) || 0}
         //fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)} // bcz: check this
         />;
     }

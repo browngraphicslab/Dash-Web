@@ -8,7 +8,7 @@ import { Document } from '../../fields/documentSchemas';
 import { HtmlField } from '../../fields/HtmlField';
 import { InkField } from "../../fields/InkField";
 import { ScriptField } from '../../fields/ScriptField';
-import { Cast, NumCast } from "../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { GetEffectiveAcl } from '../../fields/util';
 import { setupMoveUpEvents, emptyFunction, returnFalse } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
@@ -26,6 +26,7 @@ import { InkStrokeProperties } from './InkStrokeProperties';
 import { LightboxView } from './LightboxView';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
+import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 
 @observer
 export class DocumentDecorations extends React.Component<{ boundsLeft: number, boundsTop: number }, { value: string }> {
@@ -83,7 +84,21 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             UndoManager.RunInBatch(() => titleFieldKey && SelectionManager.Views().forEach(d => {
                 titleFieldKey === "title" && (d.dataDoc["title-custom"] = !this._accumulatedTitle.startsWith("-"));
                 //@ts-ignore
-                Doc.SetInPlace(d.rootDoc, titleFieldKey, +this._accumulatedTitle == this._accumulatedTitle ? +this._accumulatedTitle : this._accumulatedTitle, true);
+                const titleField = (+this._accumulatedTitle === this._accumulatedTitle ? +this._accumulatedTitle : this._accumulatedTitle);
+                Doc.SetInPlace(d.rootDoc, titleFieldKey, titleField, true);
+
+                if (d.rootDoc.syncLayoutFieldWithTitle) {
+                    const title = titleField.toString();
+                    const curKey = Doc.LayoutFieldKey(d.rootDoc);
+                    if (curKey !== title && d.dataDoc[title] === undefined) {
+                        d.rootDoc.layout = FormattedTextBox.LayoutString(title);
+                        setTimeout(() => {
+                            const val = d.dataDoc[curKey];
+                            d.dataDoc[curKey] = undefined;
+                            d.dataDoc[title] = val;
+                        });
+                    }
+                }
             }), "title blur");
         }
     }

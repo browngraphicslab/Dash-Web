@@ -1,4 +1,4 @@
-import { action, computed, observable } from 'mobx';
+import { computed, observable } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
@@ -66,6 +66,7 @@ export interface CollectionViewProps extends FieldViewProps {
     // property overrides for child documents
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     childDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explicit list (see LinkBox)
+    childDocumentsActive?: () => boolean;// whether child documents can be dragged if collection can be dragged (eg., in a when a Pile document is in startburst mode)
     childFitWidth?: () => boolean;
     childOpacity?: () => number;
     childHideTitle?: () => boolean; // whether to hide the documentdecorations title for children

@@ -567,22 +567,22 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
             <div className="videoBox-viewer" onPointerDown={this.marqueeDown} >
                 <div style={{ position: "absolute", transition: this.transition, width: this.panelWidth(), height: this.panelHeight(), top: 0, left: `${(100 - this.heightPercent) / 2}%` }}>
                     <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
+                        renderDepth={this.props.renderDepth + 1}
                         fieldKey={this.annotationKey}
+                        CollectionView={undefined}
                         isAnnotationOverlay={true}
                         annotationLayerHostsContent={true}
-                        select={emptyFunction}
-                        isContentActive={this.isContentActive}
-                        scaling={returnOne}
-                        docFilters={this.timelineDocFilter}
                         PanelWidth={this.panelWidth}
                         PanelHeight={this.panelHeight}
                         ScreenToLocalTransform={this.screenToLocalTransform}
+                        docFilters={this.timelineDocFilter}
+                        select={emptyFunction}
+                        isContentActive={this.isContentActive}
+                        scaling={returnOne}
                         whenChildContentsActiveChanged={this.whenChildContentsActiveChanged}
                         removeDocument={this.removeDocument}
                         moveDocument={this.moveDocument}
-                        addDocument={this.addDocWithTimecode}
-                        CollectionView={undefined}
-                        renderDepth={this.props.renderDepth + 1}>
+                        addDocument={this.addDocWithTimecode}>
                         {this.contentFunc}
                     </CollectionFreeFormView>
                 </div>
@@ -591,16 +591,17 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
                 {this.renderTimeline}
                 {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
                     <MarqueeAnnotator
-                        scrollTop={0}
                         rootDoc={this.rootDoc}
+                        scrollTop={0}
                         down={this._marqueeing}
-                        docView={this.props.docViewPath().lastElement()}
                         scaling={this.marqueeFitScaling}
+                        docView={this.props.docViewPath().lastElement()}
                         containerOffset={this.marqueeOffset}
                         addDocument={this.addDocWithTimecode}
                         finishMarquee={this.finishMarquee}
                         savedAnnotations={this._savedAnnotations}
-                        annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current}
+                        annotationLayer={this._annotationLayer.current}
+                        mainCont={this._mainCont.current}
                     />}
             </div>
         </div >);

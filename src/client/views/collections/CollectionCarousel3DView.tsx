@@ -13,6 +13,7 @@ import { DragManager } from '../../util/DragManager';
 import { DocumentView } from '../nodes/DocumentView';
 import "./CollectionCarousel3DView.scss";
 import { CollectionSubView } from './CollectionSubView';
+import { StyleProp } from '../StyleProvider';
 
 type Carousel3DDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
 const Carousel3DDocument = makeInterface(documentSchema, collectionSchema);
@@ -40,11 +41,8 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     @computed get content() {
         const currentIndex = NumCast(this.layoutDoc._itemIndex);
         const displayDoc = (childPair: { layout: Doc, data: Doc }) => {
-            const script = ScriptField.MakeScript("this._showCaption = 'caption'", { this: Doc.name });
-            const onChildClick = script && (() => script);
-            return <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+            return <DocumentView  {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "childLayoutTemplate", "childLayoutString"]).omit}
                 onDoubleClick={this.onChildDoubleClick}
-                onClick={onChildClick}
                 renderDepth={this.props.renderDepth + 1}
                 LayoutTemplate={this.props.childLayoutTemplate}
                 LayoutTemplateString={this.props.childLayoutString}
@@ -52,7 +50,6 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                 DataDoc={childPair.data}
                 PanelWidth={this.panelWidth}
                 PanelHeight={this.panelHeight}
-                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                 bringToFront={returnFalse}
             />;
         };
@@ -104,27 +101,6 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         }, 1500);
     }
 
-    _downX = 0;
-    _downY = 0;
-    onPointerDown = (e: React.PointerEvent) => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        document.addEventListener("pointerup", this.onpointerup);
-    }
-    private _lastTap: number = 0;
-    private _doubleTap = false;
-    onpointerup = (e: PointerEvent) => {
-        this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
-        this._lastTap = Date.now();
-    }
-
-    onClick = (e: React.MouseEvent) => {
-        if (this._doubleTap) {
-            e.stopPropagation();
-            this.props.Document.isLightboxOpen = true;
-        }
-    }
-
     @computed get buttons() {
         if (!this.props.isContentActive()) return null;
         return <div className="arrow-buttons" >
@@ -167,7 +143,11 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         const index = NumCast(this.layoutDoc._itemIndex);
         const translateX = this.panelWidth() * (1 - index);
 
-        return <div className="collectionCarousel3DView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget}>
+        return <div className="collectionCarousel3DView-outer" ref={this.createDashEventsTarget}
+            style={{
+                background: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
+                color: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Color),
+            }}  >
             <div className="carousel-wrapper" style={{ transform: `translateX(${translateX}px)` }}>
                 {this.content}
             </div>
