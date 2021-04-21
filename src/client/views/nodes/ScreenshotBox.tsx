@@ -123,12 +123,13 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
 
     constructor(props: any) {
         super(props);
-        if (!this.rootDoc.videoWall) this.setupDictation();
-        else {
+        if (this.rootDoc.videoWall) {
             this.rootDoc.nativeWidth = undefined;
             this.rootDoc.nativeHeight = undefined;
             this.layoutDoc.popOff = 0;
             this.layoutDoc.popOut = 1;
+        } else {
+            this.setupDictation();
         }
     }
     getAnchor = () => {
@@ -174,15 +175,16 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
     }
 
     @computed get content() {
+        if (this.rootDoc.videoWall) return (null);
         const interactive = CurrentUserUtils.SelectedTool !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
         return <video className={"videoBox-content" + interactive} key="video"
             ref={r => {
                 this._videoRef = r;
                 setTimeout(() => {
-                    if (this.rootDoc.mediaState === "pendingRecording" && this._videoRef) { // TODO glr: use mediaState
+                    if (this.rootDoc.mediaState === "pendingRecording" && this._videoRef) {
                         this.toggleRecording();
                     }
-                }, 1000);
+                }, 100);
             }}
             autoPlay={this._screenCapture}
             style={{ width: this._screenCapture ? "100%" : undefined, height: this._screenCapture ? "100%" : undefined }}
@@ -191,7 +193,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
             onClick={e => e.preventDefault()}>
             <source type="video/mp4" />
             Not supported.
-            </video>;
+        </video>;
     }
 
     _numScreens = 5;
