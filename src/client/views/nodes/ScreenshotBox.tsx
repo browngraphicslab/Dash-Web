@@ -280,7 +280,7 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
         TraceMobx();
         return <div className="videoBox" onContextMenu={this.specificContextMenu} style={{ width: "100%", height: "100%" }} >
             <div className="videoBox-viewer" >
-                <div style={{ position: "relative", height: "100%" }}>
+                <div style={{ position: "relative", height: this.videoPanelHeight() }}>
                     <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                         PanelHeight={this.videoPanelHeight}
                         PanelWidth={this.props.PanelWidth}
