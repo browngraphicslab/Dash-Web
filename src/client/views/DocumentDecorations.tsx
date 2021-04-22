@@ -141,6 +141,17 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         SelectionManager.DeselectAll();
         selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
     }
+    onMaximizeDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, () => {
+            DragManager.StartWindowDrag?.({
+                pageX: e.pageX,
+                pageY: e.pageY,
+                preventDefault: emptyFunction,
+                button: 0
+            }, [SelectionManager.Views().lastElement().rootDoc]);
+            return true;
+        }, emptyFunction, this.onMaximizeClick, false, false);
+    }
     @undoBatch
     @action
     onMaximizeClick = (e: any): void => {
@@ -427,10 +438,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             return (!docView.rootDoc._stayInCollection || docView.rootDoc.isInkMask) &&
                 (collectionAcl === AclAdmin || collectionAcl === AclEdit || GetEffectiveAcl(docView.rootDoc) === AclAdmin);
         });
-        const topBtn = (key: string, icon: string, click: (e: any) => void, title: string) => (
+        const topBtn = (key: string, icon: string, pointerDown: undefined | ((e: React.PointerEvent) => void), click: undefined | ((e: any) => void), title: string) => (
             <Tooltip key={key} title={<div className="dash-tooltip">{title}</div>} placement="top">
                 <div className={`documentDecorations-${key}Button`} onContextMenu={e => e.preventDefault()}
-                    onPointerDown={e => setupMoveUpEvents(this, e, returnFalse, click, emptyFunction)} >
+                    onPointerDown={pointerDown ?? (e => setupMoveUpEvents(this, e, returnFalse, click!, emptyFunction))} >
                     <FontAwesomeIcon icon={icon as any} />
                 </div>
             </Tooltip>);
@@ -471,13 +482,13 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     left: bounds.x - this._resizeBorderWidth / 2,
                     top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 }}>
-                    {!canDelete ? <div /> : topBtn("close", "times", this.onCloseClick, "Close")}
+                    {!canDelete ? <div /> : topBtn("close", "times", undefined, this.onCloseClick, "Close")}
                     {seldoc.props.hideDecorationTitle || seldoc.props.Document.type === DocumentType.EQUATION ? (null) : titleArea}
                     {seldoc.props.hideResizeHandles || seldoc.props.Document.type === DocumentType.EQUATION ? (null) :
                         <>
                             {SelectionManager.Views().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
-                                topBtn("iconify", `window-${seldoc.finalLayoutKey.includes("icon") ? "restore" : "minimize"}`, this.onIconifyClick, `${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`)}
-                            {!canOpen ? (null) : topBtn("open", "external-link-alt", this.onMaximizeClick, "Open in Tab (ctrl: as alias, shift: in new collection)")}
+                                topBtn("iconify", `window-${seldoc.finalLayoutKey.includes("icon") ? "restore" : "minimize"}`, undefined, this.onIconifyClick, `${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`)}
+                            {!canOpen ? (null) : topBtn("open", "external-link-alt", this.onMaximizeDown, undefined, "Open in Tab (ctrl: as alias, shift: in new collection)")}
                             <div key="tl" className="documentDecorations-topLeftResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
                             <div key="t" className="documentDecorations-topResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
                             <div key="tr" className="documentDecorations-topRightResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
@@ -489,7 +500,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                             <div key="br" className="documentDecorations-bottomRightResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
 
                             {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
-                                topBtn("selector", "arrow-alt-circle-up", this.onSelectorClick, "tap to select containing document")}
+                                topBtn("selector", "arrow-alt-circle-up", undefined, this.onSelectorClick, "tap to select containing document")}
                             <div key="rot" className={`documentDecorations-${useRotation ? "rotation" : "borderRadius"}`}
                                 onPointerDown={useRotation ? this.onRotateDown : this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}>{useRotation && "⟲"}</div>
                         </>

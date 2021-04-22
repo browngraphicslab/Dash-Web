@@ -32,7 +32,7 @@ export interface MarqueeAnnotatorProps {
     addDocument: (doc: Doc) => boolean;
     getPageFromScroll?: (top: number) => number;
     finishMarquee: (x?: number, y?: number) => void;
-    anchorMenuClick?: (anchor: Doc) => void;
+    anchorMenuClick?: () => undefined | ((anchor: Doc) => void);
 }
 @observer
 export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
@@ -65,7 +65,9 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         doc.addEventListener("pointermove", this.onSelectMove);
         doc.addEventListener("pointerup", this.onSelectEnd);
 
-        AnchorMenu.Instance.OnClick = (e: PointerEvent) => this.props.anchorMenuClick?.(this.highlight("rgba(173, 216, 230, 0.75)", true));
+        AnchorMenu.Instance.OnClick = (e: PointerEvent) => {
+            this.props.anchorMenuClick?.()?.(this.highlight("rgba(173, 216, 230, 0.75)", true));
+        }
         AnchorMenu.Instance.Highlight = this.highlight;
         /**
          * This function is used by the AnchorMenu to create an anchor highlight and a new linked text annotation.  

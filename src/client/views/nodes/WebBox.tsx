@@ -478,6 +478,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
     panelWidth = () => this.props.PanelWidth() / (this.props.scaling?.() || 1) - this.sidebarWidth(); // (this.Document.scrollHeight || Doc.NativeHeight(this.Document) || 0);
     panelHeight = () => this.props.PanelHeight() / (this.props.scaling?.() || 1); // () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : Doc.NativeWidth(this.Document);
     scrollXf = () => this.props.ScreenToLocalTransform().translate(0, NumCast(this.layoutDoc._scrollTop));
+    anchorMenuClick = () => this._sidebarRef.current?.anchorMenuClick;
     render() {
         const inactiveLayer = this.props.layerProvider?.(this.layoutDoc) === false;
         const scale = this.props.scaling?.() || 1;
@@ -531,7 +532,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
                         <MarqueeAnnotator rootDoc={this.rootDoc}
                             iframe={this.isFirefox() ? this.iframeClick : undefined}
                             iframeScaling={this.isFirefox() ? this.iframeScaling : undefined}
-                            anchorMenuClick={this._sidebarRef.current?.anchorMenuClick}
+                            anchorMenuClick={this.anchorMenuClick}
                             scrollTop={0}
                             down={this._marqueeing} scaling={returnOne}
                             addDocument={this.addDocument}

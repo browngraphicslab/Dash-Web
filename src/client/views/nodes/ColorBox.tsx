@@ -41,7 +41,7 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
                 else if (RichTextMenu.Instance?.TextViewFieldKey && window.getSelection()?.toString() !== "") {
                     Doc.Layout(view.props.Document)[RichTextMenu.Instance.TextViewFieldKey + "-color"] = color.hex;
                 } else {
-                    Doc.Layout(view.props.Document)._backgroundColor = color.hex; // '_backgroundColor' is template specific.  'backgroundColor' would apply to all templates, but has no UI at the moment
+                    Doc.Layout(view.props.Document)._backgroundColor = color.hex + (color.rgb.a ? Math.round(color.rgb.a * 256).toString(16) : ""); // '_backgroundColor' is template specific.  'backgroundColor' would apply to all templates, but has no UI at the moment
                 }
             }
         });
