@@ -26,6 +26,8 @@ import { StyleProp } from "../StyleProvider";
 import { FieldView, FieldViewProps } from './FieldView';
 import { LinkDocPreview } from "./LinkDocPreview";
 import "./VideoBox.scss";
+import { DragManager } from "../../util/DragManager";
+import { DocumentManager } from "../../util/DocumentManager";
 const path = require('path');
 
 type VideoDocument = makeInterface<[typeof documentSchema]>;
@@ -137,7 +139,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
         }
     }
 
-    @action public Snapshot() {
+    @action public Snapshot(downX?: number, downY?: number) {
         const width = (this.layoutDoc._width || 0);
         const height = (this.layoutDoc._height || 0);
         const canvas = document.createElement('canvas');
@@ -176,11 +178,11 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
             const retitled = StrCast(this.rootDoc.title).replace(/[ -\.]/g, "");
             const filename = path.basename(encodeURIComponent("snapshot" + retitled + "_" + (this.layoutDoc._currentTimecode || 0).toString().replace(/\./, "_")));
             VideoBox.convertDataUri(dataUrl, filename).then((returnedFilename: string) =>
-                returnedFilename && this.createRealSummaryLink(returnedFilename));
+                returnedFilename && this.createRealSummaryLink(returnedFilename, downX, downY));
         }
     }
 
-    private createRealSummaryLink = (relative: string) => {
+    private createRealSummaryLink = (relative: string, downX?: number, downY?: number) => {
         const url = this.choosePath(Utils.prepend(relative));
         const width = this.layoutDoc._width || 1;
         const height = this.layoutDoc._height || 0;
@@ -192,7 +194,10 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
         Doc.SetNativeWidth(Doc.GetProto(imageSummary), Doc.NativeWidth(this.layoutDoc));
         Doc.SetNativeHeight(Doc.GetProto(imageSummary), Doc.NativeHeight(this.layoutDoc));
         this.props.addDocument?.(imageSummary);
-        DocUtils.MakeLink({ doc: imageSummary }, { doc: this.getAnchor() }, "video snapshot");
+        const link = DocUtils.MakeLink({ doc: imageSummary }, { doc: this.getAnchor() }, "video snapshot");
+        link && (Doc.GetProto(link.anchor2 as Doc).timecodeToHide = NumCast((link.anchor2 as Doc).timecodeToShow) + 3);
+        setTimeout(() =>
+            (downX !== undefined && downY !== undefined) && DocumentManager.Instance.getFirstDocumentView(imageSummary)?.startDragging(downX, downY, "move", true));
     }
 
     @action
@@ -383,7 +388,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
             <span>{"" + formatTime(curTime)}</span>
             <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
         </div>,
-        <div className="videoBox-snapshot" key="snap" onClick={this.onSnapshot} >
+        <div className="videoBox-snapshot" key="snap" onPointerDown={this.onSnapshotDown} >
             <FontAwesomeIcon icon="camera" size="lg" />
         </div>,
         <div className="videoBox-timelineButton" key="timeline" onPointerDown={this.onTimelineHdlDown} style={{ bottom: `${100 - this.heightPercent}%` }}>
@@ -409,10 +414,11 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
         e.preventDefault();
     }
 
-    onSnapshot = (e: React.MouseEvent) => {
-        this.Snapshot();
-        e.stopPropagation();
-        e.preventDefault();
+    onSnapshotDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, (e) => {
+            this.Snapshot(e.clientX, e.clientY);
+            return true;
+        }, emptyFunction, () => this.Snapshot());
     }
 
     onTimelineHdlDown = action((e: React.PointerEvent) => {
@@ -492,7 +498,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
     }
 
     playLink = (doc: Doc) => {
-        const startTime = Math.max(0, (this._stackedTimeline.current?.anchorStart(doc) || 0) - .25);
+        const startTime = Math.max(0, (this._stackedTimeline.current?.anchorStart(doc) || 0));
         const endTime = this._stackedTimeline.current?.anchorEnd(doc);
         if (startTime !== undefined) {
             if (!this.layoutDoc.dontAutoPlayFollowedLinks) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);

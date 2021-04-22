@@ -386,7 +386,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         SelectionManager.DeselectAll();
     }
 
-    startDragging(x: number, y: number, dropAction: dropActionType) {
+    startDragging(x: number, y: number, dropAction: dropActionType, hideSource = false) {
         if (this._mainCont.current) {
             const dragData = new DragManager.DocumentDragData([this.props.Document]);
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.ContentScale).inverse().transformPoint(0, 0);
@@ -397,7 +397,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             dragData.moveDocument = this.props.moveDocument;
             const ffview = this.props.CollectionFreeFormDocumentView?.().props.CollectionFreeFormView;
             ffview && runInAction(() => (ffview.ChildDrag = this.props.DocumentView()));
-            DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.layoutDoc.onDragStart },
+            DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: hideSource || (!dropAction && !this.layoutDoc.onDragStart) },
                 () => setTimeout(action(() => ffview && (ffview.ChildDrag = undefined)))); // this needs to happen after the drop event is processed.
         }
     }
@@ -1108,6 +1108,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             setTimeout(action(() => this.docView && (this.docView._animateScalingTo = 0)), 400);
         }), 400);
     });
+
+    startDragging = (x: number, y: number, dropAction: dropActionType, hideSource = false) => this.docView?.startDragging(x, y, dropAction, hideSource);
 
     docViewPathFunc = () => this.docViewPath;
     isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
