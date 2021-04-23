@@ -67,7 +67,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
 
         AnchorMenu.Instance.OnClick = (e: PointerEvent) => {
             this.props.anchorMenuClick?.()?.(this.highlight("rgba(173, 216, 230, 0.75)", true));
-        }
+        };
         AnchorMenu.Instance.Highlight = this.highlight;
         /**
          * This function is used by the AnchorMenu to create an anchor highlight and a new linked text annotation.  

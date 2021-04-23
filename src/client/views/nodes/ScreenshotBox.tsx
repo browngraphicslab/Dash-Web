@@ -1,9 +1,11 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+// import { Canvas } from '@react-three/fiber';
 import { action, computed, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
+// import { BufferAttribute, Camera, Vector2, Vector3 } from 'three';
 import { DateField } from "../../../fields/DateField";
-import { Doc, WidthSym, HeightSym } from "../../../fields/Doc";
+import { Doc, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
@@ -11,7 +13,8 @@ import { makeInterface } from "../../../fields/Schema";
 import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { AudioField, VideoField } from "../../../fields/URLField";
-import { emptyFunction, OmitKeys, returnFalse, returnOne, Utils, numberRange } from "../../../Utils";
+import { TraceMobx } from "../../../fields/util";
+import { emptyFunction, numberRange, OmitKeys, returnFalse, returnOne, Utils } from "../../../Utils";
 import { DocUtils } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Networking } from "../../Network";
@@ -25,10 +28,6 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 import "./ScreenshotBox.scss";
 import { VideoBox } from "./VideoBox";
-import { TraceMobx } from "../../../fields/util";
-import { Canvas } from 'react-three-fiber';
-import * as THREE from 'three';
-import { Vector3, Vector2, Camera } from "three"
 declare class MediaRecorder {
     constructor(e: any, options?: any);  // whatever MediaRecorder has
 }
@@ -36,81 +35,81 @@ declare class MediaRecorder {
 type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
 const ScreenshotDocument = makeInterface(documentSchema);
 
-interface VideoTileProps {
-    raised: { coord: Vector2, off: Vector3 }[];
-    setRaised: (r: { coord: Vector2, off: Vector3 }[]) => void;
-    x: number;
-    y: number;
-    rootDoc: Doc;
-    color: string;
-}
+// interface VideoTileProps {
+//     raised: { coord: Vector2, off: Vector3 }[];
+//     setRaised: (r: { coord: Vector2, off: Vector3 }[]) => void;
+//     x: number;
+//     y: number;
+//     rootDoc: Doc;
+//     color: string;
+// }
 
-@observer
-export class VideoTile extends React.Component<VideoTileProps> {
-    @observable _videoRef: HTMLVideoElement | undefined;
-    _mesh: any = undefined;
+// @observer
+// export class VideoTile extends React.Component<VideoTileProps> {
+//     @observable _videoRef: HTMLVideoElement | undefined;
+//     _mesh: any = undefined;
 
-    render() {
-        const topLeft = [this.props.x, this.props.y];
-        const raised = this.props.raised;
-        const find = (raised: { coord: Vector2, off: Vector3 }[], what: Vector2) => raised.find(r => r.coord.x === what.x && r.coord.y === what.y);
-        const tl1 = find(raised, new Vector2(topLeft[0], topLeft[1] + 1));
-        const tl2 = find(raised, new Vector2(topLeft[0] + 1, topLeft[1] + 1));
-        const tl3 = find(raised, new Vector2(topLeft[0] + 1, topLeft[1]));
-        const tl4 = find(raised, new Vector2(topLeft[0], topLeft[1]));
-        const quad_indices = [0, 2, 1, 0, 3, 2];
-        const quad_uvs = [0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0];
-        const quad_normals = [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1,];
-        const quad_vertices =
-            [
-                topLeft[0] - 0.0 + (tl1?.off.x || 0), topLeft[1] + 1.0 + (tl1?.off.y || 0), 0.0 + (tl1?.off.z || 0),
-                topLeft[0] + 1.0 + (tl2?.off.x || 0), topLeft[1] + 1.0 + (tl2?.off.y || 0), 0.0 + (tl2?.off.z || 0),
-                topLeft[0] + 1.0 + (tl3?.off.x || 0), topLeft[1] - 0.0 + (tl3?.off.y || 0), 0.0 + (tl3?.off.z || 0),
-                topLeft[0] - 0.0 + (tl4?.off.x || 0), topLeft[1] - 0.0 + (tl4?.off.y || 0), 0.0 + (tl4?.off.z || 0)
-            ];
+//     render() {
+//         const topLeft = [this.props.x, this.props.y];
+//         const raised = this.props.raised;
+//         const find = (raised: { coord: Vector2, off: Vector3 }[], what: Vector2) => raised.find(r => r.coord.x === what.x && r.coord.y === what.y);
+//         const tl1 = find(raised, new Vector2(topLeft[0], topLeft[1] + 1));
+//         const tl2 = find(raised, new Vector2(topLeft[0] + 1, topLeft[1] + 1));
+//         const tl3 = find(raised, new Vector2(topLeft[0] + 1, topLeft[1]));
+//         const tl4 = find(raised, new Vector2(topLeft[0], topLeft[1]));
+//         const quad_indices = [0, 2, 1, 0, 3, 2];
+//         const quad_uvs = [0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0];
+//         const quad_normals = [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1,];
+//         const quad_vertices =
+//             [
+//                 topLeft[0] - 0.0 + (tl1?.off.x || 0), topLeft[1] + 1.0 + (tl1?.off.y || 0), 0.0 + (tl1?.off.z || 0),
+//                 topLeft[0] + 1.0 + (tl2?.off.x || 0), topLeft[1] + 1.0 + (tl2?.off.y || 0), 0.0 + (tl2?.off.z || 0),
+//                 topLeft[0] + 1.0 + (tl3?.off.x || 0), topLeft[1] - 0.0 + (tl3?.off.y || 0), 0.0 + (tl3?.off.z || 0),
+//                 topLeft[0] - 0.0 + (tl4?.off.x || 0), topLeft[1] - 0.0 + (tl4?.off.y || 0), 0.0 + (tl4?.off.z || 0)
+//             ];
 
-        const vertices = new Float32Array(quad_vertices);
-        const normals = new Float32Array(quad_normals);
-        const uvs = new Float32Array(quad_uvs); // Each vertex has one uv coordinate for texture mapping
-        const indices = new Uint32Array(quad_indices);          // Use the four vertices to draw the two triangles that make up the square.
-        const popOut = () => NumCast(this.props.rootDoc.popOut);
-        const popOff = () => NumCast(this.props.rootDoc.popOff);
-        return (
-            <mesh key={`mesh${topLeft[0]}${topLeft[1]}`} onClick={action(async e => {
-                this.props.setRaised([
-                    { coord: new Vector2(topLeft[0], topLeft[1]), off: new Vector3(-popOff(), -popOff(), popOut()) },
-                    { coord: new Vector2(topLeft[0] + 1, topLeft[1]), off: new Vector3(popOff(), -popOff(), popOut()) },
-                    { coord: new Vector2(topLeft[0], topLeft[1] + 1), off: new Vector3(-popOff(), popOff(), popOut()) },
-                    { coord: new Vector2(topLeft[0] + 1, topLeft[1] + 1), off: new Vector3(popOff(), popOff(), popOut()) }
-                ]);
-                if (!this._videoRef) {
-                    (navigator.mediaDevices as any).getDisplayMedia({ video: true }).then(action((stream: any) => {
-                        //const videoSettings = stream.getVideoTracks()[0].getSettings();
-                        this._videoRef = document.createElement("video");
-                        Object.assign(this._videoRef, {
-                            srcObject: stream,
-                            //height: videoSettings.height,
-                            //width: videoSettings.width,
-                            autoplay: true
-                        });
-                    }));
-                }
-            })} ref={(r: any) => this._mesh = r}>
-                <bufferGeometry attach="geometry" ref={(r: any) => {
-                    // itemSize = 3 because there are 3 values (components) per vertex
-                    r?.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-                    r?.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
-                    r?.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-                    r?.setIndex(new THREE.BufferAttribute(indices, 1));
-                }} />
-                {!this._videoRef ? <meshStandardMaterial color={this.props.color} /> :
-                    <meshBasicMaterial >
-                        <videoTexture attach="map" args={[this._videoRef]} />
-                    </meshBasicMaterial>}
-            </mesh>
-        )
-    };
-}
+//         const vertices = new Float32Array(quad_vertices);
+//         const normals = new Float32Array(quad_normals);
+//         const uvs = new Float32Array(quad_uvs); // Each vertex has one uv coordinate for texture mapping
+//         const indices = new Uint32Array(quad_indices);          // Use the four vertices to draw the two triangles that make up the square.
+//         const popOut = () => NumCast(this.props.rootDoc.popOut);
+//         const popOff = () => NumCast(this.props.rootDoc.popOff);
+//         return (
+//             <mesh key={`mesh${topLeft[0]}${topLeft[1]}`} onClick={action(async e => {
+//                 this.props.setRaised([
+//                     { coord: new Vector2(topLeft[0], topLeft[1]), off: new Vector3(-popOff(), -popOff(), popOut()) },
+//                     { coord: new Vector2(topLeft[0] + 1, topLeft[1]), off: new Vector3(popOff(), -popOff(), popOut()) },
+//                     { coord: new Vector2(topLeft[0], topLeft[1] + 1), off: new Vector3(-popOff(), popOff(), popOut()) },
+//                     { coord: new Vector2(topLeft[0] + 1, topLeft[1] + 1), off: new Vector3(popOff(), popOff(), popOut()) }
+//                 ]);
+//                 if (!this._videoRef) {
+//                     (navigator.mediaDevices as any).getDisplayMedia({ video: true }).then(action((stream: any) => {
+//                         //const videoSettings = stream.getVideoTracks()[0].getSettings();
+//                         this._videoRef = document.createElement("video");
+//                         Object.assign(this._videoRef, {
+//                             srcObject: stream,
+//                             //height: videoSettings.height,
+//                             //width: videoSettings.width,
+//                             autoplay: true
+//                         });
+//                     }));
+//                 }
+//             })} ref={(r: any) => this._mesh = r}>
+//                 <bufferGeometry attach="geometry" ref={(r: any) => {
+//                     // itemSize = 3 because there are 3 values (components) per vertex
+//                     r?.setAttribute('position', new BufferAttribute(vertices, 3));
+//                     r?.setAttribute('normal', new BufferAttribute(normals, 3));
+//                     r?.setAttribute('uv', new BufferAttribute(uvs, 2));
+//                     r?.setIndex(new BufferAttribute(indices, 1));
+//                 }} />
+//                 {!this._videoRef ? <meshStandardMaterial color={this.props.color} /> :
+//                     <meshBasicMaterial >
+//                         <videoTexture attach="map" args={[this._videoRef]} />
+//                     </meshBasicMaterial>}
+//             </mesh>
+//         );
+//     }
+// }
 
 @observer
 export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps & FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
@@ -153,16 +152,16 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
     componentDidMount() {
         this.dataDoc.nativeWidth = this.dataDoc.nativeHeight = 0;
         this.props.setContentView?.(this); // this tells the DocumentView that this ScreenshotBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
-        this.rootDoc.videoWall && reaction(() => ({ width: this.props.PanelWidth(), height: this.props.PanelHeight() }),
-            ({ width, height }) => {
-                if (this._camera) {
-                    const angle = -Math.abs(1 - width / height);
-                    const xz = [0, (this._numScreens - 2) / Math.abs(1 + angle)];
-                    this._camera.position.set(this._numScreens / 2 + xz[1] * Math.sin(angle), this._numScreens / 2, xz[1] * Math.cos(angle));
-                    this._camera.lookAt(this._numScreens / 2, this._numScreens / 2, 0);
-                    (this._camera as any).updateProjectionMatrix();
-                }
-            });
+        // this.rootDoc.videoWall && reaction(() => ({ width: this.props.PanelWidth(), height: this.props.PanelHeight() }),
+        //     ({ width, height }) => {
+        //         if (this._camera) {
+        //             const angle = -Math.abs(1 - width / height);
+        //             const xz = [0, (this._numScreens - 2) / Math.abs(1 + angle)];
+        //             this._camera.position.set(this._numScreens / 2 + xz[1] * Math.sin(angle), this._numScreens / 2, xz[1] * Math.cos(angle));
+        //             this._camera.lookAt(this._numScreens / 2, this._numScreens / 2, 0);
+        //             (this._camera as any).updateProjectionMatrix();
+        //         }
+        //     });
     }
     componentWillUnmount() {
         const ind = DocUtils.ActiveRecordings.indexOf(this);
@@ -196,27 +195,29 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
         </video>;
     }
 
-    _numScreens = 5;
-    _camera: Camera | undefined;
-    @observable _raised = [] as { coord: Vector2, off: Vector3 }[];
-    @action setRaised = (r: { coord: Vector2, off: Vector3 }[]) => this._raised = r;
+    // _numScreens = 5;
+    // _camera: Camera | undefined;
+    // @observable _raised = [] as { coord: Vector2, off: Vector3 }[];
+    // @action setRaised = (r: { coord: Vector2, off: Vector3 }[]) => this._raised = r;
     @computed get threed() {
-        if (!this.rootDoc.videoWall) return (null);
-        const screens: any[] = [];
-        const colors = ["yellow", "red", "orange", "brown", "maroon", "gray"];
-        let count = 0;
-        numberRange(this._numScreens).forEach(x => numberRange(this._numScreens).forEach(y => screens.push(
-            <VideoTile rootDoc={this.rootDoc} color={colors[count++ % colors.length]} x={x} y={y} raised={this._raised} setRaised={this.setRaised} />)));
-        return <Canvas key="canvas" id="CANCAN" style={{ width: this.props.PanelWidth(), height: this.props.PanelHeight() }} gl={{ antialias: false }} colorManagement={false} onCreated={props => {
-            this._camera = props.camera;
-            props.camera.position.set(this._numScreens / 2, this._numScreens / 2, this._numScreens - 2);
-            props.camera.lookAt(this._numScreens / 2, this._numScreens / 2, 0);
-        }}>
-            {/* <ambientLight />*/}
-            <pointLight position={[10, 10, 10]} intensity={1} />
-            {screens}
-        </ Canvas>
-    };
+        // if (this.rootDoc.videoWall) {
+        //     const screens: any[] = [];
+        //     const colors = ["yellow", "red", "orange", "brown", "maroon", "gray"];
+        //     let count = 0;
+        //     numberRange(this._numScreens).forEach(x => numberRange(this._numScreens).forEach(y => screens.push(
+        //         <VideoTile rootDoc={this.rootDoc} color={colors[count++ % colors.length]} x={x} y={y} raised={this._raised} setRaised={this.setRaised} />)));
+        //     return <Canvas key="canvas" id="CANCAN" style={{ width: this.props.PanelWidth(), height: this.props.PanelHeight() }} gl={{ antialias: false }} colorManagement={false} onCreated={props => {
+        //         this._camera = props.camera;
+        //         props.camera.position.set(this._numScreens / 2, this._numScreens / 2, this._numScreens - 2);
+        //         props.camera.lookAt(this._numScreens / 2, this._numScreens / 2, 0);
+        //     }}>
+        //         {/* <ambientLight />*/}
+        //         <pointLight position={[10, 10, 10]} intensity={1} />
+        //         {screens}
+        //     </ Canvas>;
+        // }
+        return (null);
+    }
     toggleRecording = action(async () => {
         this._screenCapture = !this._screenCapture;
         if (this._screenCapture) {

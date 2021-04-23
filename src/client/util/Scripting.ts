@@ -1,5 +1,6 @@
 import * as ts from "typescript";
 export { ts };
+
 // export const ts = (window as any).ts;
 
 // // @ts-ignore

@@ -1,46 +1,45 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, Field, AclPrivate } from "../../../fields/Doc";
-import { Cast, StrCast, NumCast } from "../../../fields/Types";
-import { OmitKeys, Without, emptyPath } from "../../../Utils";
+import { AclPrivate, Doc, Opt } from "../../../fields/Doc";
+import { ScriptField } from "../../../fields/ScriptField";
+import { Cast, StrCast } from "../../../fields/Types";
+import { GetEffectiveAcl, TraceMobx } from "../../../fields/util";
+import { emptyPath, OmitKeys, Without } from "../../../Utils";
 import { DirectoryImportBox } from "../../util/Import & Export/DirectoryImportBox";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView } from "../collections/CollectionView";
+import { InkingStroke } from "../InkingStroke";
+import { PresElementBox } from "../presentationview/PresElementBox";
+import { SearchBox } from "../search/SearchBox";
+import { DashWebRTCVideo } from "../webcam/DashWebRTCVideo";
 import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { AudioBox } from "./AudioBox";
-import { LabelBox } from "./LabelBox";
-import { EquationBox } from "./EquationBox";
-import { FunctionPlotBox } from "./FunctionPlotBox";
-import { SliderBox } from "./SliderBox";
-import { LinkBox } from "./LinkBox";
-import { ScriptingBox } from "./ScriptingBox";
+import { ColorBox } from "./ColorBox";
+import { ComparisonBox } from "./ComparisonBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
-import { FontIconBox } from "./FontIconBox";
+import { EquationBox } from "./EquationBox";
 import { FieldView, FieldViewProps } from "./FieldView";
+import { FilterBox } from "./FilterBox";
+import { FontIconBox } from "./FontIconBox";
 import { FormattedTextBox, FormattedTextBoxProps } from "./formattedText/FormattedTextBox";
+import { FunctionPlotBox } from "./FunctionPlotBox";
 import { ImageBox } from "./ImageBox";
 import { KeyValueBox } from "./KeyValueBox";
+import { LabelBox } from "./LabelBox";
+import { LinkAnchorBox } from "./LinkAnchorBox";
+import { LinkBox } from "./LinkBox";
 import { PDFBox } from "./PDFBox";
 import { PresBox } from "./PresBox";
-import { SearchBox } from "../search/SearchBox";
-import { FilterBox } from "./FilterBox";
-import { ColorBox } from "./ColorBox";
-import { DashWebRTCVideo } from "../webcam/DashWebRTCVideo";
-import { LinkAnchorBox } from "./LinkAnchorBox";
-import { PresElementBox } from "../presentationview/PresElementBox";
 import { ScreenshotBox } from "./ScreenshotBox";
-import { ComparisonBox } from "./ComparisonBox";
+import { ScriptingBox } from "./ScriptingBox";
+import { SliderBox } from "./SliderBox";
 import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
-import { InkingStroke } from "../InkingStroke";
 import React = require("react");
-import { TraceMobx, GetEffectiveAcl } from "../../../fields/util";
-import { ScriptField } from "../../../fields/ScriptField";
 import XRegExp = require("xregexp");
-import { DocumentType } from "../../documents/DocumentTypes";
 
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
@@ -226,7 +225,8 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, SearchBox, FilterBox, FunctionPlotBox,
                     ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, LinkBox, ScriptingBox,
-                    ScreenshotBox, HTMLtag, ComparisonBox
+                    ScreenshotBox,
+                    HTMLtag, ComparisonBox
                 }}
                 bindings={bindings}
                 jsx={layoutFrame}

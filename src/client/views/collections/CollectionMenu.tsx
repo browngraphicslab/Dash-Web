@@ -535,7 +535,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                     <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
                 </button>
             </Tooltip>
-        </>
+        </>;
     }
 
     render() {

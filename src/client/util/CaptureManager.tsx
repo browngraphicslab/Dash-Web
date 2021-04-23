@@ -99,7 +99,7 @@ export class CaptureManager extends React.Component<{}> {
                     Cancel
                 </div>
             </div>
-        </div>
+        </div>;
     }
 
 
@@ -135,6 +135,6 @@ export class CaptureManager extends React.Component<{}> {
             dialogueBoxStyle={{ width: "500px", height: "350px", border: "none", background: "whitesmoke" }}
             overlayStyle={{ background: "black" }}
             overlayDisplayedOpacity={0.6}
-        />
+        />;
     }
 }

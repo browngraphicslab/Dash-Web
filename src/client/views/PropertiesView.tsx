@@ -328,7 +328,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
      */
     @undoBatch
     changePermissions = (e: any, user: string) => {
-        const docs = SelectionManager.Views().length < 2 ? [this.selectedDoc!] : SelectionManager.Views().map(docView => docView.props.Document);
+        const docs = SelectionManager.Views().length < 2 ? [this.selectedDoc] : SelectionManager.Views().map(docView => docView.props.Document);
         SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, docs);
     }
 
@@ -409,7 +409,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
         // all selected docs
         const docs = SelectionManager.Views().length < 2 ?
-            [this.layoutDocAcls ? this.selectedDoc! : this.selectedDoc![DataSym]]
+            [this.layoutDocAcls ? this.selectedDoc : this.selectedDoc[DataSym]]
             : SelectionManager.Views().map(docView => this.layoutDocAcls ? docView.props.Document : docView.props.Document[DataSym]);
 
         const target = docs[0];

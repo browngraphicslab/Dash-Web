@@ -81,7 +81,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
     const showTitle = () => props?.styleProvider?.(doc, props, StyleProp.ShowTitle);
-    const random = (min: number, max: number, x: number, y: number) => { /* min should not be equal to max */ return min + ((Math.abs(x * y) * 9301 + 49297) % 233280 / 233280) * (max - min); }
+    const random = (min: number, max: number, x: number, y: number) => /* min should not be equal to max */ min + ((Math.abs(x * y) * 9301 + 49297) % 233280 / 233280) * (max - min);
     switch (property.split(":")[0]) {
         case StyleProp.TreeViewIcon: return Doc.toIcon(doc, isOpen);
         case StyleProp.DocContents: return undefined;

@@ -29,8 +29,6 @@ import React = require("react");
 const path = require('path');
 
 export const pageSchema = createSchema({
-    _curPage: "number",
-    fitWidth: "boolean",
     googlePhotosUrl: "string",
     googlePhotosTags: "string"
 });
