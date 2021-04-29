@@ -133,10 +133,9 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     }
 
     @computed get dots() {
-        return (this.childLayoutPairs.map((_child, index) => {
-            return <div key={Utils.GenerateGuid()} className={`dot${index === NumCast(this.layoutDoc._itemIndex) ? "-active" : ""}`}
-                onClick={() => this.layoutDoc._itemIndex = index} />;
-        }));
+        return (this.childLayoutPairs.map((_child, index) =>
+            <div key={Utils.GenerateGuid()} className={`dot${index === NumCast(this.layoutDoc._itemIndex) ? "-active" : ""}`}
+                onClick={() => this.layoutDoc._itemIndex = index} />));
     }
 
     render() {

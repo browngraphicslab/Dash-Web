@@ -38,9 +38,10 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
         e.stopPropagation();
         this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
     }
-    captionStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
-        const captionProps = { ...this.props, fieldKey: "caption" };
-        return this.props.styleProvider?.(doc, props, property) || this.props.styleProvider?.(this.layoutDoc, captionProps, property);
+    captionStyleProvider = (doc: (Doc | undefined), captionProps: Opt<DocumentViewProps>, property: string): any => {
+        // first look for properties on the document in the carousel, then fallback to properties on the container
+        const childValue = doc?.["caption-" + property] ? this.props.styleProvider?.(doc, captionProps, property) : undefined;
+        return childValue ?? this.props.styleProvider?.(this.layoutDoc, captionProps, property);
     }
     panelHeight = () => this.props.PanelHeight() - (StrCast(this.layoutDoc._showCaption) ? 50 : 0);
     onContentDoubleClick = () => ScriptCast(this.layoutDoc.onChildDoubleClick);
@@ -51,12 +52,14 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
         const captionProps = { ...this.props, fieldKey: "caption" };
         const marginX = NumCast(this.layoutDoc["caption-xMargin"]);
         const marginY = NumCast(this.layoutDoc["caption-yMargin"]);
+        const showCaptions = StrCast(this.layoutDoc._showCaption);
         return !(curDoc?.layout instanceof Doc) ? (null) :
             <>
                 <div className="collectionCarouselView-image" key="image">
                     <DocumentView  {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "childLayoutTemplate", "childLayoutString"]).omit}
                         onDoubleClick={this.onContentDoubleClick}
                         onClick={this.onContentClick}
+                        hideCaptions={showCaptions ? true : false}
                         renderDepth={this.props.renderDepth + 1}
                         ContainingCollectionView={this}
                         LayoutTemplate={this.props.childLayoutTemplate}
@@ -69,17 +72,16 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                 </div>
                 <div className="collectionCarouselView-caption" key="caption"
                     style={{
-                        display: StrCast(this.layoutDoc._showCaption) ? undefined : "none",
+                        display: showCaptions ? undefined : "none",
                         borderRadius: this.props.styleProvider?.(this.layoutDoc, captionProps, StyleProp.BorderRounding),
                         marginRight: marginX, marginLeft: marginX,
                         width: `calc(100% - ${marginX * 2}px)`
                     }}>
                     <FormattedTextBox key={index} {...captionProps}
+                        fieldKey={showCaptions}
                         styleProvider={this.captionStyleProvider}
-                        Document={curDoc.layout} DataDoc={undefined}
-                        fontSize={NumCast(this.layoutDoc["caption-fontSize"])}
-                        xPadding={NumCast(this.layoutDoc["caption-xPadding"])}
-                        yPadding={NumCast(this.layoutDoc["caption-yPadding"])} />
+                        Document={curDoc.layout}
+                        DataDoc={undefined} />
                 </div>
             </>;
     }

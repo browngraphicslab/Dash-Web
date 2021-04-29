@@ -121,6 +121,7 @@ export interface DocumentViewSharedProps {
     dropAction?: dropActionType;
     dontRegisterView?: boolean;
     hideLinkButton?: boolean;
+    hideCaptions?: boolean;
     ignoreAutoHeight?: boolean;
     disableDocBrushing?: boolean; // should highlighting for this view be disabled when same document in another view is hovered over.
     pointerEvents?: string;
@@ -908,22 +909,19 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         TraceMobx();
         const showTitle = this.ShowTitle?.split(":")[0];
         const showTitleHover = this.ShowTitle?.includes(":hover");
-        const showCaption = StrCast(this.layoutDoc._showCaption) && this.Document._viewType !== CollectionViewType.Carousel;
+        const showCaption = !this.props.hideCaptions && this.Document._viewType !== CollectionViewType.Carousel ? StrCast(this.layoutDoc._showCaption) : undefined;
         const captionView = !showCaption ? (null) :
-            <div className="documentView-captionWrapper"
-                style={{
-                    backgroundColor: StrCast(this.layoutDoc["caption-backgroundColor"]),
-                    color: StrCast(this.layoutDoc["caption-color"])
-                }}>
-                <DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
+            <div className="documentView-captionWrapper">
+                <FormattedTextBox {...OmitKeys(this.props, ['children']).omit}
                     yPadding={10}
                     xPadding={10}
+                    fieldKey={showCaption}
+                    fontSize={Math.min(32, 12 * this.props.ScreenToLocalTransform().Scale)}
                     hideOnLeave={true}
                     styleProvider={this.captionStyleProvider}
                     dontRegisterView={true}
-                    LayoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
                     onClick={this.onClickFunc}
-                    layoutKey={this.finalLayoutKey} />
+                />
             </div>;
         const titleView = !showTitle ? (null) :
             <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} key="title" style={{

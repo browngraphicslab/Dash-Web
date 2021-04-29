@@ -763,7 +763,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     render() {
         return !this.props.docView.layoutDoc ? (null) :
             <div className="collectionFreeFormMenu-cont">
-
+                <RichTextMenu key="rich" />
                 {!this.isText ?
                     <>
                         {this.drawButtons}
@@ -789,8 +789,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                                     </div>
                                 </Tooltip>
                             </>}
-                    </> :
-                    <RichTextMenu />
+                    </> : (null)
                 }
                 {!this.selectedDocumentView?.ComponentView?.menuControls ? (null) : this.selectedDocumentView?.ComponentView?.menuControls?.()}
             </div>;

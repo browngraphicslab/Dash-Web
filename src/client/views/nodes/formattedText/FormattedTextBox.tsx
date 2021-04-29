@@ -1514,6 +1514,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const selPad = Math.min(margins, 10);
         const padding = Math.max(margins + ((selected && !this.layoutDoc._singleLine) || minimal ? -selPad : 0), 0);
         const selPaddingClass = selected && !this.layoutDoc._singleLine && margins >= 10 ? "-selected" : "";
+        const col = this.props.color ? this.props.color : this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Color);
+        const back = this.props.background ? this.props.background : this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor);
         return (
             <div className="formattedTextBox-cont"
                 onWheel={e => this.isContentActive() && e.stopPropagation()}
@@ -1531,10 +1533,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         height: this.props.height || (this.autoHeight && this.props.renderDepth ? "max-content" : undefined),
                         background: this.props.background ? this.props.background : this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
                         color: this.props.color ? this.props.color : this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Color),
-                        pointerEvents: interactive ? undefined : "none",
-                        fontSize: this.props.fontSize || Cast(this.layoutDoc._fontSize, "string", null),
+                        fontSize: this.props.fontSize ? this.props.fontSize : this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.FontSize),
                         fontWeight: Cast(this.layoutDoc._fontWeight, "number", null),
                         fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
+                        pointerEvents: interactive ? undefined : "none",
                     }}
                     onContextMenu={this.specificContextMenu}
                     onKeyDown={this.onKeyDown}

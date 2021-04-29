@@ -43,6 +43,7 @@ export enum StyleProp {
     ShowTitle = "showTitle",              // whether to display a title on a Document (optional :hover suffix)
     JitterRotation = "jitterRotation",    // whether documents should be randomly rotated
     BorderPath = "customBorder",          // border path for document view
+    FontSize = "fontSize",                // size of text font
 }
 
 function darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
@@ -70,12 +71,12 @@ export function wavyBorderPath(pw: number, ph: number, inset: number = 0.05) {
 // 
 export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any {
     const docProps = testDocProps(props) ? props : undefined;
-    const fieldKey = (props as any)?.fieldKey ? (props as any).fieldKey + "-" : "";
     const selected = property.includes(":selected");
     const isCaption = property.includes(":caption");
     const isAnchor = property.includes(":anchor");
     const isAnnotated = property.includes(":annotated");
     const isOpen = property.includes(":open");
+    const fieldKey = (props as any)?.fieldKey ? (props as any).fieldKey + "-" : isCaption ? "caption-" : "";
     const comicStyle = () => doc && !Doc.IsSystem(doc) && Doc.UserDoc().renderStyle === "comic";
     const isBackground = () => StrListCast(doc?._layerTags).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
@@ -88,6 +89,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         case StyleProp.WidgetColor: return isAnnotated ? "lightBlue" : darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
         case StyleProp.HideLinkButton: return props?.hideLinkButton || (!selected && (doc?.isLinkButton || doc?.hideLinkButton));
+        case StyleProp.FontSize: return StrCast(doc?.[fieldKey + "fontSize"]);
         case StyleProp.ShowTitle: return doc && !doc.presentationTargetDoc && StrCast(doc._showTitle,
             !Doc.IsSystem(doc) && doc.type === DocumentType.RTF ?
                 (doc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") : "") || "";
@@ -102,7 +104,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
             if (colsum / col.alpha() > 400 || col.alpha() < 0.25) return "black";
             return "white";
         case StyleProp.Hidden: return BoolCast(doc?._hidden);
-        case StyleProp.BorderRounding: return StrCast(doc?.[fieldKey + "borderRounding"], StrCast(doc?._borderRounding));
+        case StyleProp.BorderRounding: return StrCast(doc?.[fieldKey + "borderRounding"]);
         case StyleProp.TitleHeight: return 15;
         case StyleProp.BorderPath: return comicStyle() && props?.renderDepth ? { path: wavyBorderPath(props?.PanelWidth?.() || 0, props?.PanelHeight?.() || 0), fill: wavyBorderPath(props?.PanelWidth?.() || 0, props?.PanelHeight?.() || 0, .08), width: 3 } : { path: undefined, width: 0 };
         case StyleProp.JitterRotation: return comicStyle() ? random(-1, 1, NumCast(doc?.x), NumCast(doc?.y)) * ((props?.PanelWidth() || 0) > (props?.PanelHeight() || 0) ? 5 : 10) : 0;
@@ -124,6 +126,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.LINKANCHOR: docColor = isAnchor ? "lightblue" : "transparent"; break;
                 case DocumentType.LINK: docColor = docColor || "transparent"; break;
+                case DocumentType.IMG:
                 case DocumentType.WEB:
                 case DocumentType.PDF:
                 case DocumentType.SCREENSHOT:
