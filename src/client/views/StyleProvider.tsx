@@ -96,10 +96,9 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         case StyleProp.Color:
             const docColor: Opt<string> = StrCast(doc?.[fieldKey + "color"], StrCast(doc?._color));
             if (docColor) return docColor;
-            if (isCaption) return "white";
             const backColor = backgroundCol();// || (darkScheme() ? "black" : "white");
             if (!backColor) return undefined;
-            const col = Color(backColor).rgb();
+            const col = Color(backColor.startsWith("#") ? (backColor as string).substring(0, 7) : backColor).rgb();
             const colsum = (col.red() + col.green() + col.blue());
             if (colsum / col.alpha() > 400 || col.alpha() < 0.25) return "black";
             return "white";
