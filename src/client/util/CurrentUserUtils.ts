@@ -31,7 +31,7 @@ import { LinkManager } from "./LinkManager";
 import { Scripting } from "./Scripting";
 import { SearchUtil } from "./SearchUtil";
 import { SelectionManager } from "./SelectionManager";
-import { undoBatch, UndoManager } from "./UndoManager";
+import { UndoManager } from "./UndoManager";
 import { SnappingManager } from "./SnappingManager";
 import { InkTool } from "../../fields/InkField";
 import { computedFn } from "mobx-utils";
@@ -495,7 +495,7 @@ export class CurrentUserUtils {
         }
         const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title));
         const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag, click, backgroundColor, dragFactory, noviceMode, clickFactory }) => Docs.Create.FontIconDocument({
-            _nativeWidth: 50, _nativeHeight: 50, _width: 35, _height: 35,
+            _nativeWidth: 50, _nativeHeight: 50, _width: 25, _height: 25,
             icon,
             title,
             toolTip,
@@ -909,6 +909,13 @@ export class CurrentUserUtils {
     static async inkBtnDescriptions(doc: Doc) {
         return [
             { title: "Perspective", tooltip: "Change document's perspective", type: "btn", btnType: ButtonType.DropdownButton, icon: "desktop", click: 'selectMainMenu(self)' },
+            { title: "Toggle Overlay Layer", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ClickButton, target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
+            { title: "Undo", icon: 'undo-alt', btnType: ButtonType.ClickButton, click: 'undo()' },
+            { title: "Redo", icon: 'redo-alt', btnType: ButtonType.ClickButton, click: 'redo()' },
+            { title: "Text Tools", type: "LinearMenu", icon: "font" },
+            { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib" },
+            { title: "GFX Tools", type: "LinearMenu", icon: "shapes" },
+            { title: "Drag Alias", btnType: ButtonType.ClickButton, icon: "copy" },
         ];
     }
 
@@ -916,6 +923,12 @@ export class CurrentUserUtils {
         return [
             // { title: "Perspective", tooltip: "Change document's perspective", type: "btn", btnType: ButtonType.DropdownButton, icon: "desktop", click: 'selectMainMenu(self)' },
             { title: "Toggle Overlay Layer", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ClickButton, target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
+            { title: "Undo", icon: 'undo-alt', btnType: ButtonType.ClickButton, click: 'undo()' },
+            { title: "Redo", icon: 'redo-alt', btnType: ButtonType.ClickButton, click: 'redo()' },
+            { title: "Text Tools", type: "LinearMenu", icon: "font", click: '' },
+            { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib", click: '' },
+            { title: "GFX Tools", type: "LinearMenu", icon: "shapes", click: '' },
+            { title: "Drag Alias", btnType: ButtonType.ClickButton, icon: "copy", click: '' },
         ];
     }
 
@@ -924,13 +937,12 @@ export class CurrentUserUtils {
     static async setupContextMenuButtons(doc: Doc) {
         let docList: Doc[] = [];
 
-        const contextMenuBtns = (await CurrentUserUtils.contextMenuBtnDescriptions(doc)).map(({ title, tooltip, ignoreClick, icon, type, btnType, click, doc }) => {
+        const contextMenuBtns = (await CurrentUserUtils.contextMenuBtnDescriptions(doc)).map(({ title, tooltip, ignoreClick, icon, type, btnType, click }) => {
             if (type == "LinearMenu") {
                 docList.push(CurrentUserUtils.blist({ flexDirection: 'column-reverse', linearViewExpandable: true, _height: 30, backgroundColor: "#E3E3E3" }, []));
             } else {
-                console.log(doc ? "title: " + doc.title : "doc not defined");
                 docList.push(Docs.Create.FontIconDocument({
-                    _nativeWidth: btnType === ButtonType.ClickButton ? 30 : 50, _nativeHeight: 30, _width: btnType === ButtonType.ClickButton ? 30 : 50, _height: 30,
+                    _nativeWidth: btnType === ButtonType.ClickButton ? 25 : 40, _nativeHeight: 25, _width: btnType === ButtonType.ClickButton ? 25 : 40, _height: 25,
                     icon,
                     btnType: btnType,
                     ignoreClick: ignoreClick,
@@ -942,7 +954,7 @@ export class CurrentUserUtils {
                     backgroundColor: "#E3E3E3",
                     _dropAction: "alias",
                     _removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
-                    onClick: click ? ScriptField.MakeScript(click, { scriptContext: doc }) : undefined
+                    onClick: click ? ScriptField.MakeScript(click, { scriptContext: "any" }) : undefined
                 }));
             }
         });
@@ -1328,5 +1340,3 @@ Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Insta
     "returns all the links to the document or its annotations", "(doc: any)");
 Scripting.addGlobal(function importDocument() { return CurrentUserUtils.importDocument(); },
     "imports files from device directly into the import sidebar");
-Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; },
-    "toggle between regular rendeing and an informal sketch/comic style");

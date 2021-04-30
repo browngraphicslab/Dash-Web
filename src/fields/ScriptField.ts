@@ -10,14 +10,6 @@ import { ProxyField } from "./Proxy";
 import { Cast, NumCast } from "./Types";
 import { List } from "./List";
 import { numberRange } from "../Utils";
-import { SelectionManager } from "../client/util/SelectionManager";
-
-function selectedDoc() { return SelectionManager.SelectedSchemaDoc() || selectedDocumentView()?.rootDoc; }
-
-function selectedDocumentView() {
-    if (SelectionManager.Views().length) return SelectionManager.Views()[0];
-    return undefined;
-}
 
 function optional(propSchema: PropSchema) {
     return custom(value => {
@@ -69,9 +61,6 @@ async function deserializeScript(script: ScriptField) {
     if (script.script.originalScript === `selectMainMenu(self)`) {
         return (script as any).script = (ScriptField.SelectMenu ?? (ScriptField.SelectMenu = ComputedField.MakeFunction('selectMainMenu(self)')))?.script;
     }
-    if (script.script.originalScript === 'toggleOverlay(doc)') {
-        return (script as any).script = (ScriptField.ToggleOverlay ?? (ScriptField.ToggleOverlay = ComputedField.MakeFunction('toggleOverlay(doc)', { doc: selectedDoc() })))?.script;
-    }
     const captures: ProxyField<Doc> = (script as any).captures;
     if (captures) {
         const doc = (await captures.value())!;
@@ -113,7 +102,6 @@ export class ScriptField extends ObjectField {
     public static ConvertToButtons: Opt<ScriptField>;
     public static NoviceMode: Opt<ScriptField>;
     public static SelectMenu: Opt<ScriptField>;
-    public static ToggleOverlay: Opt<ScriptField>;
     constructor(script: CompiledScript, setterscript?: CompiledScript) {
         super();
 
