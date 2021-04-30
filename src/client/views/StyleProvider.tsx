@@ -1,7 +1,8 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { runInAction } from 'mobx';
+import { runInAction, action } from 'mobx';
 import { Doc, Opt, StrListCast } from "../../fields/Doc";
 import { List } from '../../fields/List';
 import { listSpec } from '../../fields/Schema';
@@ -9,16 +10,16 @@ import { BoolCast, Cast, NumCast, StrCast } from "../../fields/Types";
 import { DocumentType } from '../documents/DocumentTypes';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { SnappingManager } from '../util/SnappingManager';
-import { UndoManager } from '../util/UndoManager';
+import { UndoManager, undoBatch } from '../util/UndoManager';
 import { CollectionViewType } from './collections/CollectionView';
+import "./collections/TreeView.scss";
 import { MainView } from './MainView';
 import { DocumentViewProps } from "./nodes/DocumentView";
-import "./StyleProvider.scss";
-import "./collections/TreeView.scss";
+import { FieldViewProps } from './nodes/FieldView';
 import "./nodes/FilterBox.scss";
+import "./StyleProvider.scss";
 import React = require("react");
 import Color = require('color');
-import { FieldViewProps } from './nodes/FieldView';
 
 export enum StyleLayers {
     Background = "background"
@@ -98,7 +99,9 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
             if (docColor) return docColor;
             const backColor = backgroundCol();// || (darkScheme() ? "black" : "white");
             if (!backColor) return undefined;
-            const col = Color(backColor.startsWith("#") ? (backColor as string).substring(0, 7) : backColor).rgb();
+            const nonAlphaColor = backColor.startsWith("#") ? (backColor as string).substring(0, 7) :
+                backColor.startsWith("rgba") ? backColor.replace(/,.[^,]*\)/, ")").replace("rgba", "rgb") : backColor
+            const col = Color(nonAlphaColor).rgb();
             const colsum = (col.red() + col.green() + col.blue());
             if (colsum / col.alpha() > 400 || col.alpha() < 0.25) return "black";
             return "white";
@@ -110,7 +113,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) ||
             doc?.type === DocumentType.RTF) && showTitle() && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
         case StyleProp.BackgroundColor: {
-            let docColor: Opt<string> = StrCast(doc?.[fieldKey + "backgroundColor"], StrCast(doc?._backgroundColor, isCaption ? "rbga(0,0,0,0.4)" : ""));
+            let docColor: Opt<string> = StrCast(doc?.[fieldKey + "backgroundColor"], StrCast(doc?._backgroundColor, isCaption ? "rgba(0,0,0,0.4)" : ""));
             if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
             switch (doc?.type) {
                 case DocumentType.PRESELEMENT: docColor = docColor || (darkScheme() ? "" : ""); break;
@@ -189,59 +192,29 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
     }
 }
 
-
-function toggleHidden(e: React.MouseEvent, doc: Doc) {
-    UndoManager.RunInBatch(() => runInAction(() => {
-        e.stopPropagation();
-        doc.hidden = doc.hidden ? undefined : true;
-    }), "toggleHidden");
+export function DashboardToggleButton(doc: Doc, field: string, onIcon: IconProp, offIcon: IconProp, clickFunc?: () => void) {
+    return <div className={`styleProvider-treeView-icon${doc[field] ? "-active" : ""}`}
+        onClick={undoBatch(action((e: React.MouseEvent) => {
+            e.stopPropagation();
+            clickFunc ? clickFunc() : (doc[field] = doc[field] ? undefined : true);
+        }))}>
+        <FontAwesomeIcon icon={(doc[field] ? onIcon as any : offIcon) as IconProp} size="sm" />
+    </div>;
 }
-
-function toggleLock(e: React.MouseEvent, doc: Doc) {
-    UndoManager.RunInBatch(() => runInAction(() => {
-        e.stopPropagation();
-        doc.lockedPosition = doc.lockedPosition ? undefined : true;
-    }), "toggleHidden");
-}
-
 /**
  * add lock and hide button decorations for the "Dashboards" flyout TreeView
  */
 export function DashboardStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
-    switch (property.split(":")[0]) {
-        case StyleProp.Decorations:
-            if (doc) {
-                const hidden = doc.hidden;
-                const locked = doc.lockedPosition;
-                return doc._viewType === CollectionViewType.Docking || (Doc.IsSystem(doc) && Doc.UserDoc().noviceMode) ? (null) :
-                    <>
-                        <div className={`styleProvider-treeView-hide${hidden ? "-active" : ""}`} onClick={(e) => toggleHidden(e, doc)}>
-                            <FontAwesomeIcon icon={hidden ? "eye-slash" : "eye"} size="sm" />
-                        </div>
-                        <div className={`styleProvider-treeView-lock${locked ? "-active" : ""}`} onClick={(e) => toggleLock(e, doc)}>
-                            <FontAwesomeIcon icon={locked ? "lock" : "unlock"} size="sm" />
-                        </div>
-                    </>;
-            }
-        default: return DefaultStyleProvider(doc, props, property);
 
+    if (doc && property.split(":")[0] === StyleProp.Decorations) {
+        return doc._viewType === CollectionViewType.Docking ? (null) :
+            <>
+                {DashboardToggleButton(doc, "hidden", "eye-slash", "eye")}
+                {DashboardToggleButton(doc, "lockedPosition", "lock", "unlock")}
+            </>;
     }
+    return DefaultStyleProvider(doc, props, property);
 }
-
-function changeFilterBool(e: any, doc: Doc) {
-    UndoManager.RunInBatch(() => runInAction(() => {
-        //e.stopPropagation();
-        //doc.lockedPosition = doc.lockedPosition ? undefined : true;
-    }), "changeFilterBool");
-}
-
-function closeFilter(e: React.MouseEvent, doc: Doc) {
-    UndoManager.RunInBatch(() => runInAction(() => {
-        e.stopPropagation();
-        //doc.lockedPosition = doc.lockedPosition ? undefined : true;
-    }), "closeFilter");
-}
-
 
 //
 // a preliminary semantic-"layering/grouping" mechanism for determining interactive properties of documents
