@@ -14,14 +14,18 @@ import { CollectionViewType } from './collections/CollectionView';
 import { MainView } from './MainView';
 import { DocumentViewProps } from "./nodes/DocumentView";
 import "./StyleProvider.scss";
+import "./collections/TreeView.scss";
+import "./nodes/FilterBox.scss";
 import React = require("react");
 import Color = require('color');
+import { FieldViewProps } from './nodes/FieldView';
 
 export enum StyleLayers {
     Background = "background"
 }
 
 export enum StyleProp {
+    TreeViewIcon = "treeViewIcon",
     DocContents = "docContents",          // when specified, the JSX returned will replace the normal rendering of the document view
     Opacity = "opacity",                  // opacity of the document view
     Hidden = "hidden",                    // whether the document view should not be isplayed
@@ -37,6 +41,9 @@ export enum StyleProp {
     HeaderMargin = "headerMargin",        // margin at top of documentview, typically for displaying a title -- doc contents will start below that
     TitleHeight = "titleHeight",          // Height of Title area
     ShowTitle = "showTitle",              // whether to display a title on a Document (optional :hover suffix)
+    JitterRotation = "jitterRotation",    // whether documents should be randomly rotated
+    BorderPath = "customBorder",          // border path for document view
+    FontSize = "fontSize",                // size of text font
 }
 
 function darkScheme() { return Doc.UserDoc().colorScheme == 'dark'; }
@@ -56,7 +63,10 @@ export function testDocProps(toBeDetermined: any): toBeDetermined is DocumentVie
     return (toBeDetermined?.isContentActive) ? toBeDetermined : undefined;
 }
 
-//
+export function wavyBorderPath(pw: number, ph: number, inset: number = 0.05) {
+    return `M ${pw * .5} ${ph * inset}   C ${pw * .6} ${ph * inset} ${pw * (1 - 2 * inset)} 0 ${pw * (1 - inset)} ${ph * inset}   C ${pw} ${ph * (2 * inset)} ${pw * (1 - inset)} ${ph * .25} ${pw * (1 - inset)} ${ph * .3}   C ${pw * (1 - inset)} ${ph * .4} ${pw} ${ph * (1 - 2 * inset)} ${pw * (1 - inset)} ${ph * (1 - inset)}  C ${pw * (1 - 2 * inset)} ${ph} ${pw * .6} ${ph * (1 - inset)} ${pw * .5} ${ph * (1 - inset)}   C ${pw * .3} ${ph * (1 - inset)} ${pw * (2 * inset)} ${ph} ${pw * inset} ${ph * (1 - inset)}  C 0 ${ph * (1 - 2 * inset)} ${pw * inset} ${ph * .8} ${pw * inset} ${ph * .75}   C ${pw * inset} ${ph * .7} 0 ${ph * (2 * inset)} ${pw * inset} ${ph * inset}   C ${pw * (2 * inset)} 0 ${pw * .25} ${ph * inset} ${pw * .5} ${ph * inset}`;
+}
+
 // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
 // 
 export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any {
@@ -65,46 +75,43 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
     const isCaption = property.includes(":caption");
     const isAnchor = property.includes(":anchor");
     const isAnnotated = property.includes(":annotated");
+    const isOpen = property.includes(":open");
+    const fieldKey = (props as any)?.fieldKey ? (props as any).fieldKey + "-" : isCaption ? "caption-" : "";
+    const comicStyle = () => doc && !Doc.IsSystem(doc) && Doc.UserDoc().renderStyle === "comic";
     const isBackground = () => StrListCast(doc?._layerTags).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
     const showTitle = () => props?.styleProvider?.(doc, props, StyleProp.ShowTitle);
-
+    const random = (min: number, max: number, x: number, y: number) => /* min should not be equal to max */ min + ((Math.abs(x * y) * 9301 + 49297) % 233280 / 233280) * (max - min);
     switch (property.split(":")[0]) {
+        case StyleProp.TreeViewIcon: return Doc.toIcon(doc, isOpen);
         case StyleProp.DocContents: return undefined;
         case StyleProp.WidgetColor: return isAnnotated ? "lightBlue" : darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
         case StyleProp.HideLinkButton: return props?.hideLinkButton || (!selected && (doc?.isLinkButton || doc?.hideLinkButton));
+        case StyleProp.FontSize: return StrCast(doc?.[fieldKey + "fontSize"]);
         case StyleProp.ShowTitle: return doc && !doc.presentationTargetDoc && StrCast(doc._showTitle,
             !Doc.IsSystem(doc) && doc.type === DocumentType.RTF ?
                 (doc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") : "") || "";
         case StyleProp.Color:
-            if (isCaption) return "white";
-            if (!docProps) {
-                if (MainView.Instance.LastButton === doc) return darkScheme() ? "white" : "#5b9fdd";
-            }
-            const backColor = backgroundCol() || "black";
-            const col = Color(backColor).rgb();
+            const docColor: Opt<string> = StrCast(doc?.[fieldKey + "color"], StrCast(doc?._color));
+            if (docColor) return docColor;
+            const backColor = backgroundCol();// || (darkScheme() ? "black" : "white");
+            if (!backColor) return undefined;
+            const col = Color(backColor.startsWith("#") ? (backColor as string).substring(0, 7) : backColor).rgb();
             const colsum = (col.red() + col.green() + col.blue());
             if (colsum / col.alpha() > 400 || col.alpha() < 0.25) return "black";
             return "white";
         case StyleProp.Hidden: return BoolCast(doc?._hidden);
-        case StyleProp.BorderRounding: return StrCast(doc?._borderRounding);
+        case StyleProp.BorderRounding: return StrCast(doc?.[fieldKey + "borderRounding"]);
         case StyleProp.TitleHeight: return 15;
+        case StyleProp.BorderPath: return comicStyle() && props?.renderDepth ? { path: wavyBorderPath(props?.PanelWidth?.() || 0, props?.PanelHeight?.() || 0), fill: wavyBorderPath(props?.PanelWidth?.() || 0, props?.PanelHeight?.() || 0, .08), width: 3 } : { path: undefined, width: 0 };
+        case StyleProp.JitterRotation: return comicStyle() ? random(-1, 1, NumCast(doc?.x), NumCast(doc?.y)) * ((props?.PanelWidth() || 0) > (props?.PanelHeight() || 0) ? 5 : 10) : 0;
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) ||
             doc?.type === DocumentType.RTF) && showTitle() && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
         case StyleProp.BackgroundColor: {
-            if (isCaption) return "rgba(0,0,0 ,0.4)";
-            if (Doc.UserDoc().renderStyle === "comic") return "transparent";
-            let docColor: Opt<string> = StrCast(doc?._backgroundColor);
-            if (!docProps) {
-                if (MainView.Instance.LastButton === doc) return darkScheme() ? "rgb(62, 62, 62)" : "lightgrey";
-                switch (doc?.type) {
-                    case DocumentType.FONTICON: return docColor || "black";
-                    case DocumentType.LINK: return docColor || "lightblue";
-                    default: undefined;
-                }
-            }
+            let docColor: Opt<string> = StrCast(doc?.[fieldKey + "backgroundColor"], StrCast(doc?._backgroundColor, isCaption ? "rbga(0,0,0,0.4)" : ""));
+            if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
             switch (doc?.type) {
                 case DocumentType.PRESELEMENT: docColor = docColor || (darkScheme() ? "" : ""); break;
                 case DocumentType.PRES: docColor = docColor || (darkScheme() ? "#3e3e3e" : "white"); break;
@@ -118,6 +125,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.LINKANCHOR: docColor = isAnchor ? "lightblue" : "transparent"; break;
                 case DocumentType.LINK: docColor = docColor || "transparent"; break;
+                case DocumentType.IMG:
                 case DocumentType.WEB:
                 case DocumentType.PDF:
                 case DocumentType.SCREENSHOT:
@@ -134,7 +142,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
                                             Doc.UserDoc().activeCollectionBackground));
                     break;
                 //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
-                default: docColor = darkScheme() ? "black" : "white"; break;
+                default: docColor = docColor || (darkScheme() ? "black" : "white"); break;
             }
             if (docColor && (!doc || props?.layerProvider?.(doc) === false)) docColor = Color(docColor.toLowerCase()).fade(0.5).toString();
             return docColor;
@@ -168,6 +176,8 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
             if (doc?.type !== DocumentType.INK && layer === true) return "all";
             return undefined;
         case StyleProp.Decorations:
+            // if (isFooter)
+
             if (props?.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform) {
                 return doc && (isBackground() || selected) && (props?.renderDepth || 0) > 0 &&
                     ((doc.type === DocumentType.COL && doc._viewType !== CollectionViewType.Pile) || [DocumentType.RTF, DocumentType.IMG, DocumentType.INK].includes(doc.type as DocumentType)) ?
@@ -178,6 +188,60 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
             }
     }
 }
+
+
+function toggleHidden(e: React.MouseEvent, doc: Doc) {
+    UndoManager.RunInBatch(() => runInAction(() => {
+        e.stopPropagation();
+        doc.hidden = doc.hidden ? undefined : true;
+    }), "toggleHidden");
+}
+
+function toggleLock(e: React.MouseEvent, doc: Doc) {
+    UndoManager.RunInBatch(() => runInAction(() => {
+        e.stopPropagation();
+        doc.lockedPosition = doc.lockedPosition ? undefined : true;
+    }), "toggleHidden");
+}
+
+/**
+ * add lock and hide button decorations for the "Dashboards" flyout TreeView
+ */
+export function DashboardStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
+    switch (property.split(":")[0]) {
+        case StyleProp.Decorations:
+            if (doc) {
+                const hidden = doc.hidden;
+                const locked = doc.lockedPosition;
+                return doc._viewType === CollectionViewType.Docking || (Doc.IsSystem(doc) && Doc.UserDoc().noviceMode) ? (null) :
+                    <>
+                        <div className={`styleProvider-treeView-hide${hidden ? "-active" : ""}`} onClick={(e) => toggleHidden(e, doc)}>
+                            <FontAwesomeIcon icon={hidden ? "eye-slash" : "eye"} size="sm" />
+                        </div>
+                        <div className={`styleProvider-treeView-lock${locked ? "-active" : ""}`} onClick={(e) => toggleLock(e, doc)}>
+                            <FontAwesomeIcon icon={locked ? "lock" : "unlock"} size="sm" />
+                        </div>
+                    </>;
+            }
+        default: return DefaultStyleProvider(doc, props, property);
+
+    }
+}
+
+function changeFilterBool(e: any, doc: Doc) {
+    UndoManager.RunInBatch(() => runInAction(() => {
+        //e.stopPropagation();
+        //doc.lockedPosition = doc.lockedPosition ? undefined : true;
+    }), "changeFilterBool");
+}
+
+function closeFilter(e: React.MouseEvent, doc: Doc) {
+    UndoManager.RunInBatch(() => runInAction(() => {
+        e.stopPropagation();
+        //doc.lockedPosition = doc.lockedPosition ? undefined : true;
+    }), "closeFilter");
+}
+
 
 //
 // a preliminary semantic-"layering/grouping" mechanism for determining interactive properties of documents

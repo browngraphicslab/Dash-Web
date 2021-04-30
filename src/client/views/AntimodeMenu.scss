@@ -25,11 +25,25 @@
         background-color: transparent;
         width: 35px;
         height: 35px;
+        padding: 5;
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+
+        .svg {
+            margin: 0;
+        }
 
         &.active {
             color: #276B86;
         }
     }
+
+    // .antimodeMenu-button:hover {
+    //     background-color: rgba(0, 0, 0, 0.4);
+    // }
 
     // .antimodeMenu-dragger {
     //     height: 100%;

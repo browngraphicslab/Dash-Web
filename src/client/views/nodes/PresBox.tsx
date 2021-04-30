@@ -5,7 +5,7 @@ import { action, computed, IReactionDisposer, observable, ObservableMap, reactio
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
 import { Bounce, Fade, Flip, LightSpeed, Roll, Rotate, Zoom } from 'react-reveal';
-import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../fields/Doc";
+import { Doc, DocListCast, DocListCastAsync, Opt, FieldResult } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
@@ -29,6 +29,7 @@ import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
 import Color = require("color");
+import { LightboxView } from "../LightboxView";
 
 export enum PresMovement {
     Zoom = "zoom",
@@ -246,11 +247,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // }
     }
 
-    stopTempMedia = (targetDoc: Doc) => {
-        if (targetDoc.type === DocumentType.AUDIO) {
+    stopTempMedia = (targetDocField: FieldResult) => {
+        const targetDoc = Cast(targetDocField, Doc, null);
+        if (targetDoc?.type === DocumentType.AUDIO) {
             if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
             targetDoc._audioStop = true;
-        } else if (targetDoc.type === DocumentType.VID) {
+        } else if (targetDoc?.type === DocumentType.VID) {
             if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
             targetDoc._triggerVideoStop = true;
         }
@@ -330,14 +332,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.rootDoc._itemIndex = index;
             const activeItem: Doc = this.activeItem;
             const targetDoc: Doc = this.targetDoc;
-            if (from && from.mediaStopTriggerList && this.layoutDoc.presStatus !== PresStatus.Edit) {
-                const mediaDocList = DocListCast(from.mediaStopTriggerList);
-                mediaDocList.forEach((doc) => {
-                    this.stopTempMedia(Cast(doc.presentationTargetDoc, Doc, null));
-                });
+            if (from?.mediaStopTriggerList && this.layoutDoc.presStatus !== PresStatus.Edit) {
+                DocListCast(from.mediaStopTriggerList).forEach(this.stopTempMedia);
             }
-            if (from && from.mediaStop === "auto" && this.layoutDoc.presStatus !== PresStatus.Edit) {
-                this.stopTempMedia(Cast(from.presentationTargetDoc, Doc, null));
+            if (from?.mediaStop === "auto" && this.layoutDoc.presStatus !== PresStatus.Edit) {
+                this.stopTempMedia(from.presentationTargetDoc);
             }
             // If next slide is audio / video 'Play automatically' then the next slide should be played
             if (this.layoutDoc.presStatus !== PresStatus.Edit && (targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && (activeItem.mediaStart === "auto")) {
@@ -433,10 +432,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         };
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
-            openInTab(targetDoc);
+            LightboxView.SetLightboxDoc(targetDoc);
         } else if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
+            LightboxView.SetLightboxDoc(undefined);
             await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right
         } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
+            LightboxView.SetLightboxDoc(undefined);
             //awaiting jump so that new scale can be found, since jumping is async     
             await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right    
         }
@@ -588,6 +589,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (this._presTimer) clearTimeout(this._presTimer);
             this.layoutDoc.presStatus = PresStatus.Manual;
             this.layoutDoc.presLoop = false;
+            this.childDocs.forEach(this.stopTempMedia);
         }
     }
 
@@ -647,6 +649,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     updateMinimize = () => {
         const docView = DocumentManager.Instance.getDocumentView(this.layoutDoc);
         if (CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+            console.log("case 1");
             this.layoutDoc.presStatus = PresStatus.Edit;
             Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
             CollectionDockingView.AddSplit(this.rootDoc, "right");
@@ -670,6 +673,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.rootDoc._width = 250;
             this.props.addDocTab?.(this.rootDoc, "close");
             Doc.AddDocToList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
+            console.log("case 3");
+            // TODO glr: fix this case
         }
     }
 
@@ -1207,7 +1212,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const effect = targetDoc.presEffect ? targetDoc.presEffect : 'None';
             activeItem.presMovement = activeItem.presMovement ? activeItem.presMovement : 'Zoom';
             return (
-                <div className={`presBox-ribbon ${this.transitionTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = false; this.openEffectDropdown = false; })}>
+                <div className={`presBox-ribbon ${this.transitionTools && this.layoutDoc.presStatus === PresStatus.Edit ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = false; this.openEffectDropdown = false; })}>
                     <div className="ribbon-box">
                         Movement
                         {isPresCollection || (isPresCollection && isPinWithView) ?
@@ -1262,7 +1267,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         <div className="ribbon-doubleButton">
                             {isPresCollection ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideBefore ? "active" : ""}`} onClick={() => this.updateHideBefore(activeItem)}>Hide before</div></Tooltip>}
                             {isPresCollection ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideAfter ? "active" : ""}`} onClick={() => this.updateHideAfter(activeItem)}>Hide after</div></Tooltip>}
-                            <Tooltip title={<><div className="dash-tooltip">{"Open document in a new tab"}</div></>}><div className="ribbon-toggle" style={{ backgroundColor: activeItem.openDocument ? PresColor.LightBlue : "" }} onClick={() => this.updateOpenDoc(activeItem)}>Open</div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Open in lightbox view"}</div></>}><div className="ribbon-toggle" style={{ backgroundColor: activeItem.openDocument ? PresColor.LightBlue : "" }} onClick={() => this.updateOpenDoc(activeItem)}>Lightbox</div></Tooltip>
                         </div>
                         {(type === DocumentType.AUDIO || type === DocumentType.VID) ? (null) : <>
                             <div className="ribbon-doubleButton" >

@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
 import Select from 'react-select';
@@ -284,8 +284,7 @@ export class GroupManager extends React.Component<{}> {
                     placeholder="Group name"
                     onChange={action(() => this.buttonColour = this.inputRef.current?.value ? "black" : "#979797")} />
                 <Select
-                    isMulti={true}
-                    isSearchable={true}
+                    isMulti
                     options={this.options}
                     onChange={this.handleChange}
                     placeholder={"Select users"}

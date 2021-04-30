@@ -23,7 +23,6 @@ import { EditableView } from "../EditableView";
 import { LightboxView } from "../LightboxView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocFocusOptions, DocumentView, DocumentViewProps, ViewAdjustment } from "../nodes/DocumentView";
-import { FieldViewProps } from "../nodes/FieldView";
 import { StyleProp } from "../StyleProvider";
 import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
 import "./CollectionStackingView.scss";
@@ -56,10 +55,10 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @computed get chromeHidden() { return this.props.chromeHidden || BoolCast(this.layoutDoc.chromeHidden); }
     @computed get columnHeaders() { return Cast(this.layoutDoc._columnHeaders, listSpec(SchemaHeaderField), null); }
     @computed get pivotField() { return StrCast(this.layoutDoc._pivotField); }
-    @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout); }
+    @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => (pair.layout instanceof Doc) && !pair.layout.hidden).map(pair => pair.layout); }
     @computed get headerMargin() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin); }
     @computed get xMargin() { return NumCast(this.layoutDoc._xMargin, 2 * Math.min(this.gridGap, .05 * this.props.PanelWidth())); }
-    @computed get yMargin() { return this.props.yMargin || NumCast(this.layoutDoc._yMargin, 5); } // 2 * this.gridGap)); }
+    @computed get yMargin() { return this.props.yPadding || NumCast(this.layoutDoc._yMargin, 5); } // 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.layoutDoc._gridGap, 10); }
     @computed get isStackingView() { return (this.props.viewType ?? this.layoutDoc._viewType) === CollectionViewType.Stacking; }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
@@ -400,7 +399,6 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             observeHeight={ref => {
                 if (ref) {
                     this.refList.push(ref);
-                    const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             const height = this.headerMargin +

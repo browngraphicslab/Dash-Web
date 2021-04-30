@@ -17,6 +17,7 @@ import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, return
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocUtils } from '../documents/Documents';
+import { CaptureManager } from '../util/CaptureManager';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DocumentManager } from '../util/DocumentManager';
 import { GroupManager } from '../util/GroupManager';
@@ -45,6 +46,7 @@ import { InkStrokeProperties } from './InkStrokeProperties';
 import { LightboxView } from './LightboxView';
 import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
+import "./collections/TreeView.scss";
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView, DocumentViewProps, DocAfterFocusFunc } from './nodes/DocumentView';
@@ -60,7 +62,7 @@ import { AnchorMenu } from './pdf/AnchorMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import { DefaultStyleProvider, StyleProp } from './StyleProvider';
+import { DefaultStyleProvider, DashboardStyleProvider, StyleProp } from './StyleProvider';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -166,7 +168,8 @@ export class MainView extends React.Component {
             fa.faWindowMinimize, fa.faWindowRestore, fa.faTextWidth, fa.faTextHeight, fa.faClosedCaptioning, fa.faInfoCircle, fa.faTag, fa.faSyncAlt, fa.faPhotoVideo,
             fa.faArrowAltCircleDown, fa.faArrowAltCircleUp, fa.faArrowAltCircleLeft, fa.faArrowAltCircleRight, fa.faStopCircle, fa.faCheckCircle, fa.faGripVertical,
             fa.faSortUp, fa.faSortDown, fa.faTable, fa.faTh, fa.faThList, fa.faProjectDiagram, fa.faSignature, fa.faColumns, fa.faChevronCircleUp, fa.faUpload, fa.faBorderAll,
-            fa.faBraille, fa.faChalkboard, fa.faPencilAlt, fa.faEyeSlash, fa.faSmile, fa.faIndent, fa.faOutdent, fa.faChartBar, fa.faBan, fa.faPhoneSlash, fa.faGripLines);
+            fa.faBraille, fa.faChalkboard, fa.faPencilAlt, fa.faEyeSlash, fa.faSmile, fa.faIndent, fa.faOutdent, fa.faChartBar, fa.faBan, fa.faPhoneSlash, fa.faGripLines,
+            fa.faSave, fa.faBookmark);
         this.initAuthenticationRouters();
     }
 
@@ -275,7 +278,10 @@ export class MainView extends React.Component {
         return <div key="docking" className={`mainContent-div${this._flyoutWidth ? "-flyout" : ""}`} onDrop={e => { e.stopPropagation(); e.preventDefault(); }}
             // style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `calc(100% - ${this._flyoutWidth + this.propertiesWidth()}px)` }}>
             // FIXME update with property panel width
-            style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)` }}>
+            style={{
+                minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`,
+                transform: LightboxView.LightboxDoc ? "scale(0.0001)" : undefined,
+            }}>
             {!this.mainContainer ? (null) : this.mainDocView}
         </div>;
     }
@@ -625,6 +631,7 @@ export class MainView extends React.Component {
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />
+            <CaptureManager />
             <GroupManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations boundsLeft={this.leftOffset} boundsTop={this.topOffset} />
@@ -702,4 +709,3 @@ export class MainView extends React.Component {
 }
 
 Scripting.addGlobal(function selectMainMenu(doc: Doc, title: string) { MainView.Instance.selectMenu(doc); });
-Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });

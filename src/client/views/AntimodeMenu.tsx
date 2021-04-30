@@ -143,6 +143,7 @@ export abstract class AntimodeMenu<T extends AntimodeMenuProps> extends React.Co
                     left: this._left, top: this._top, opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay,
                     position: this.Pinned ? "unset" : undefined
                 }}>
+                {/* {this.getDragger} */}
                 {buttons}
             </div>
         );

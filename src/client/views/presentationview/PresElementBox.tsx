@@ -57,9 +57,9 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     @computed get targetDoc() { return Cast(this.rootDoc.presentationTargetDoc, Doc, null) || this.rootDoc; }
 
     componentDidMount() {
-        const childCount: number = DocListCast(this.rootDoc.data).length;
-        this._heightDisposer = reaction(() => [this.rootDoc.presExpandInlineButton, this.collapsedHeight, this.rootDoc.presExpandGroup, this.rootDoc._isGroup],
-            params => this.layoutDoc._height = NumCast(params[1]) + (Number(params[0]) ? 100 : Number(params[2]) ? childCount * 30 : Number(params[3]) ? 5 : 0), { fireImmediately: true });
+        this.layoutDoc.hideLinkButton = true;
+        this._heightDisposer = reaction(() => [this.rootDoc.presExpandInlineButton, this.collapsedHeight],
+            params => this.layoutDoc._height = NumCast(params[1]) + (Number(params[0]) ? 100 : 0), { fireImmediately: true });
     }
     componentWillUnmount() {
         this._heightDisposer?.();
@@ -115,6 +115,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
+                    hideLinkButton={true}
                 />
                 <div className="presItem-embeddedMask" />
             </div>;

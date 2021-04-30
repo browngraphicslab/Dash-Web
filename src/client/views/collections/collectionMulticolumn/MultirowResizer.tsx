@@ -5,9 +5,13 @@ import { Doc } from "../../../../fields/Doc";
 import { NumCast, StrCast } from "../../../../fields/Types";
 import { DimUnit } from "./CollectionMultirowView";
 import { UndoManager } from "../../../util/UndoManager";
+import { StyleProp } from "../../StyleProvider";
+import { StyleProviderFunc } from "../../nodes/DocumentView";
 
 interface ResizerProps {
     height: number;
+    styleProvider?: StyleProviderFunc;
+    isContentActive?: () => boolean;
     columnUnitLength(): number | undefined;
     toTop?: Doc;
     toBottom?: Doc;
@@ -83,19 +87,16 @@ export default class ResizeBar extends React.Component<ResizerProps> {
     }
 
     render() {
-        return (
-            <div
-                className={"multiRowResizer"}
-                style={{
-                    height: this.props.height,
-                    opacity: this.isActivated && this.isHoverActive ? resizerOpacity : 0
-                }}
-                onPointerEnter={action(() => this.isHoverActive = true)}
-                onPointerLeave={action(() => !this.isResizingActive && (this.isHoverActive = false))}
-            >
-                <div className={"multiRowResizer-hdl"} onPointerDown={e => this.registerResizing(e)} />
-            </div>
-        );
+        return <div className="multiRowResizer"
+            style={{
+                height: this.props.height,
+                backgroundColor: !this.props.isContentActive?.() ? "" : this.props.styleProvider?.(undefined, undefined, StyleProp.WidgetColor)
+            }}
+            onPointerEnter={action(() => this.isHoverActive = true)}
+            onPointerLeave={action(() => !this.isResizingActive && (this.isHoverActive = false))}
+        >
+            <div className={"multiRowResizer-hdl"} onPointerDown={e => this.registerResizing(e)} />
+        </div>;
     }
 
 }

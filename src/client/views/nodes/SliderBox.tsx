@@ -4,8 +4,7 @@ import * as React from 'react';
 import { Handles, Rail, Slider, Ticks, Tracks } from 'react-compound-slider';
 import { documentSchema } from '../../../fields/documentSchemas';
 import { createSchema, makeInterface } from '../../../fields/Schema';
-import { ScriptField } from '../../../fields/ScriptField';
-import { Cast, NumCast, StrCast } from '../../../fields/Types';
+import { NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ViewBoxBaseComponent } from '../DocComponent';
@@ -41,7 +40,7 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
     onChange = (values: readonly number[]) => runInAction(() => {
         this.dataDoc[this.minThumbKey] = values[0];
         this.dataDoc[this.maxThumbKey] = values[1];
-        Cast(this.layoutDoc.onThumbChanged, ScriptField, null)?.script.run({
+        ScriptCast(this.layoutDoc.onThumbChanged, null)?.script.run({
             self: this.rootDoc,
             scriptContext: this.props.scriptContext, range: values, this: this.layoutDoc
         });
