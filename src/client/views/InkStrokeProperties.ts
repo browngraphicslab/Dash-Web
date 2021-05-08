@@ -117,6 +117,7 @@ export class InkStrokeProperties {
     @undoBatch
     @action
     deletePoints = () => {
+        var deleted = false;
         this.selectedInk?.forEach(action(inkView => {
             if (this.selectedInk?.length === 1 && this._currPoint !== -1) {
                 const doc = Document(inkView.rootDoc);
@@ -141,10 +142,12 @@ export class InkStrokeProperties {
                             Doc.GetProto(doc).data = new InkField(newerPoints);
 
                         }
+                        deleted = true;
                     }
                 }
             }
         }));
+        return deleted;
     }
 
     @undoBatch
