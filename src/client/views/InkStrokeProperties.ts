@@ -222,26 +222,18 @@ export class InkStrokeProperties {
                                     { X: ink[i].X - xDiff, Y: ink[i].Y - yDiff } :
                                     { X: ink[i].X, Y: ink[i].Y });
                         }
-                        const oldx = doc.x;
-                        const oldy = doc.y;
-                        const oldxs = ink.map(p => p.X);
-                        const oldys = ink.map(p => p.Y);
-                        const oldleft = Math.min(...oldxs);
-                        const oldtop = Math.min(...oldys);
-                        Doc.GetProto(doc).data = new InkField(newPoints);
-                        const newxs = newPoints.map(p => p.X);
-                        const newys = newPoints.map(p => p.Y);
-                        const newleft = Math.min(...newxs);
-                        const newtop = Math.min(...newys);
-                        const newright = Math.max(...newxs);
-                        const newbottom = Math.max(...newys);
+
+                        const oldXrange = (xs => ({ min: Math.min(...xs), max: Math.max(...xs) }))(ink.map(p => p.X));
+                        const oldYrange = (ys => ({ min: Math.min(...ys), max: Math.max(...ys) }))(ink.map(p => p.Y));
+                        const newXrange = (xs => ({ min: Math.min(...xs), max: Math.max(...xs) }))(newPoints.map(p => p.X));
+                        const newYrange = (ys => ({ min: Math.min(...ys), max: Math.max(...ys) }))(newPoints.map(p => p.Y));
 
                         //if points move out of bounds
-                        doc._height = (newbottom - newtop) * inkView.props.ScreenToLocalTransform().Scale;
-                        doc._width = (newright - newleft) * inkView.props.ScreenToLocalTransform().Scale;
-
-                        doc.x = oldx - (oldleft - newleft) * inkView.props.ScreenToLocalTransform().Scale;
-                        doc.y = oldy - (oldtop - newtop) * inkView.props.ScreenToLocalTransform().Scale;
+                        doc._height = (newYrange.max - newYrange.min) * NumCast(doc._height) / (oldYrange.max - oldYrange.min);
+                        doc._width = (newXrange.max - newXrange.min) * NumCast(doc._width) / (oldXrange.max - oldXrange.min);
+                        doc.x = doc.x - (oldXrange.min - newXrange.min);
+                        doc.y = doc.y - (oldYrange.min - newYrange.min);
+                        Doc.GetProto(doc).data = new InkField(newPoints);
                     }
                 }
             }
