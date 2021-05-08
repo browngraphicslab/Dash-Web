@@ -896,13 +896,13 @@ export class CurrentUserUtils {
 
     static async contextMenuBtnDescriptions(doc: Doc) {
         return [
-            { title: "Perspective", tooltip: "Change document's perspective", type: "btn", btnType: ButtonType.DropdownButton, ignoreClick: true, icon: "desktop", click: '' },
+            // { title: "Perspective", tooltip: "Change document's perspective", type: "btn", btnType: ButtonType.DropdownButton, ignoreClick: true, icon: "desktop", click: '' },
             { title: "Background", tooltip: "Change document's background color", type: "btn", btnType: ButtonType.DropdownButton, ignoreClick: true, icon: "fill-drip", click: '' },
             { title: "Overlay", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ClickButton, icon: "layer-group", click: 'toggleOverlay(doc)' },
-            { title: "Text Tools", type: "LinearMenu", icon: "font" },
-            { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib" },
-            { title: "GFX Tools", type: "LinearMenu", icon: "shapes" },
-            { title: "Alias", btnType: ButtonType.ClickButton, icon: "copy" },
+            // { title: "Text Tools", type: "LinearMenu", icon: "font" },
+            // { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib" },
+            // { title: "GFX Tools", type: "LinearMenu", icon: "shapes" },
+            // { title: "Alias", btnType: ButtonType.ClickButton, icon: "copy" },
         ];
     }
 

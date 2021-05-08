@@ -75,24 +75,68 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         const presTrailsIcon = <img src={`/assets/${"presTrails.png"}`}
             style={{ width: presSize, height: presSize, filter: `invert(${color === "white" ? "100%" : "0%"})`, marginBottom: "5px" }} />;
 
-        // TODO: Add label off button type
-        const button = <div className={`menuButton-${type}`} onContextMenu={this.specificContextMenu}
-            style={{ backgroundColor: backgroundColor, borderBottomLeftRadius: dropdown ? 0 : undefined }}>
-            <div className="menuButton-wrap">
-                {icon === 'pres-trail' ? presTrailsIcon : <FontAwesomeIcon className={`menuButton-icon-${type}`} icon={icon} color={color}
-                    size={"sm"} />}
-                {!label || !Doc.UserDoc()._showLabel ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
-                <FontIconBadge collection={Cast(this.rootDoc.watchedDocuments, Doc, null)} />
-            </div>
-            {type === ButtonType.DropdownButton ? <div className="menuButton-dropDown"
-                style={{ borderBottomRightRadius: dropdown ? 0 : undefined }}
-                onClick={() => this.rootDoc.dropDownOpen = !this.rootDoc.dropDownOpen}>
-                <FontAwesomeIcon icon={'caret-down'} color={color} size="sm" />
-            </div> : (null)}
-            {this.rootDoc.dropDownOpen ? <div className="menuButton-dropDownBox">
+        // TODO:glr Add label of button type
+        let button = (
+            <div className={`menuButton-${type}`} onContextMenu={this.specificContextMenu}
+                style={{ backgroundColor: "transparent", borderBottomLeftRadius: dropdown ? 0 : undefined }}>
+                <div className="menuButton-wrap">
+                    {icon === 'pres-trail' ? presTrailsIcon : <FontAwesomeIcon className={`menuButton-icon-${type}`} icon={icon} color={"black"}
+                        size={"sm"} />}
+                    {!label || !Doc.UserDoc()._showLabel ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
+                    <FontIconBadge collection={Cast(this.rootDoc.watchedDocuments, Doc, null)} />
+                </div>
 
-            </div> : null}
-        </div>;
+                {/* DROPDOWN BUTTON */}
+                {type === ButtonType.DropdownButton ?
+                    <div className="menuButton-dropDown"
+                        style={{ borderBottomRightRadius: dropdown ? 0 : undefined }}
+                        onClick={() => this.rootDoc.dropDownOpen = !this.rootDoc.dropDownOpen}>
+                        <FontAwesomeIcon icon={'caret-down'} color={color} size="sm" />
+                    </div> : (null)}
+
+                {this.rootDoc.dropDownOpen ? <div className="menuButton-dropDownBox">
+
+                </div> : null}
+            </div>
+        );
+
+        switch (type) {
+            case ButtonType.DropdownButton:
+                button = (
+                    <div className={`menuButton ${type}`}>
+                        <FontAwesomeIcon className={`fontIconBox-icon-${type}`} icon={icon} color={color} />
+                        {!label || !Doc.UserDoc()._showLabel ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
+                    </div>
+                );
+                break;
+            case ButtonType.ClickButton:
+                button = (
+                    <div className={`menuButton ${type}`}>
+                        <FontAwesomeIcon className={`fontIconBox-icon-${type}`} icon={icon} color={color} />
+                        {!label || !Doc.UserDoc()._showLabel ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
+                    </div>
+                );
+                break;
+            case ButtonType.DoubleButton:
+                button = (
+                    <div className={`menuButton ${type}`}>
+                        <FontAwesomeIcon className={`fontIconBox-icon-${type}`} icon={icon} color={color} />
+                        {!label || !Doc.UserDoc()._showLabel ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
+                    </div>
+                );
+                break;
+            case ButtonType.MenuButton:
+                button = (
+                    <div className={`menuButton ${type}`}>
+                        <FontAwesomeIcon className={`fontIconBox-icon-${type}`} icon={icon} color={color} />
+                        {!label || !Doc.UserDoc()._showLabel ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
+                    </div>
+                );
+                break;
+            default:
+                button = <></>
+                break;
+        }
 
         return !this.layoutDoc.toolTip ? button :
             <Tooltip title={<div className="dash-tooltip">{StrCast(this.layoutDoc.toolTip)}</div>}>

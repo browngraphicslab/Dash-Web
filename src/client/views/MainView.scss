@@ -233,56 +233,6 @@
     ::-webkit-scrollbar {
         width: 0;
     }
-
-    .mainView-menuPanel-button {
-        padding: 7px;
-        padding-left: 7px;
-        width: 100%;
-        background: black;
-
-        .mainView-menuPanel-button-wrap {
-            width: 45px;
-            /* padding: 5px; */
-            touch-action: none;
-            background: black;
-            transform-origin: top left;
-            /* margin-bottom: 5px; */
-            margin-top: 5px;
-            margin-right: 25px;
-            border-radius: 8px;
-
-            &:hover {
-                background: rgb(61, 61, 61);
-                cursor: pointer;
-            }
-        }
-    }
-
-    .mainView-menuPanel-button-label {
-        color: white;
-        margin-left: px;
-        margin-right: 4px;
-        border-radius: 8px;
-        width: 42px;
-        position: relative;
-        text-align: center;
-        font-size: 8px;
-        margin-top: 1px;
-        letter-spacing: normal;
-        padding: 3px;
-        background-color: inherit;
-    }
-
-    .mainView-menuPanel-button-icon {
-        width: auto;
-        height: 35px;
-        padding: 5px;
-    }
-
-    svg {
-        width: 95% !important;
-        height: 95%;
-    }
 }
 
 .mainView-searchPanel {

@@ -41,49 +41,4 @@
         }
     }
 
-    // .antimodeMenu-button:hover {
-    //     background-color: rgba(0, 0, 0, 0.4);
-    // }
-
-    // .antimodeMenu-dragger {
-    //     height: 100%;
-    //     transition: width .2s;
-    //     background-image: url("https://logodix.com/logo/1020374.png");
-    //     background-size: 90% 100%;
-    //     background-repeat: no-repeat;
-    //     background-position: left center;
-    // }
-}
-
-
-//Mobile antimode menu
-@media only screen and (max-device-width: 480px) {
-    .antimodeMenu-cont {
-        height: 100px;
-        width: 100vw;
-
-        &.with-rows {
-            flex-direction: column-reverse;
-        }
-
-        .antimodeMenu-row {
-            display: flex;
-            height: 100%;
-            width: 100%;
-        }
-
-        .antimodeMenu-button {
-            background-color: transparent;
-            width: 100px;
-            height: 100px;
-
-            &.active {
-                background-color: #121212;
-            }
-        }
-
-        .antimodeMenu-button:hover {
-            background-color: #121212;
-        }
-    }
 }

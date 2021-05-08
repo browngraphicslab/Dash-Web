@@ -148,11 +148,11 @@ export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
         const propIcon = CurrentUserUtils.propertiesWidth > 0 ? "angle-double-right" : "angle-double-left";
         const propTitle = CurrentUserUtils.propertiesWidth > 0 ? "Close Properties Panel" : "Open Properties Panel";
 
-        const prop = <Tooltip title={<div className="dash-tooltip">{propTitle}</div>} key="properties" placement="bottom">
-            <button className="antimodeMenu-button" key="properties"
+        const prop = <Tooltip title={<div className="dash-tooltip">{propTitle}</div>} key="properties">
+            <div className="fixedMenu-button" key="properties"
                 onPointerDown={this.toggleProperties}>
                 <FontAwesomeIcon icon={propIcon} size="lg" />
-            </button>
+            </div>
         </Tooltip>;
 
         //dash col linear view buttons
@@ -161,7 +161,7 @@ export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
         </>
 
 
-        return this.getElement(!this.SelectedCollection ? [/*button*/] :
+        return this.getElement(
             [
                 contMenuButtons, prop,
                 // <CollectionViewBaseChrome key="chrome"

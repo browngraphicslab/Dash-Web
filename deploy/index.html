@@ -22,7 +22,7 @@
                 }
             }
             return 3000;
-        } 
+        }
     </script>
     <style>
         .dash-loader {
@@ -119,8 +119,7 @@
                 </svg>
             </div>
             <div class="dash-progress-bar">
-                <div id="dash-progress" class="dash-progress">
-                </div>
+                <div id="dash-progress" class="dash-progress"></div>
                 <script>
                     let load = getCookie("loadtime");
                     document.startLoad = Date.now();
@@ -133,12 +132,12 @@
                     setTimeout(() => dashmesg("33%", "Preparing dashboards..."), load / 3);
                     setTimeout(() => dashmesg("50%", "Initializing scripts..."), load / 2);
                     setTimeout(() => dashmesg("75%", "Fetching documents..."), load / 4 * 3);
-                    setTimeout(() => dashmesg("100%", "Finalising setup..."), load);
+                    setTimeout(() => dashmesg("90%", "Finalising setup..."), load);
                 </script>
             </div>
-            <div id="dash-loader-text" class="dash-loader-text">
+            <!-- <div id="dash-loader-text" class="dash-loader-text">
                 Loading Dash...
-            </div>
+            </div> -->
         </div>
     </div>
     <!-- <script src="https://hypothes.is/embed.js" async></script> -->
