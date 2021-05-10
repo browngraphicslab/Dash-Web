@@ -41,45 +41,29 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         inkDoc._stayInCollection = inkDoc.isInkMask ? true : undefined;
     });
 
-    public _prevX = 0;
-    public _prevY = 0;
-    private _controlNum = 0;
     @action
-    onControlDown = (e: React.PointerEvent, i: number): void => {
-        //TODO:renew points before controlling 
-        InkStrokeProperties.Instance?.control(0.001, 0.001, 1);
-        setupMoveUpEvents(this, e, this.onControlMove, this.onControlup, (e) => { });
-        this._controlUndo = UndoManager.StartBatch("DocDecs set radius");
-        this._prevX = e.clientX;
-        this._prevY = e.clientY;
-        this._controlNum = i;
+    onControlDown = (e: React.PointerEvent, controlNum: number): void => {
+        if (InkStrokeProperties.Instance) {
+            InkStrokeProperties.Instance.control(0, 0, 1);
+            const controlUndo = UndoManager.StartBatch("DocDecs set radius");
+            const screenScale = this.props.ScreenToLocalTransform().Scale;
+            setupMoveUpEvents(this, e,
+                (e: PointerEvent, down: number[], delta: number[]) => {
+                    InkStrokeProperties.Instance?.control(-delta[0] * screenScale, -delta[1] * screenScale, controlNum);
+                    return false;
+                },
+                () => controlUndo?.end(), emptyFunction);
+        }
     }
 
     @action
     changeCurrPoint = (i: number) => {
-        if (!InkStrokeProperties.Instance) return;
-        InkStrokeProperties.Instance._currPoint = i;
-        document.addEventListener("keydown", this.delPts, true);
+        if (InkStrokeProperties.Instance) {
+            InkStrokeProperties.Instance._currPoint = i;
+            document.addEventListener("keydown", this.delPts, true);
+        }
     }
 
-    @action
-    onControlMove = (e: PointerEvent, down: number[]): boolean => {
-        if (!InkStrokeProperties.Instance) return false;
-        const xDiff = this._prevX - e.clientX;
-        const yDiff = this._prevY - e.clientY;
-        InkStrokeProperties.Instance.control(xDiff, yDiff, this._controlNum);
-        this._prevX = e.clientX;
-        this._prevY = e.clientY;
-        return false;
-    }
-
-    onControlup = (e: PointerEvent) => {
-        this._prevX = 0;
-        this._prevY = 0;
-        this._controlNum = 0;
-        this._controlUndo?.end();
-        this._controlUndo = undefined;
-    }
     @action
     delPts = (e: KeyboardEvent) => {
         if (["-", "Backspace", "Delete"].includes(e.key)) {
@@ -88,9 +72,10 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     }
 
     onPointerDown = (e: React.PointerEvent) => {
-        this.props.isSelected(true) && setupMoveUpEvents(this, e, returnFalse, emptyFunction, action((e: PointerEvent, doubleTap: boolean | undefined) => {
-            doubleTap && InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = true);
-        }));
+        if (this.props.isSelected(true)) {
+            setupMoveUpEvents(this, e, returnFalse, emptyFunction, action((e: PointerEvent, doubleTap: boolean | undefined) =>
+                doubleTap && InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = true)));
+        }
     }
 
     public static MaskDim = 50000;
@@ -152,6 +137,10 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
             }
             handleLine.push({ X1: data[data.length - 2].X, Y1: data[data.length - 2].Y, X2: data[data.length - 1].X, Y2: data[data.length - 1].Y, X3: data[data.length - 1].X, Y3: data[data.length - 1].Y, dot1: data.length - 1, dot2: data.length - 1 });
 
+            for (var i = 0; i <= data.length - 4; i += 4) {
+                handlePoints.push({ X: data[i + 1].X, Y: data[i + 1].Y, I: i + 1, dot1: i, dot2: i === 0 ? i : i - 1 });
+                handlePoints.push({ X: data[i + 2].X, Y: data[i + 2].Y, I: i + 2, dot1: i + 3, dot2: i === data.length ? i + 3 : i + 4 });
+            }
         }
         // if (data.length <= 4) {
         //     handlePoints = [];
@@ -162,33 +151,33 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         //     }
 
         // }
-        const dotsize = String(Math.max(width * scaleX, height * scaleY) / 40);
+        const dotsize = Math.max(width * scaleX, height * scaleY) / 40;
 
         const addpoints = apoints.map((pts, i) =>
             <svg height="10" width="10" key={`add${i}`}>
-                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth / 2} stroke="invisible" strokeWidth={String(Number(dotsize) / 2)} fill="invisible"
+                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth / 2} stroke="invisible" strokeWidth={dotsize / 2} fill="invisible"
                     onPointerDown={(e) => { formatInstance.addPoints(pts.X, pts.Y, apoints, i, controlPoints); }} pointerEvents="all" cursor="all-scroll"
-                />
-            </svg>);
-
-        const controls = controlPoints.map((pts, i) =>
-            <svg height="10" width="10" key={`ctrl${i}`}>
-                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth / 2} stroke="black" strokeWidth={String(Number(dotsize) / 2)} fill="red"
-                    onPointerDown={(e) => { this.changeCurrPoint(pts.I); this.onControlDown(e, pts.I); }} pointerEvents="all" cursor="all-scroll"
                 />
             </svg>);
         const handles = handlePoints.map((pts, i) =>
             <svg height="10" width="10" key={`hdl${i}`}>
-                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth / 2} stroke="black" strokeWidth={String(Number(dotsize) / 2)} fill="green"
-                    onPointerDown={(e) => this.onControlDown(e, pts.I)} pointerEvents="all" cursor="all-scroll" display={(pts.dot1 === formatInstance._currPoint || pts.dot2 === formatInstance._currPoint) ? "inherit" : "none"} />
+                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth / 2} strokeWidth={0} fill="green"
+                    onPointerDown={(e) => this.onControlDown(e, pts.I)} pointerEvents="all" cursor="default" display={(pts.dot1 === formatInstance._currPoint || pts.dot2 === formatInstance._currPoint) ? "inherit" : "none"} />
+            </svg>);
+
+        const controls = controlPoints.map((pts, i) =>
+            <svg height="10" width="10" key={`ctrl${i}`}>
+                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth / 3} strokeWidth={0} fill="red"
+                    onPointerDown={(e) => { this.changeCurrPoint(pts.I); this.onControlDown(e, pts.I); }} pointerEvents="all" cursor="default"
+                />
             </svg>);
         const handleLines = handleLine.map((pts, i) =>
             <svg height="100" width="100" key={`line${i}`}  >
                 <line x1={(pts.X1 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y1={(pts.Y1 - top - strokeWidth / 2) * scaleY + strokeWidth / 2}
-                    x2={(pts.X2 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y2 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" strokeWidth={String(Number(dotsize) / 2)}
+                    x2={(pts.X2 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y2 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" strokeWidth={dotsize / 6}
                     display={(pts.dot1 === formatInstance._currPoint || pts.dot2 === formatInstance._currPoint) ? "inherit" : "none"} />
                 <line x1={(pts.X2 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y1={(pts.Y2 - top - strokeWidth / 2) * scaleY + strokeWidth / 2}
-                    x2={(pts.X3 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y3 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" strokeWidth={String(Number(dotsize) / 2)}
+                    x2={(pts.X3 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y3 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" strokeWidth={dotsize / 6}
                     display={(pts.dot1 === formatInstance._currPoint || pts.dot2 === formatInstance._currPoint) ? "inherit" : "none"} />
             </svg>);
 
@@ -216,9 +205,9 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                 {hpoints}
                 {points}
                 {formatInstance._controlBtn && this.props.isSelected() ? addpoints : ""}
-                {formatInstance._controlBtn && this.props.isSelected() ? controls : ""}
-                {formatInstance._controlBtn && this.props.isSelected() ? handles : ""}
                 {formatInstance._controlBtn && this.props.isSelected() ? handleLines : ""}
+                {formatInstance._controlBtn && this.props.isSelected() ? handles : ""}
+                {formatInstance._controlBtn && this.props.isSelected() ? controls : ""}
 
             </svg>
         );
