@@ -115,7 +115,7 @@ export class InkStrokeProperties {
         }));
     }
 
-    applyFunction = (func: (doc: Doc, ink: InkData, ptsXscale: number, ptsYscale: number) => { X: number, Y: number }[], requireCurrPoint: boolean = false) => {
+    applyFunction = (func: (doc: Doc, ink: InkData, ptsXscale: number, ptsYscale: number) => { X: number, Y: number }[] | undefined, requireCurrPoint: boolean = false) => {
         var appliedFunc = false;
         this.selectedInk?.forEach(action(inkView => {
             if (this.selectedInk?.length === 1 && (!requireCurrPoint || this._currPoint !== -1)) {
@@ -128,14 +128,16 @@ export class InkStrokeProperties {
                         const ptsXscale = NumCast(doc._width) / (oldXrange.max - oldXrange.min);
                         const ptsYscale = NumCast(doc._height) / (oldYrange.max - oldYrange.min);
                         const newPoints = func(doc, ink, ptsXscale, ptsYscale);
-                        const newXrange = (xs => ({ min: Math.min(...xs), max: Math.max(...xs) }))(newPoints.map(p => p.X));
-                        const newYrange = (ys => ({ min: Math.min(...ys), max: Math.max(...ys) }))(newPoints.map(p => p.Y));
-                        doc._width = (newXrange.max - newXrange.min) * ptsXscale;
-                        doc._height = (newYrange.max - newYrange.min) * ptsYscale;
-                        doc.x = (oldXrange.coord + (newXrange.min - oldXrange.min) * ptsXscale);
-                        doc.y = (oldYrange.coord + (newYrange.min - oldYrange.min) * ptsYscale);
-                        Doc.GetProto(doc).data = new InkField(newPoints);
-                        appliedFunc = true;
+                        if (newPoints) {
+                            const newXrange = (xs => ({ min: Math.min(...xs), max: Math.max(...xs) }))(newPoints.map(p => p.X));
+                            const newYrange = (ys => ({ min: Math.min(...ys), max: Math.max(...ys) }))(newPoints.map(p => p.Y));
+                            doc._width = (newXrange.max - newXrange.min) * ptsXscale;
+                            doc._height = (newYrange.max - newYrange.min) * ptsYscale;
+                            doc.x = (oldXrange.coord + (newXrange.min - oldXrange.min) * ptsXscale);
+                            doc.y = (oldYrange.coord + (newYrange.min - oldYrange.min) * ptsYscale);
+                            Doc.GetProto(doc).data = new InkField(newPoints);
+                            appliedFunc = true;
+                        }
                     }
                 }
             }
@@ -154,7 +156,7 @@ export class InkStrokeProperties {
             }
         }
         this._currPoint = -1;
-        Doc.GetProto(doc).data = new InkField(newPoints);
+        if (newPoints.length < 4) return undefined;
         if (newPoints.length === 4) {
             const newerPoints: { X: number, Y: number }[] = [];
             newerPoints.push({ X: newPoints[0].X, Y: newPoints[0].Y });
