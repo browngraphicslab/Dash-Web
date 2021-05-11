@@ -357,9 +357,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     render() {
         const facetCollection = this.props.Document;
 
-        // TODO uncomment the line below when the treeview x works
-        // const options = this._allFacets.filter(facet => this.currentFacets.indexOf(facet) === -1).map(facet => ({ value: facet, label: facet }));
-        const options = this._allFacets.map(facet => ({ value: facet, label: facet }));
+        const options = this._allFacets.filter(facet => this.currentFacets.indexOf(facet) === -1).map(facet => ({ value: facet, label: facet }));
         return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
 
             <div className="filterBox-title">
