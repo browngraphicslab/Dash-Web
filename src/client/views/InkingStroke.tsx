@@ -161,13 +161,13 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
             </svg>);
         const handles = handlePoints.map((pts, i) =>
             <svg height="10" width="10" key={`hdl${i}`}>
-                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth / 2} strokeWidth={0} fill="green"
+                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth} strokeWidth={0} fill="green"
                     onPointerDown={(e) => this.onControlDown(e, pts.I)} pointerEvents="all" cursor="default" display={(pts.dot1 === formatInstance._currPoint || pts.dot2 === formatInstance._currPoint) ? "inherit" : "none"} />
             </svg>);
 
         const controls = controlPoints.map((pts, i) =>
             <svg height="10" width="10" key={`ctrl${i}`}>
-                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth / 3} strokeWidth={0} fill="red"
+                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth / 2} strokeWidth={0} fill="red"
                     onPointerDown={(e) => { this.changeCurrPoint(pts.I); this.onControlDown(e, pts.I); }} pointerEvents="all" cursor="default"
                 />
             </svg>);
