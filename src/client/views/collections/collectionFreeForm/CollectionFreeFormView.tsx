@@ -1498,7 +1498,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             {StrListCast(this.props.Document._docFilters).length || StrListCast(this.props.Document._docRangeFilters).length ?
                 <FontAwesomeIcon icon={"filter"} size="lg"
                     style={{ position: 'absolute', top: 5, right: 5, cursor: "pointer", padding: 1, color: '#18c718bd' }}
-                    onPointerDown={e => { /** open filters? */ e.stopPropagation(); }}
+                    onPointerDown={e => { runInAction(() => CurrentUserUtils.propertiesWidth = 250); e.stopPropagation(); }}
                 />
                 : (null)}
 
