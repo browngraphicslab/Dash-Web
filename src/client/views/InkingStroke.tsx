@@ -81,9 +81,9 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         this._controlUndo = undefined;
     }
     @action
-    delPts = (e: KeyboardEvent | React.PointerEvent | undefined) => {
-        if (InkStrokeProperties.Instance && (e instanceof KeyboardEvent ? e.key === "-" : true)) {
-            InkStrokeProperties.Instance.deletePoints();
+    delPts = (e: KeyboardEvent) => {
+        if (["-", "Backspace", "Delete"].includes(e.key)) {
+            if (InkStrokeProperties.Instance?.deletePoints()) e.stopPropagation();
         }
     }
 
