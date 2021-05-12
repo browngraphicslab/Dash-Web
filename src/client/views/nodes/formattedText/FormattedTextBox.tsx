@@ -1075,8 +1075,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     const docPos = editorView.coordsAtPos(editorView.state.selection.to);
                     const viewRect = self._ref.current!.getBoundingClientRect();
                     const scrollRef = self._scrollRef.current;
-                    if ((docPos.bottom < viewRect.top || docPos.bottom > viewRect.bottom) && scrollRef) {
-                        const scrollPos = scrollRef.scrollTop + (docPos.bottom - viewRect.top) * self.props.ScreenToLocalTransform().Scale;
+                    const topOff = docPos.top < viewRect.top ? docPos.top - viewRect.top : undefined;
+                    const botOff = docPos.bottom > viewRect.bottom ? docPos.bottom - viewRect.bottom : undefined;
+                    if ((topOff || botOff) && scrollRef) {
+                        const shift = Math.min(topOff ?? Number.MAX_VALUE, botOff ?? Number.MAX_VALUE);
+                        const scrollPos = scrollRef.scrollTop + shift * self.props.ScreenToLocalTransform().Scale;
                         if (this._focusSpeed !== undefined) {
                             scrollPos && smoothScroll(this._focusSpeed, scrollRef, scrollPos);
                         } else {
