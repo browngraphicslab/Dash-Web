@@ -194,12 +194,12 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
      * Responds to clicking the check box in the flyout menu
      */
     facetClick = (facetHeader: string) => {
-        const targetDoc = FilterBox.targetDoc;
+        const { targetDoc } = FilterBox;
         const found = this.activeAttributes.findIndex(doc => doc.title === facetHeader);
         if (found !== -1) {
             this.removeFilter(facetHeader);
         } else {
-            const allCollectionDocs = DocListCast((targetDoc.data as any)[0].data);
+            const allCollectionDocs = DocListCast((targetDoc.data as any)?.[0].data);
             const facetValues = this.gatherFieldValues(targetDoc, facetHeader);
 
             let nonNumbers = 0;
