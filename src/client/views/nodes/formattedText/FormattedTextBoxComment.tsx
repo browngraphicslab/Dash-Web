@@ -85,7 +85,7 @@ export class FormattedTextBoxComment {
     static update(textBox: FormattedTextBox, view: EditorView, lastState?: EditorState, hrefs: string = "") {
         FormattedTextBoxComment.textBox = textBox;
         if ((hrefs || !lastState?.doc.eq(view.state.doc) || !lastState?.selection.eq(view.state.selection))) {
-            FormattedTextBoxComment.setupPreview(view, textBox, hrefs?.trim().split(" "));
+            FormattedTextBoxComment.setupPreview(view, textBox, hrefs?.trim().split(" ").filter(h => h));
         }
     }
 
@@ -109,7 +109,7 @@ export class FormattedTextBoxComment {
         }
 
         // this checks if the selection is a hyperlink.  If so, it displays the target doc's text for internal links, and the url of the target for external links. 
-        if (state.selection.$from && hrefs) {
+        if (state.selection.$from && hrefs?.length) {
             const nbef = findStartOfMark(state.selection.$from, view, findLinkMark);
             const naft = findEndOfMark(state.selection.$from, view, findLinkMark) || nbef;
             nbef && naft && LinkDocPreview.SetLinkInfo({

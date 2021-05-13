@@ -17,3 +17,13 @@
 .styleProvider-lock:hover {
     opacity:1;
 }
+
+.styleProvider-treeView-icon,
+.styleProvider-treeView-icon-active {
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+}
+
+.styleProvider-treeView-icon {
+    display: none;
+}

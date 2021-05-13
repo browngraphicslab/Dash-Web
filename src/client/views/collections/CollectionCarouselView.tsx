@@ -2,17 +2,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Doc } from '../../../fields/Doc';
+import { Doc, Opt } from '../../../fields/Doc';
 import { collectionSchema, documentSchema } from '../../../fields/documentSchemas';
 import { makeInterface } from '../../../fields/Schema';
 import { NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { OmitKeys, returnFalse } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
-import { DocumentView } from '../nodes/DocumentView';
+import { DocumentView, DocumentViewProps } from '../nodes/DocumentView';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { StyleProp } from '../StyleProvider';
 import "./CollectionCarouselView.scss";
-import { CollectionSubView } from './CollectionSubView';
+import { CollectionSubView, SubCollectionViewProps } from './CollectionSubView';
 
 type CarouselDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
 const CarouselDocument = makeInterface(documentSchema, collectionSchema);
@@ -38,77 +38,72 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
         e.stopPropagation();
         this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
     }
-    panelHeight = () => this.props.PanelHeight() - 50;
+    captionStyleProvider = (doc: (Doc | undefined), captionProps: Opt<DocumentViewProps>, property: string): any => {
+        // first look for properties on the document in the carousel, then fallback to properties on the container
+        const childValue = doc?.["caption-" + property] ? this.props.styleProvider?.(doc, captionProps, property) : undefined;
+        return childValue ?? this.props.styleProvider?.(this.layoutDoc, captionProps, property);
+    }
+    panelHeight = () => this.props.PanelHeight() - (StrCast(this.layoutDoc._showCaption) ? 50 : 0);
     onContentDoubleClick = () => ScriptCast(this.layoutDoc.onChildDoubleClick);
     onContentClick = () => ScriptCast(this.layoutDoc.onChildClick);
     @computed get content() {
         const index = NumCast(this.layoutDoc._itemIndex);
         const curDoc = this.childLayoutPairs?.[index];
+        const captionProps = { ...this.props, fieldKey: "caption" };
+        const marginX = NumCast(this.layoutDoc["caption-xMargin"]);
+        const marginY = NumCast(this.layoutDoc["caption-yMargin"]);
+        const showCaptions = StrCast(this.layoutDoc._showCaption);
         return !(curDoc?.layout instanceof Doc) ? (null) :
             <>
                 <div className="collectionCarouselView-image" key="image">
-                    <DocumentView  {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+                    <DocumentView  {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "childLayoutTemplate", "childLayoutString"]).omit}
                         onDoubleClick={this.onContentDoubleClick}
                         onClick={this.onContentClick}
+                        hideCaptions={showCaptions ? true : false}
                         renderDepth={this.props.renderDepth + 1}
+                        ContainingCollectionView={this}
                         LayoutTemplate={this.props.childLayoutTemplate}
                         LayoutTemplateString={this.props.childLayoutString}
                         Document={curDoc.layout}
-                        DataDoc={curDoc.data}
+                        DataDoc={curDoc.layout.resolvedDataDoc as Doc}
                         PanelHeight={this.panelHeight}
-                        ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                         bringToFront={returnFalse}
                     />
                 </div>
                 <div className="collectionCarouselView-caption" key="caption"
                     style={{
-                        background: StrCast(this.layoutDoc._captionBackgroundColor, this.props.styleProvider?.(this.props.Document, this.props, StyleProp.BackgroundColor)),
-                        color: StrCast(this.layoutDoc._captionColor, StrCast(this.layoutDoc.color)),
-                        borderRadius: StrCast(this.layoutDoc._captionBorderRounding),
+                        display: showCaptions ? undefined : "none",
+                        borderRadius: this.props.styleProvider?.(this.layoutDoc, captionProps, StyleProp.BorderRounding),
+                        marginRight: marginX, marginLeft: marginX,
+                        width: `calc(100% - ${marginX * 2}px)`
                     }}>
-                    <FormattedTextBox key={index} {...this.props}
-                        xMargin={NumCast(this.layoutDoc["_carousel-caption-xMargin"])}
-                        yMargin={NumCast(this.layoutDoc["_carousel-caption-yMargin"])}
-                        Document={curDoc.layout} DataDoc={undefined} fieldKey={"caption"} />
+                    <FormattedTextBox key={index} {...captionProps}
+                        fieldKey={showCaptions}
+                        styleProvider={this.captionStyleProvider}
+                        Document={curDoc.layout}
+                        DataDoc={undefined} />
                 </div>
             </>;
     }
     @computed get buttons() {
         return <>
-            <div key="back" className="carouselView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.goback}>
-                <FontAwesomeIcon icon={"caret-left"} size={"2x"} />
+            <div key="back" className="carouselView-back" onClick={this.goback}>
+                <FontAwesomeIcon icon={"chevron-left"} size={"2x"} />
             </div>
-            <div key="fwd" className="carouselView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.advance}>
-                <FontAwesomeIcon icon={"caret-right"} size={"2x"} />
+            <div key="fwd" className="carouselView-fwd" onClick={this.advance}>
+                <FontAwesomeIcon icon={"chevron-right"} size={"2x"} />
             </div>
         </>;
     }
 
-    _downX = 0;
-    _downY = 0;
-    onPointerDown = (e: React.PointerEvent) => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        document.addEventListener("pointerup", this.onpointerup);
-    }
-    private _lastTap: number = 0;
-    private _doubleTap = false;
-    onpointerup = (e: PointerEvent) => {
-        this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
-        this._lastTap = Date.now();
-    }
-
-    onClick = (e: React.MouseEvent) => {
-        if (this._doubleTap) {
-            e.stopPropagation();
-            this.props.Document.isLightboxOpen = true;
-        }
-    }
-
     render() {
-        return <div className="collectionCarouselView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget}>
+        return <div className="collectionCarouselView-outer" ref={this.createDashEventsTarget}
+            style={{
+                background: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
+                color: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Color),
+            }}>
             {this.content}
-            {!this.props.Document._chromeHidden ? (null) : this.buttons}
+            {this.props.Document._chromeHidden ? (null) : this.buttons}
         </div>;
     }
 }

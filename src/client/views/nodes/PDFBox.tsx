@@ -243,6 +243,8 @@ export class PDFBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
         </div>;
     }
 
+    anchorMenuClick = () => this._sidebarRef.current?.anchorMenuClick;
+
     @computed get renderPdfView() {
         TraceMobx();
         return <div className={"pdfBox"} onContextMenu={this.specificContextMenu}
@@ -258,7 +260,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
                 pdf={this._pdf!}
                 url={this.pdfUrl!.url.pathname}
                 isContentActive={this.isContentActive}
-                anchorMenuClick={this._sidebarRef.current?.anchorMenuClick}
+                anchorMenuClick={this.anchorMenuClick}
                 loaded={!Doc.NativeAspect(this.dataDoc) ? this.loaded : undefined}
                 setPdfViewer={this.setPdfViewer}
                 addDocument={this.addDocument}

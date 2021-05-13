@@ -124,8 +124,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                 return ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name, scale: "number" })?.script.run({ self: this.rootDoc, this: this.layoutDoc, scale }).result as string || "";
             };
             divKeys.map((prop: string) => {
-                const p = (this.props as any)[prop] as string;
-                p && (style[prop] = p?.replace(/{([^.'][^}']+)}/g, replacer));
+                const p = (this.props as any)[prop];
+                typeof p === "string" && (style[prop] = p?.replace(/{([^.'][^}']+)}/g, replacer));
             });
             return style;
         }
@@ -182,7 +182,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         addDocument(doc: Doc | Doc[], annotationKey?: string): boolean {
             const docs = doc instanceof Doc ? [doc] : doc;
             if (this.props.filterAddDocument?.(docs) === false ||
-                docs.find(doc => Doc.AreProtosEqual(doc, this.props.Document))) {
+                docs.find(doc => Doc.AreProtosEqual(doc, this.props.Document) && Doc.LayoutField(doc) === Doc.LayoutField(this.props.Document))) {
                 return false;
             }
             const targetDataDoc = this.props.Document[DataSym];

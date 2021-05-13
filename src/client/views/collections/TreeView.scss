@@ -113,24 +113,18 @@
         width: unset;
     }
 
-    .right-buttons-container {
+    .treeView-rightButtons {
         display: flex;
         align-items: center;
         margin-left: 0.25rem;
         opacity: 0.75;
 
-        >svg,
-        .styleProvider-treeView-lock,
-        .styleProvider-treeView-hide,
-        .styleProvider-treeView-lock-active,
-        .styleProvider-treeView-hide-active {
+        >svg {
             margin-left: 0.25rem;
             margin-right: 0.25rem;
         }
 
-        >svg,
-        .styleProvider-treeView-lock,
-        .styleProvider-treeView-hide {
+        >svg {
             display: none;
         }
     }
@@ -154,11 +148,9 @@
         }
     }
 
-    .right-buttons-container {
-
+    .treeView-rightButtons {
         >svg,
-        .styleProvider-treeView-lock,
-        .styleProvider-treeView-hide {
+        .styleProvider-treeView-icon {
             display: inherit;
         }
     }

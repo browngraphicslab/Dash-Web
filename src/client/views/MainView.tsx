@@ -180,8 +180,8 @@ export class MainView extends React.Component {
             const targClass = targets[0].className.toString();
             if (SearchBox.Instance._searchbarOpen || SearchBox.Instance.open) {
                 const check = targets.some((thing) =>
-                (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
-                    thing.className === "collectionSchema-header-menuOptions"));
+                    (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
+                        thing.className === "collectionSchema-header-menuOptions"));
                 !check && SearchBox.Instance.resetSearch(true);
             }
             !targClass.includes("contextMenu") && ContextMenu.Instance.closeMenu();
@@ -309,32 +309,6 @@ export class MainView extends React.Component {
     }
 
 
-    /**
-     * add lock and hide button decorations for the "Dashboards" flyout TreeView
-     */
-    DashboardStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
-        const toggleField = undoBatch(action((e: React.MouseEvent, doc: Doc, field: string) => {
-            e.stopPropagation();
-            doc[field] = doc[field] ? undefined : true;
-        }));
-        switch (property.split(":")[0]) {
-            case StyleProp.Decorations:
-                return !doc || property.includes(":afterHeader") || // bcz: Todo: afterHeader should be generalized into a renderPath that is a list of the documents rendered so far which would mimic much of CSS property selectors
-                    DocListCast((Doc.UserDoc().myDashboards as Doc).data).some(dash => dash === doc ||
-                        DocListCast(dash.data).some(tabset => tabset === doc)) ? (null) :
-                    <>
-                        <div className={`styleProvider-treeView-hide${doc.hidden ? "-active" : ""}`} onClick={e => toggleField(e, doc, "hidden")}>
-                            <FontAwesomeIcon icon={doc.hidden ? "eye-slash" : "eye"} size="sm" />
-                        </div>
-                        <div className={`styleProvider-treeView-lock${doc._lockedPosition ? "-active" : ""}`} onClick={e => toggleField(e, doc, "_lockedPosition")}>
-                            <FontAwesomeIcon icon={doc._lockedPosition ? "lock" : "unlock"} size="sm" />
-                        </div>
-                    </>;
-        }
-        return DefaultStyleProvider(doc, props, property);
-    }
-
-
     @computed get flyout() {
         return !this._flyoutWidth ? <div key="flyout" className={`mainView-libraryFlyout-out`}>
             {this.docButtons}
@@ -349,7 +323,7 @@ export class MainView extends React.Component {
                         pinToPres={emptyFunction}
                         docViewPath={returnEmptyDoclist}
                         layerProvider={undefined}
-                        styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? this.DashboardStyleProvider : DefaultStyleProvider}
+                        styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? DashboardStyleProvider : DefaultStyleProvider}
                         rootSelected={returnTrue}
                         removeDocument={returnFalse}
                         ScreenToLocalTransform={this.mainContainerXf}
@@ -705,4 +679,3 @@ export class MainView extends React.Component {
 }
 
 Scripting.addGlobal(function selectMainMenu(doc: Doc, title: string) { MainView.Instance.selectMenu(doc); });
-Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });

@@ -58,7 +58,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => (pair.layout instanceof Doc) && !pair.layout.hidden).map(pair => pair.layout); }
     @computed get headerMargin() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin); }
     @computed get xMargin() { return NumCast(this.layoutDoc._xMargin, 2 * Math.min(this.gridGap, .05 * this.props.PanelWidth())); }
-    @computed get yMargin() { return this.props.yMargin || NumCast(this.layoutDoc._yMargin, 5); } // 2 * this.gridGap)); }
+    @computed get yMargin() { return this.props.yPadding || NumCast(this.layoutDoc._yMargin, 5); } // 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.layoutDoc._gridGap, 10); }
     @computed get isStackingView() { return (this.props.viewType ?? this.layoutDoc._viewType) === CollectionViewType.Stacking; }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }

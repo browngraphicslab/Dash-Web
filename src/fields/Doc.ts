@@ -914,8 +914,8 @@ export namespace Doc {
     }
     export function NativeWidth(doc?: Doc, dataDoc?: Doc, useWidth?: boolean) { return !doc ? 0 : NumCast(doc._nativeWidth, NumCast((dataDoc || doc)[Doc.LayoutFieldKey(doc) + "-nativeWidth"], useWidth ? doc[WidthSym]() : 0)); }
     export function NativeHeight(doc?: Doc, dataDoc?: Doc, useHeight?: boolean) { return !doc ? 0 : NumCast(doc._nativeHeight, NumCast((dataDoc || doc)[Doc.LayoutFieldKey(doc) + "-nativeHeight"], useHeight ? doc[HeightSym]() : 0)); }
-    export function SetNativeWidth(doc: Doc, width: number | undefined) { doc[Doc.LayoutFieldKey(doc) + "-nativeWidth"] = width; }
-    export function SetNativeHeight(doc: Doc, height: number | undefined) { doc[Doc.LayoutFieldKey(doc) + "-nativeHeight"] = height; }
+    export function SetNativeWidth(doc: Doc, width: number | undefined, fieldKey?: string) { doc[(fieldKey ?? Doc.LayoutFieldKey(doc)) + "-nativeWidth"] = width; }
+    export function SetNativeHeight(doc: Doc, height: number | undefined, fieldKey?: string) { doc[(fieldKey ?? Doc.LayoutFieldKey(doc)) + "-nativeHeight"] = height; }
 
 
     const manager = new DocData();

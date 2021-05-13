@@ -37,6 +37,7 @@ import { LightboxView } from "../LightboxView";
 import { Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { CollectionDockingView } from "./CollectionDockingView";
+import { FormattedTextBox } from "../nodes/formattedText/FormattedTextBox";
 
 @observer
 export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
@@ -260,6 +261,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" {...this.props} />);
+            case CollectionViewType.Carousel:
             case CollectionViewType.Carousel3D: return (<Collection3DCarouselViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Grid: return (<CollectionGridViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Docking: return (<CollectionDockingChrome key="collchrome" {...this.props} />);
@@ -533,7 +535,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                     <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
                 </button>
             </Tooltip>
-        </>
+        </>;
     }
 
     render() {
@@ -552,7 +554,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                         <div className="collectionMenu-divider" key="divider3"></div>
                         {this.lightboxButton}
                         {this.recordButton}
-                        {/* {!this._buttonizableCommands ? (null) : this.templateChrome} */}
+                        {!this._buttonizableCommands ? (null) : this.templateChrome}
                     </div>
                 </div>
             </div>
@@ -761,7 +763,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     render() {
         return !this.props.docView.layoutDoc ? (null) :
             <div className="collectionFreeFormMenu-cont">
-
+                <RichTextMenu key="rich" />
                 {!this.isText ?
                     <>
                         {this.drawButtons}
@@ -787,8 +789,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                                     </div>
                                 </Tooltip>
                             </>}
-                    </> :
-                    <RichTextMenu />
+                    </> : (null)
                 }
                 {!this.selectedDocumentView?.ComponentView?.menuControls ? (null) : this.selectedDocumentView?.ComponentView?.menuControls?.()}
             </div>;
@@ -1021,6 +1022,7 @@ export class Collection3DCarouselViewChrome extends React.Component<CollectionMe
         return (
             <div className="collection3DCarouselViewChrome-cont">
                 <div className="collection3DCarouselViewChrome-scrollSpeed-cont">
+                    {FormattedTextBox.Focused ? <RichTextMenu /> : (null)}
                     <div className="collectionStackingViewChrome-scrollSpeed-label">
                         AUTOSCROLL SPEED:
                     </div>

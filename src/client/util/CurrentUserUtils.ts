@@ -425,6 +425,10 @@ export class CurrentUserUtils {
         if (doc.emptyScreenshot === undefined) {
             doc.emptyScreenshot = Docs.Create.ScreenshotDocument("empty screenshot", { _fitWidth: true, _width: 400, _height: 200, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
+        if (doc.emptyWall === undefined) {
+            doc.emptyWall = Docs.Create.ScreenshotDocument("", { _fitWidth: true, _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            (doc.emptyWall as Doc).videoWall = true;
+        }
         if (doc.emptyAudio === undefined) {
             doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "audio recording", system: true, cloneFieldFilter: new List<string>(["system"]) });
             ((doc.emptyAudio as Doc).proto as Doc)["dragFactory-count"] = 0;
@@ -454,6 +458,7 @@ export class CurrentUserUtils {
             { toolTip: "Tap to create a cat image in a new pane, drag for a cat image", title: "Image", icon: "cat", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyImage as Doc },
             { toolTip: "Tap to create a comparison box in a new pane, drag for a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyComparison as Doc, noviceMode: true },
             { toolTip: "Tap to create a screen grabber in a new pane, drag for a screen grabber", title: "Grab", icon: "photo-video", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScreenshot as Doc, noviceMode: true },
+            { toolTip: "Tap to create a videoWall", title: "Wall", icon: "photo-video", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyWall as Doc },
             { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
             { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyButton as Doc },
             { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory))', drag: `Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
@@ -1249,3 +1254,5 @@ Scripting.addGlobal(function shareDashboard(dashboard: Doc) {
     "opens sharing dialog for Dashboard");
 Scripting.addGlobal(function addToDashboards(dashboard: Doc) { Doc.AddDocToList(CurrentUserUtils.MyDashboards, "data", dashboard); },
     "adds Dashboard to set of Dashboards");
+Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; },
+    "toggle between regular rendeing and an informal sketch/comic style");

@@ -47,6 +47,7 @@ import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
 import { ScriptingBox } from "./ScriptingBox";
+import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 const { Howl } = require('howler');
 
 interface Window {
@@ -120,6 +121,7 @@ export interface DocumentViewSharedProps {
     dropAction?: dropActionType;
     dontRegisterView?: boolean;
     hideLinkButton?: boolean;
+    hideCaptions?: boolean;
     ignoreAutoHeight?: boolean;
     disableDocBrushing?: boolean; // should highlighting for this view be disabled when same document in another view is hovered over.
     pointerEvents?: string;
@@ -200,7 +202,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     @computed get finalLayoutKey() { return StrCast(this.Document.layoutKey, "layout"); }
     @computed get nativeWidth() { return this.props.NativeWidth(); }
     @computed get nativeHeight() { return this.props.NativeHeight(); }
-    @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
+    @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onfClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
     @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() ?? (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) ?? this.Document.onDoubleClick); }
     @computed get onPointerDownHandler() { return this.props.onPointerDown?.() ?? ScriptCast(this.Document.onPointerDown); }
     @computed get onPointerUpHandler() { return this.props.onPointerUp?.() ?? ScriptCast(this.Document.onPointerUp); }
@@ -385,7 +387,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         SelectionManager.DeselectAll();
     }
 
-    startDragging(x: number, y: number, dropAction: dropActionType) {
+    startDragging(x: number, y: number, dropAction: dropActionType, hideSource = false) {
         if (this._mainCont.current) {
             const dragData = new DragManager.DocumentDragData([this.props.Document]);
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.ContentScale).inverse().transformPoint(0, 0);
@@ -396,7 +398,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             dragData.moveDocument = this.props.moveDocument;
             const ffview = this.props.CollectionFreeFormDocumentView?.().props.CollectionFreeFormView;
             ffview && runInAction(() => (ffview.ChildDrag = this.props.DocumentView()));
-            DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.layoutDoc.onDragStart },
+            DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: hideSource || (!dropAction && !this.layoutDoc.onDragStart) },
                 () => setTimeout(action(() => ffview && (ffview.ChildDrag = undefined)))); // this needs to happen after the drop event is processed.
         }
     }
@@ -453,10 +455,11 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     }, console.log);
                     UndoManager.RunInBatch(() => func().result?.select === true ? this.props.select(false) : "", "on double click");
                 } else if (!Doc.IsSystem(this.rootDoc)) {
-                    if (this.props.Document.type !== DocumentType.LABEL) {
-                        UndoManager.RunInBatch(() => this.props.addDocTab((this.rootDoc._fullScreenView as Doc) || this.rootDoc, "lightbox"), "double tap");
-                        SelectionManager.DeselectAll();
-                    }
+                    UndoManager.RunInBatch(() =>
+                        LightboxView.AddDocTab(this.rootDoc, "lightbox", this.props.LayoutTemplate?.())
+                        //this.props.addDocTab((this.rootDoc._fullScreenView as Doc) || this.rootDoc, "lightbox")
+                        , "double tap");
+                    SelectionManager.DeselectAll();
                     Doc.UnBrushDoc(this.props.Document);
                 }
             } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes(ScriptingBox.name)) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
@@ -508,6 +511,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             // if this is part of a template, let the event go up to the tempalte root unless right/ctrl clicking
             !(this.props.Document.rootDocument && !(e.ctrlKey || e.button > 0))) {
             if ((this.props.isDocumentActive?.() || this.layoutDoc.onDragStart) &&
+                !this.Document.ignoreClick &&
                 !e.ctrlKey &&
                 (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
                 !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
@@ -668,6 +672,20 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             const appearance = cm.findByDescription("UI Controls...");
             const appearanceItems: ContextMenuProps[] = appearance && "subitems" in appearance ? appearance.subitems : [];
             !Doc.UserDoc().noviceMode && templateDoc && appearanceItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "add:right"), icon: "eye" });
+            appearanceItems.push({
+                description: "Add a Field", event: () => {
+                    const alias = Doc.MakeAlias(this.rootDoc);
+                    alias.layout = FormattedTextBox.LayoutString("newfield");
+                    alias.title = "newfield";
+                    alias._yMargin = 10;
+                    alias._height = 35;
+                    alias._width = 100;
+                    alias.syncLayoutFieldWithTitle = true;
+                    alias.x = NumCast(this.rootDoc.x) + NumCast(this.rootDoc.width);
+                    alias.y = NumCast(this.rootDoc.y);
+                    this.props.addDocument?.(alias);
+                }, icon: "eye"
+            });
             DocListCast(this.Document.links).length && appearanceItems.splice(0, 0, { description: `${this.layoutDoc.hideLinkButton ? "Show" : "Hide"} Link Button`, event: action(() => this.layoutDoc.hideLinkButton = !this.layoutDoc.hideLinkButton), icon: "eye" });
             !appearance && cm.addItem({ description: "UI Controls...", subitems: appearanceItems, icon: "compass" });
 
@@ -890,22 +908,19 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         TraceMobx();
         const showTitle = this.ShowTitle?.split(":")[0];
         const showTitleHover = this.ShowTitle?.includes(":hover");
-        const showCaption = StrCast(this.layoutDoc._showCaption);
+        const showCaption = !this.props.hideCaptions && this.Document._viewType !== CollectionViewType.Carousel ? StrCast(this.layoutDoc._showCaption) : undefined;
         const captionView = !showCaption ? (null) :
-            <div className="documentView-captionWrapper"
-                style={{
-                    backgroundColor: StrCast(this.layoutDoc["caption-backgroundColor"]),
-                    color: StrCast(this.layoutDoc["caption-color"])
-                }}>
-                <DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
-                    yMargin={10}
-                    xMargin={10}
+            <div className="documentView-captionWrapper">
+                <FormattedTextBox {...OmitKeys(this.props, ['children']).omit}
+                    yPadding={10}
+                    xPadding={10}
+                    fieldKey={showCaption}
+                    fontSize={Math.min(32, 12 * this.props.ScreenToLocalTransform().Scale)}
                     hideOnLeave={true}
                     styleProvider={this.captionStyleProvider}
                     dontRegisterView={true}
-                    LayoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
                     onClick={this.onClickFunc}
-                    layoutKey={this.finalLayoutKey} />
+                />
             </div>;
         const titleView = !showTitle ? (null) :
             <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} key="title" style={{
@@ -960,6 +975,8 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         let highlighting = !this.props.disableDocBrushing && highlightIndex && !excludeTypes.includes(this.layoutDoc.type as any) && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction && this.layoutDoc.title !== "[pres element template]";  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
 
+        const borderPath = this.props.styleProvider?.(this.props.Document, this.props, StyleProp.BorderPath) || { path: undefined };
+        const internal = PresBox.EffectsProvider(this.layoutDoc, this.renderDoc) || this.renderDoc;
         const boxShadow = highlighting && this.borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :
             this.boxShadow || (this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined);
         return <div className={DocumentView.ROOT_DIV} ref={this._mainCont}
@@ -975,8 +992,21 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 outline: highlighting && !this.borderRounding ? `${highlightColor} ${highlightStyle} ${highlightIndex}px` : "solid 0px",
                 border: highlighting && this.borderRounding && highlightStyle === "dashed" ? `${highlightStyle} ${highlightColor} ${highlightIndex}px` : undefined,
                 boxShadow,
+                clipPath: borderPath.path ? `path('${borderPath.path}')` : undefined
             }}>
-            {PresBox.EffectsProvider(this.layoutDoc, this.renderDoc) || this.renderDoc}
+            {!borderPath.path ? internal :
+                <>
+                    {/* <div style={{ clipPath: `path('${borderPath.fill}')` }}>
+                        {internal}
+                    </div> */}
+                    {internal}
+                    <div key="border2" className="documentView-customBorder" style={{ pointerEvents: "none" }} >
+                        <svg style={{ overflow: "visible" }} viewBox={`0 0 ${this.props.PanelWidth()} ${this.props.PanelHeight()}`}>
+                            <path d={borderPath.path} style={{ stroke: "black", fill: "transparent", strokeWidth: borderPath.width }} />
+                        </svg>
+                    </div>
+                </>
+            }
         </div>;
     }
 }
@@ -1075,6 +1105,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             setTimeout(action(() => this.docView && (this.docView._animateScalingTo = 0)), 400);
         }), 400);
     });
+
+    startDragging = (x: number, y: number, dropAction: dropActionType, hideSource = false) => this.docView?.startDragging(x, y, dropAction, hideSource);
 
     docViewPathFunc = () => this.docViewPath;
     isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);

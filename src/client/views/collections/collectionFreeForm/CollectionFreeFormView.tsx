@@ -805,8 +805,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
 
         const localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
-        if (localTransform.Scale >= 0.15 || localTransform.Scale > this.zoomScaling()) {
-            const safeScale = Math.min(Math.max(0.15, localTransform.Scale), 20);
+        if (localTransform.Scale >= 0.05 || localTransform.Scale > this.zoomScaling()) {
+            const safeScale = Math.min(Math.max(0.05, localTransform.Scale), 20);
             this.props.Document[this.scaleFieldKey] = Math.abs(safeScale);
             this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
         }
@@ -1051,7 +1051,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             dontRegisterView={this.props.dontRegisterView}
             pointerEvents={this.backgroundActive || this.props.childPointerEvents ? "all" :
                 (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? "none" : undefined}
-            jitterRotation={NumCast(this.props.Document._jitterRotation) || ((Doc.UserDoc().renderStyle === "comic" ? 10 : 0))}
+            jitterRotation={this.props.styleProvider?.(childLayout, this.props, StyleProp.JitterRotation) || 0}
         //fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)} // bcz: check this
         />;
     }

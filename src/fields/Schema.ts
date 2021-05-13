@@ -21,8 +21,6 @@ export interface InterfaceFunc<T extends Interface[]> {
 }
 
 export type makeInterface<T extends Interface[]> = AllToInterface<T> & Doc & { proto: Doc | undefined };
-// export function makeInterface<T extends Interface[], U extends Doc>(schemas: T): (doc: U) => All<T, U>;
-// export function makeInterface<T extends Interface, U extends Doc>(schema: T): (doc: U) => makeInterface<T, U>; 
 export function makeInterface<T extends Interface[]>(...schemas: T): InterfaceFunc<T> {
     const schema: Interface = {};
     for (const s of schemas) {
@@ -37,18 +35,18 @@ export function makeInterface<T extends Interface[]>(...schemas: T): InterfaceFu
                 const desc = prop === "proto" ? Doc : (schema as any)[prop]; // bcz: proto doesn't appear in schemas ... maybe it should?
                 if (typeof desc === "object" && "defaultVal" in desc && "type" in desc) {//defaultSpec
                     return Cast(field, desc.type, desc.defaultVal);
-                } else if (typeof desc === "function" && !ObjectField.isPrototypeOf(desc) && !RefField.isPrototypeOf(desc)) {
+                }
+                if (typeof desc === "function" && !ObjectField.isPrototypeOf(desc) && !RefField.isPrototypeOf(desc)) {
                     const doc = Cast(field, Doc);
                     if (doc === undefined) {
                         return undefined;
-                    } else if (doc instanceof Doc) {
-                        return desc(doc);
-                    } else {
-                        return doc.then(doc => doc && desc(doc));
                     }
-                } else {
-                    return Cast(field, desc);
+                    if (doc instanceof Doc) {
+                        return desc(doc);
+                    }
+                    return doc.then(doc => doc && desc(doc));
                 }
+                return Cast(field, desc);
             }
             return field;
         },
@@ -57,21 +55,9 @@ export function makeInterface<T extends Interface[]>(...schemas: T): InterfaceFu
             return true;
         }
     });
-    const fn = (doc: Doc) => {
-        doc = doc[SelfProxy];
-        // if (!(doc instanceof Doc)) {
-        //     throw new Error("Currently wrapping a schema in another schema isn't supported");
-        // }
-        const obj = Object.create(proto, { doc: { value: doc, writable: false } });
-        return obj;
-    };
-    return function (doc?: Doc | Doc[]) {
-        if (doc instanceof Doc || doc === undefined) {
-            return fn(doc || new Doc);
-        } else if (doc instanceof List) {
-            return doc.map(fn);
-        } else return {};
-    };
+    // !(doc instanceof Doc) && (throw new Error("Currently wrapping a schema in another schema isn't supported"));
+    const fn = (doc: Doc) => Object.create(proto, { doc: { value: doc[SelfProxy], writable: false } });
+    return ((doc?: Doc | Doc[]) => (doc instanceof List ? doc : undefined)?.map?.(fn) ?? fn((doc as Doc) ?? new Doc)) as InterfaceFunc<T>;
 }
 
 export type makeStrictInterface<T extends Interface> = Partial<ToInterface<T>>;

@@ -1,8 +1,9 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { computed, observable, action, reaction, runInAction } from "mobx";
+import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Field, Opt, DocListCastAsync, HeightSym } from "../../../fields/Doc";
+import Select from "react-select";
+import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { List } from "../../../fields/List";
 import { RichTextField } from "../../../fields/RichTextField";
@@ -12,24 +13,22 @@ import { Cast, StrCast } from "../../../fields/Types";
 import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
-import { CollectionTreeView } from "../collections/CollectionTreeView";
-import { ViewBoxBaseComponent } from "../DocComponent";
-import { SearchBox } from "../search/SearchBox";
-import { FieldView, FieldViewProps } from './FieldView';
-import './FilterBox.scss';
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { UserOptions } from "../../util/GroupManager";
 import { Scripting } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
+import { CollectionTreeView } from "../collections/CollectionTreeView";
 import { CollectionView } from "../collections/CollectionView";
+import { ViewBoxBaseComponent } from "../DocComponent";
+import { EditableView } from "../EditableView";
+import { SearchBox } from "../search/SearchBox";
+import { DashboardToggleButton, DefaultStyleProvider, StyleProp } from "../StyleProvider";
+import { DocumentViewProps } from "./DocumentView";
+import { FieldView, FieldViewProps } from './FieldView';
+import './FilterBox.scss';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-import Select from "react-select";
-import { UserOptions } from "../../util/GroupManager";
-import { DocumentViewProps } from "./DocumentView";
-import { DefaultStyleProvider, StyleProp } from "../StyleProvider";
-import { CurrentUserUtils } from "../../util/CurrentUserUtils";
-import { EditableView } from "../EditableView";
-import { undoBatch } from "../../util/UndoManager";
 
 type FilterBoxDocument = makeInterface<[typeof documentSchema]>;
 const FilterBoxDocument = makeInterface(documentSchema);
@@ -135,7 +134,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
 
     gatherFieldValues(dashboard: Doc, facetKey: string) {
-        const childDocs = DocListCast((dashboard.data as any)[0].data);
+        const childDocs = DocListCast(dashboard.data);
         const valueSet = new Set<string>();
         let rtFields = 0;
         childDocs.forEach((d) => {
@@ -206,7 +205,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             let nonNumbers = 0;
             let minVal = Number.MAX_VALUE, maxVal = -Number.MAX_VALUE;
             facetValues.strings.map(val => {
-                const num = Number(val);
+                const num = val ? Number(val) : Number.NaN;
                 if (Number.isNaN(num)) {
                     nonNumbers++;
                 } else {
@@ -217,8 +216,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             let newFacet: Opt<Doc>;
             if (facetHeader === "text" || facetValues.rtFields / allCollectionDocs.length > 0.1) {
                 newFacet = Docs.Create.TextDocument("", {
-                    _width: 100, _height: 25, system: true, _stayInCollection: true, target: targetDoc,
-                    treeViewExpandedView: "layout", title: facetHeader, _treeViewOpen: true, _forceActive: true, ignoreClick: true
+                    title: facetHeader, system: true, target: targetDoc, _width: 100, _height: 25, _stayInCollection: true,
+                    treeViewExpandedView: "layout", _treeViewOpen: true, _forceActive: true, ignoreClick: true
                 });
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
                 newFacet._textBoxPadding = 4;
@@ -226,7 +225,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet.onTextChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, text: "string" });
             } else if (facetHeader !== "tags" && nonNumbers / facetValues.strings.length < .1) {
                 newFacet = Docs.Create.SliderDocument({
-                    title: facetHeader, _overflow: "visible", _fitWidth: true, target: targetDoc, _height: 40, _stayInCollection: true, treeViewExpandedView: "layout", _treeViewOpen: true
+                    title: facetHeader, system: true, target: targetDoc, _fitWidth: true, _height: 40, _stayInCollection: true,
+                    treeViewExpandedView: "layout", _treeViewOpen: true, _forceActive: true, _overflow: "visible",
                 });
                 const newFacetField = Doc.LayoutFieldKey(newFacet);
                 const ranged = Doc.readDocRangeFilter(targetDoc, facetHeader);
@@ -346,16 +346,9 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
      * add lock and hide button decorations for the "Dashboards" flyout TreeView
      */
     FilterStyleProvider = (doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) => {
-        switch (property.split(":")[0]) {
-            case StyleProp.Decorations:
-                return !doc || doc.treeViewHideHeaderFields ? (null) :
-                    <>
-                        <div className={`styleProvider-treeView-hide${doc.hidden ? "-active" : ""}`} onClick={undoBatch(e =>
-                            this.removeFilter(StrCast(doc.title))
-                        )}>
-                            <FontAwesomeIcon icon={"trash"} size="sm" />
-                        </div>
-                    </>;
+        if (property.split(":")[0] === StyleProp.Decorations) {
+            return !doc || doc.treeViewHideHeaderFields ? (null) :
+                DashboardToggleButton(doc, "hidden", "trash", "trash", () => this.removeFilter(StrCast(doc.title)));
         }
         return this.props.styleProvider?.(doc, props, property);
     }

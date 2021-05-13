@@ -113,8 +113,6 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
                         NativeHeight={returnZero}
                         PanelHeight={this.panelHeight}
                         PanelWidth={this.panelWidth}
-                        xMargin={0}
-                        yMargin={0}
                         styleProvider={this.sidebarStyleProvider}
                         docFilters={this.docFilters}
                         scaleField={this.sidebarKey() + "-scale"}

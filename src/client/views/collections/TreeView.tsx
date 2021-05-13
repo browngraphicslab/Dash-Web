@@ -626,6 +626,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 ContainingCollectionDoc={this.props.treeView.props.Document}
             />;
 
+        const buttons = this.props.styleProvider?.(this.doc, this.props.treeView.props, StyleProp.Decorations + (Doc.IsSystem(this.props.containerCollection) ? ":afterHeader" : ""));
         return <>
             <div className={`docContainer${Doc.IsSystem(this.props.document) || this.props.document.isFolder ? "-system" : ""}`} ref={this._tref} title="click to edit title. Double Click or Drag to Open"
                 style={{
@@ -636,8 +637,8 @@ export class TreeView extends React.Component<TreeViewProps> {
                 }} >
                 {view}
             </div >
-            <div className={"right-buttons-container"}>
-                {this.props.styleProvider?.(this.doc, this.props.treeView.props, StyleProp.Decorations + (Doc.IsSystem(this.props.containerCollection) ? ":afterHeader" : ""))} {/* hide and lock buttons */}
+            <div className="treeView-rightButtons">
+                {buttons} {/* hide and lock buttons */}
                 {this.headerElements}
             </div>
         </>;
@@ -719,7 +720,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     @computed get renderBorder() {
-        const sorting = this.doc[`${this.fieldKey}-sortCriteria`];
+        const sorting = this.doc[`${this.fieldKey}-sortCriterion`];
         return <div className={`treeView-border${this.props.treeView.outlineMode ? "outline" : ""}`}
             style={{ borderColor: sorting === undefined ? undefined : sorting === "up" ? "crimson" : sorting === "down" ? "blue" : "green" }}>
             {!this.treeViewOpen ? (null) : this.renderContent}
