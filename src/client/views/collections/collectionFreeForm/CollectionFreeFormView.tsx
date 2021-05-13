@@ -1495,12 +1495,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 this.placeholder : this.marqueeView}
             {this.props.noOverlay ? (null) : <CollectionFreeFormOverlayView elements={this.elementFunc} />}
 
-            {StrListCast(this.props.Document._docFilters).length || StrListCast(this.props.Document._docRangeFilters).length || StrListCast(CurrentUserUtils.ActiveDashboard._docFilters).length || StrListCast(CurrentUserUtils.ActiveDashboard._docRangeFilters).length ?
-                <FontAwesomeIcon icon={"filter"} size="lg"
-                    style={{ position: 'absolute', top: 5, right: 5, cursor: "pointer", padding: 1, color: '#18c718bd' }}
-                    onPointerDown={e => { runInAction(() => CurrentUserUtils.propertiesWidth = 250); e.stopPropagation(); }}
-                />
-                : (null)}
 
             <div className={"pullpane-indicator"}
                 style={{
