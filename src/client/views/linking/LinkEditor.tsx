@@ -30,6 +30,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     @observable private buttonColor: string = "";
     @observable private relationshipButtonColor: string = "";
     @observable transitionSpeed = 0;
+    @observable openView: boolean = false;
 
     //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
 
@@ -130,10 +131,19 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     @action
     changeDropdown = () => { this.openDropdown = !this.openDropdown; }
 
+    @action
+    changeViewDropdown = () => { this.openView = !this.openView; }
+
     @undoBatch
     changeFollowBehavior = action((follow: string) => {
         this.openDropdown = false;
         Doc.GetProto(this.props.linkDoc).followLinkLocation = follow;
+    });
+
+    @undoBatch
+    changeFollowView = action((follow: string) => {
+        this.openView = false;
+        Doc.GetProto(this.props.linkDoc).followLinkView = follow;
     });
 
     @computed
@@ -199,20 +209,20 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             <div className="linkEditor-followingDropdown-label">Destination View:</div>
             <div className="linkEditor-followingDropdown-dropdown">
                 <div className="linkEditor-followingDropdown-header"
-                    onPointerDown={this.changeDropdown}>
+                    onPointerDown={this.changeViewDropdown}>
                     {StrCast(this.props.linkDoc.followLinkLocation, "default")}
                     <FontAwesomeIcon className="linkEditor-followingDropdown-icon"
-                        icon={this.openDropdown ? "chevron-up" : "chevron-down"}
+                        icon={this.openView ? "chevron-up" : "chevron-down"}
                         size={"lg"} />
                 </div>
                 <div className="linkEditor-followingDropdown-optionsList"
-                    style={{ display: this.openDropdown ? "" : "none" }}>
+                    style={{ display: this.openView ? "" : "none" }}>
                     <div className="linkEditor-followingDropdown-option"
-                        onPointerDown={() => this.changeFollowBehavior("default")}>
+                        onPointerDown={() => this.changeFollowView("default")}>
                         Default
                         </div>
                     <div className="linkEditor-followingDropdown-option"
-                        onPointerDown={() => this.changeFollowBehavior("add:left")}>
+                        onPointerDown={() => this.changeFollowView("zoom")}>
                         Focus on Document
                         </div>
                 </div>

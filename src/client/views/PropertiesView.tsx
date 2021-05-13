@@ -319,6 +319,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             <div className="propertiesView-fieldInfo-title">Description:</div>
             <div className="propertiesView-fieldInfo-value">{((Doc.UserDoc().fieldInfos as Doc)[key] as Doc).description}</div>
         </div>;
+        MainViewPopup.hide();
         MainViewPopup.setWidth(150);
         MainViewPopup.setHeight(110);
         MainViewPopup.setBackgroundColor("#C4C4C4");
@@ -361,7 +362,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 <div className="propertiesView-addTag-title">Type</div>
                 <input className="propertiesView-tagInput"
                     type="text"
-                    onChange={this.changePopUpType} />
+                    onChange={this.changePopUpType}
+                    onBlur={(e) => { e.preventDefault(); }} />
             </div>
             <div className="propertiesView-addTag-wrapper">
                 <div className="propertiesView-addTag-title">Key:</div>
@@ -371,12 +373,14 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 <div className="propertiesView-addTag-title">Value:</div>
                 <input className="propertiesView-popUpInput"
                     type="text"
-                    onChange={this.changePopUpValue} />
+                    onChange={this.changePopUpValue}
+                    onBlur={(e) => { e.preventDefault(); }} />
             </div>
             <div className="propertiesView-addTag-wrapper">
                 <div className="propertiesView-addTag-btn" onClick={this.addField}>Add</div>
             </div>
         </div>;
+        MainViewPopup.hide();
         MainViewPopup.setWidth(240);
         MainViewPopup.setHeight(117);
         MainViewPopup.setBackgroundColor("#C4C4C4");
@@ -389,9 +393,13 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @action
     @undoBatch
     addField = () => {
+
+        // how to add type here??
+
         MainViewPopup.hide();
         const docs = SelectionManager.Views().length < 2 && this.selectedDoc ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] : SelectionManager.Views().map(dv => this.layoutFields ? dv.layoutDoc : dv.dataDoc);
-        this._popupKey[0].toUpperCase();
+        this._popupKey = this._popupKey[0].toUpperCase() + this._popupKey.substr(1);
+        console.log(this._popupKey);
         if (this._popupKey !== "" && this._popupValue !== "") {
             docs.forEach(doc => {
                 KeyValueBox.SetField(doc, this._popupKey, this._popupValue, true);

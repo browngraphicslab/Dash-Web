@@ -45,6 +45,7 @@ export class MainViewPopup extends React.Component<{}> {
             if (!MainViewPopup.newAppearance) {
                 console.log("outside click");
                 MainViewPopup.visible = false;
+                MainViewPopup.content = <></>;
             } else {
                 MainViewPopup.newAppearance = false;
             }
@@ -84,10 +85,17 @@ export class MainViewPopup extends React.Component<{}> {
     public static show() { MainViewPopup.visible = true; MainViewPopup.newAppearance = true; }
 
     @action
-    public static hide() { MainViewPopup.visible = false; MainViewPopup.newAppearance = false; }
+    public static hide() {
+        MainViewPopup.content = <></>;
+        MainViewPopup.visible = false;
+        MainViewPopup.newAppearance = false;
+    }
 
     @action
-    public static changeContent(content: any) { MainViewPopup.content = content; }
+    public static changeContent(content: any) {
+        MainViewPopup.content = <></>;
+        MainViewPopup.content = content;
+    }
 
     render() {
         return <div className="mainViewPopup" ref={MainViewPopup.wrapperRef}

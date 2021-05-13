@@ -158,7 +158,7 @@ export class DocumentOptions {
     _layoutKey?: string;
     z?: number; // whether document is in overlay (1) or not (0 or undefined)
     type?: string;
-    title?: string;
+    title?: STRt = new StrInfo("the title of the document");
     "acl-Public"?: string; // public permissions
     "_acl-Public"?: string; // public permissions
     version?: string; // version identifier for a document
