@@ -947,12 +947,13 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     }
     @computed get renderDoc() {
         TraceMobx();
+        const isButton: boolean = this.props.Document.type == DocumentType.FONTICON;
         if (!(this.props.Document instanceof Doc) || GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate || this.hidden) return null;
         return this.docContents ??
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 id={this.props.Document[Id]}
                 style={{
-                    background: this.backgroundColor,
+                    background: isButton ? undefined : this.backgroundColor,
                     opacity: this.opacity,
                     color: StrCast(this.layoutDoc.color, "inherit"),
                     fontFamily: StrCast(this.Document._fontFamily, "inherit"),
@@ -978,6 +979,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
         const borderPath = this.props.styleProvider?.(this.props.Document, this.props, StyleProp.BorderPath) || { path: undefined };
         const internal = PresBox.EffectsProvider(this.layoutDoc, this.renderDoc) || this.renderDoc;
+        console.log(highlighting, this.borderRounding, highlightStyle);
         const boxShadow = highlighting && this.borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :
             this.boxShadow || (this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined);
         return <div className={DocumentView.ROOT_DIV} ref={this._mainCont}
@@ -1147,7 +1149,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     style={{
                         position: this.props.Document.isInkMask ? "absolute" : undefined,
                         transform: isButton ? undefined : `translate(${this.centeringX}px, ${this.centeringY}px)`,
-                        width: xshift() ?? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%`,
+                        width: isButton ? undefined : xshift() ?? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%`,
                         height: isButton ? undefined : yshift() ?? (this.fitWidth ? `${this.panelHeight}px` :
                             `${100 * this.effectiveNativeHeight / this.effectiveNativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%`),
                     }}>

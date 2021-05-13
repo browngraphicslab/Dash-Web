@@ -140,7 +140,7 @@ export default class RouteManager {
                     const warning = `request to ${target} fell through - this is a fallback response`;
                     res.send({ warning });
                 }
-            }, 1000);
+            }, 100000);
         };
         const subscribe = (subscriber: RouteSubscriber | string) => {
             let route: string;

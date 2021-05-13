@@ -473,7 +473,7 @@ export class CurrentUserUtils {
             { toolTip: "Tap to create a videoWall", title: "Wall", icon: "photo-video", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyWall as Doc },
             { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
             { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyButton as Doc },
-            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory))', drag: `Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
+            // { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory))', drag: `Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
             { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScript as Doc },
             { toolTip: "Tap to create a mobile view in a new pane, drag for a mobile view", title: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
             { toolTip: "Tap to create a custom header note document, drag for a custom header note", title: "Custom", icon: "window-maximize", click: 'openOnRight(delegateDragFactory(this.dragFactory))', drag: 'delegateDragFactory(this.dragFactory)', dragFactory: doc.emptyHeader as Doc },
@@ -495,7 +495,7 @@ export class CurrentUserUtils {
         }
         const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title));
         const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag, click, backgroundColor, dragFactory, noviceMode, clickFactory }) => Docs.Create.FontIconDocument({
-            _nativeWidth: 50, _nativeHeight: 50, _width: 25, _height: 25,
+            _nativeWidth: 50, _nativeHeight: 50, _width: 30, _height: 25,
             icon,
             title,
             toolTip,
@@ -741,15 +741,15 @@ export class CurrentUserUtils {
         // setup a color picker
         if (doc.myColorPicker === undefined) {
             const color = Docs.Create.ColorDocument({
-                title: "color picker", _width: 220, _dropAction: "alias", _hideContextMenu: true, _stayInCollection: true, _forceActive: true, _removeDropProperties: new List<string>(["dropAction", "_stayInCollection", "_hideContextMenu", "forceActive"]), system: true
+                title: "color picker", ignoreClick: true, _width: 220, _dropAction: "alias", _hideContextMenu: true, _stayInCollection: true, _forceActive: true, _removeDropProperties: new List<string>(["dropAction", "_stayInCollection", "_hideContextMenu", "forceActive"]), system: true
             });
             doc.myColorPicker = new PrefetchProxy(color);
         }
 
         if (doc.myTools === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                title: "My Tools", _width: 500, _yMargin: 20, ignoreClick: true, _lockedPosition: true, _forceActive: true,
-                system: true, _stayInCollection: true, _hideContextMenu: true, _chromeHidden: true,
+                title: "My Tools", _showTitle: "title", _width: 500, _yMargin: 20, ignoreClick: true, _lockedPosition: true, _forceActive: true,
+                system: true, _stayInCollection: true, _hideContextMenu: true, _chromeHidden: true, boxShadow: "0 0",
             })) as any as Doc;
 
             doc.myTools = toolsStack;
@@ -761,7 +761,7 @@ export class CurrentUserUtils {
         await doc.myDashboards;
         if (doc.myDashboards === undefined) {
             doc.myDashboards = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "My Dashboards", _height: 400, childHideLinkButton: true,
+                title: "My Dashboards", _showTitle: "title", _height: 400, childHideLinkButton: true,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
@@ -777,7 +777,7 @@ export class CurrentUserUtils {
         await doc.myPresentations;
         if (doc.myPresentations === undefined) {
             doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "My Presentations", _height: 100,
+                title: "My Presentations", _showTitle: "title", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
@@ -796,7 +796,7 @@ export class CurrentUserUtils {
             doc.myFileOrphans = Docs.Create.TreeDocument([], { title: "Unfiled", _stayInCollection: true, system: true, isFolder: true });
             doc.myFileRoot = Docs.Create.TreeDocument([], { title: "file root", _stayInCollection: true, system: true, isFolder: true });
             doc.myFilesystem = new PrefetchProxy(Docs.Create.TreeDocument([doc.myFileRoot as Doc, doc.myFileOrphans as Doc], {
-                title: "My Documents", _height: 100,
+                title: "My Documents", _showTitle: "title", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 isFolder: true, treeViewType: "fileSystem", childHideLinkButton: true,
@@ -810,7 +810,7 @@ export class CurrentUserUtils {
         // setup Recently Closed library item
         if (doc.myRecentlyClosedDocs === undefined) {
             doc.myRecentlyClosedDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "Recently Closed", treeViewShowClearButton: true, childHideLinkButton: true,
+                title: "Recently Closed", _showTitle: "title", treeViewShowClearButton: true, childHideLinkButton: true,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
@@ -841,7 +841,7 @@ export class CurrentUserUtils {
             doc.treeViewOpen = true;
             doc.treeViewExpandedView = "fields";
             doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
-                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, title: "My UserDoc",
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, title: "My UserDoc", _showTitle: "title",
                 treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
@@ -861,6 +861,7 @@ export class CurrentUserUtils {
     static async setupSidebarButtons(doc: Doc) {
         CurrentUserUtils.setupSidebarContainer(doc);
         await CurrentUserUtils.setupToolsBtnPanel(doc);
+        CurrentUserUtils.setupImportSidebar(doc);
         CurrentUserUtils.setupDashboards(doc);
         CurrentUserUtils.setupPresentations(doc);
         CurrentUserUtils.setupFilesystem(doc);
@@ -882,10 +883,10 @@ export class CurrentUserUtils {
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupDockedButtons(doc: Doc) {
         if (doc["dockedBtn-undo"] === undefined) {
-            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), btnType: ButtonType.ClickButton, dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
+            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), btnType: ButtonType.ClickButton, dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "Click to undo", title: "Undo", icon: "undo-alt", system: true, canClick: 'canUndo' });
         }
         if (doc["dockedBtn-redo"] === undefined) {
-            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), btnType: ButtonType.ClickButton, dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
+            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), btnType: ButtonType.ClickButton, dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "Click to redo", title: "Redo", icon: "redo-alt", system: true, canClick: 'canRedo' });
         }
         if (doc.dockedBtns === undefined) {
             doc.dockedBtns = CurrentUserUtils.blist({ title: "docked buttons", ignoreClick: true, linearViewExpandable: true, _height: 42 }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc]);
@@ -894,56 +895,64 @@ export class CurrentUserUtils {
         (doc["dockedBtn-redo"] as Doc).dontUndo = true;
     }
 
+    static textTools(doc: Doc) {
+        return [
+            { title: "Background", tooltip: "Change document's background color", type: "btn", btnType: ButtonType.DropdownButton, ignoreClick: true, icon: "fill-drip", click: '' },
+            { title: "Overlay", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ToggleButton, icon: "layer-group", click: 'toggleOverlay()', toggle: 'selectedDoc.z', canClick: 'numSelected > 0' },
+        ];
+    }
+
     static async contextMenuBtnDescriptions(doc: Doc) {
         return [
             // { title: "Perspective", tooltip: "Change document's perspective", type: "btn", btnType: ButtonType.DropdownButton, ignoreClick: true, icon: "desktop", click: '' },
-            { title: "Background", tooltip: "Change document's background color", type: "btn", btnType: ButtonType.DropdownButton, ignoreClick: true, icon: "fill-drip", click: '' },
-            { title: "Overlay", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ClickButton, icon: "layer-group", click: 'toggleOverlay(doc)' },
-            // { title: "Text Tools", type: "LinearMenu", icon: "font" },
+            { title: "Background", tooltip: "Change document's background color", type: "btn", btnType: ButtonType.DropdownButton, ignoreClick: true, icon: "fill-drip", click: '', canClick: 'numSelected > 0' },
+            { title: "Overlay", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ToggleButton, icon: "layer-group", click: 'toggleOverlay()', toggle: 'selectedDoc.z', canClick: 'numSelected > 0' },
+            { title: "Text Tools", type: "TextMenu", icon: "font" },
             // { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib" },
             // { title: "GFX Tools", type: "LinearMenu", icon: "shapes" },
             // { title: "Alias", btnType: ButtonType.ClickButton, icon: "copy" },
         ];
     }
 
-    static async inkBtnDescriptions(doc: Doc) {
-        return [
-            { title: "Perspective", tooltip: "Change document's perspective", type: "btn", btnType: ButtonType.DropdownButton, icon: "desktop", click: 'selectMainMenu(self)' },
-            { title: "Toggle Overlay Layer", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ClickButton, target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
-            { title: "Undo", icon: 'undo-alt', btnType: ButtonType.ClickButton, click: 'undo()' },
-            { title: "Redo", icon: 'redo-alt', btnType: ButtonType.ClickButton, click: 'redo()' },
-            { title: "Text Tools", type: "LinearMenu", icon: "font" },
-            { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib" },
-            { title: "GFX Tools", type: "LinearMenu", icon: "shapes" },
-            { title: "Drag Alias", btnType: ButtonType.ClickButton, icon: "copy" },
-        ];
-    }
-
-    static async textBtnDescriptions(doc: Doc) {
-        return [
-            // { title: "Perspective", tooltip: "Change document's perspective", type: "btn", btnType: ButtonType.DropdownButton, icon: "desktop", click: 'selectMainMenu(self)' },
-            { title: "Toggle Overlay Layer", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ClickButton, target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
-            { title: "Undo", icon: 'undo-alt', btnType: ButtonType.ClickButton, click: 'undo()' },
-            { title: "Redo", icon: 'redo-alt', btnType: ButtonType.ClickButton, click: 'redo()' },
-            { title: "Text Tools", type: "LinearMenu", icon: "font", click: '' },
-            { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib", click: '' },
-            { title: "GFX Tools", type: "LinearMenu", icon: "shapes", click: '' },
-            { title: "Drag Alias", btnType: ButtonType.ClickButton, icon: "copy", click: '' },
-        ];
-    }
-
-
     // Default context menu buttons
     static async setupContextMenuButtons(doc: Doc) {
         let docList: Doc[] = [];
 
-        const contextMenuBtns = (await CurrentUserUtils.contextMenuBtnDescriptions(doc)).map(({ title, tooltip, ignoreClick, icon, type, btnType, click }) => {
-            if (type == "LinearMenu") {
-                docList.push(CurrentUserUtils.blist({ flexDirection: 'column-reverse', linearViewExpandable: true, _height: 30, backgroundColor: "#E3E3E3" }, []));
+        const contextMenuBtns = (await CurrentUserUtils.contextMenuBtnDescriptions(doc)).map(({ title, tooltip, ignoreClick, icon, type, btnType, click, toggle, canClick }) => {
+            let textDocList: Doc[] = [];
+            if (type == "TextMenu") {
+                const textBtns = (CurrentUserUtils.textTools(doc)).map(({ title, tooltip, ignoreClick, icon, type, btnType, click, toggle, canClick }) => {
+                    textDocList.push(Docs.Create.FontIconDocument({
+                        _nativeWidth: btnType === ButtonType.DropdownButton ? 60 : 25,
+                        _nativeHeight: 25,
+                        _width: btnType === ButtonType.DropdownButton ? 60 : 25,
+                        _height: 25,
+                        icon,
+                        toggle: toggle,
+                        canClick: canClick,
+                        btnType: btnType,
+                        ignoreClick: ignoreClick,
+                        _stayInCollection: true,
+                        _hideContextMenu: true,
+                        system: true,
+                        dontUndo: true,
+                        title,
+                        backgroundColor: "black",
+                        _dropAction: "alias",
+                        _removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
+                        onClick: click ? ScriptField.MakeScript(click, { scriptContext: "any" }) : undefined
+                    }));
+                });
+                docList.push(CurrentUserUtils.blist({ flexDirection: 'column-reverse', linearViewExpandable: true, _height: 30, backgroundColor: "#E3E3E3" }, textDocList));
             } else {
                 docList.push(Docs.Create.FontIconDocument({
-                    _nativeWidth: btnType === ButtonType.ClickButton ? 25 : 40, _nativeHeight: 25, _width: btnType === ButtonType.ClickButton ? 25 : 40, _height: 25,
+                    _nativeWidth: btnType === ButtonType.DropdownButton ? 60 : 30,
+                    _nativeHeight: 30,
+                    _width: btnType === ButtonType.DropdownButton ? 60 : 30,
+                    _height: 30,
                     icon,
+                    toggle: toggle,
+                    canClick: canClick,
                     btnType: btnType,
                     ignoreClick: ignoreClick,
                     _stayInCollection: true,
@@ -951,7 +960,7 @@ export class CurrentUserUtils {
                     system: true,
                     dontUndo: true,
                     title,
-                    backgroundColor: "#E3E3E3",
+                    backgroundColor: "black",
                     _dropAction: "alias",
                     _removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
                     onClick: click ? ScriptField.MakeScript(click, { scriptContext: "any" }) : undefined
@@ -1004,7 +1013,8 @@ export class CurrentUserUtils {
             if (!sharedDocs) {
                 sharedDocs = Docs.Create.StackingDocument([], {
                     title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15,
-                    _showTitle: "title", ignoreClick: true, _lockedPosition: true, "acl-Public": SharingPermissions.Add, "_acl-Public": SharingPermissions.Add, _chromeHidden: true,
+                    _showTitle: "title", ignoreClick: true, _lockedPosition: true, "acl-Public": SharingPermissions.Add, "_acl-Public": SharingPermissions.Add,
+                    _chromeHidden: true, boxShadow: "0 0",
                 }, sharingDocumentId + "outer", sharingDocumentId);
                 (sharedDocs as Doc)["acl-Public"] = (sharedDocs as Doc)[DataSym]["acl-Public"] = SharingPermissions.Add;
             }
@@ -1019,14 +1029,14 @@ export class CurrentUserUtils {
     static setupImportSidebar(doc: Doc) {
         if (doc.myImportDocs === undefined) {
             doc.myImportDocs = new PrefetchProxy(Docs.Create.StackingDocument([], {
-                title: "My ImportDocuments", _forceActive: true, ignoreClick: true, _showTitle: "title", _stayInCollection: true, _hideContextMenu: true, childLimitHeight: 0,
+                title: "My ImportDocuments", _forceActive: true, ignoreClick: true, _stayInCollection: true, _hideContextMenu: true, childLimitHeight: 0,
                 childDropAction: "alias", _autoHeight: true, _yMargin: 50, _gridGap: 15, _lockedPosition: true, system: true, _chromeHidden: true,
             }));
         }
         if (doc.myImportPanel === undefined) {
             const uploads = Cast(doc.myImportDocs, Doc, null);
             const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), btnType: ButtonType.ClickButton, toolTip: "Import External document", _stayInCollection: true, _hideContextMenu: true, title: "Import", icon: "upload", system: true });
-            doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, _chromeHidden: true, _stayInCollection: true, _hideContextMenu: true, _lockedPosition: true, system: true }));
+            doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, _showTitle: "title", ignoreClick: true, _chromeHidden: true, _stayInCollection: true, _hideContextMenu: true, _lockedPosition: true, system: true, boxShadow: "0 0" }));
         }
     }
 
@@ -1114,7 +1124,6 @@ export class CurrentUserUtils {
         doc.filterDocCount = 0;
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
-        this.setupImportSidebar(doc);
         this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
         this.setupSearchPanel(doc);
         this.setupOverlays(doc);  // documents in overlay layer
@@ -1127,8 +1136,8 @@ export class CurrentUserUtils {
         setTimeout(() => this.setupDefaultPresentation(doc), 0); // presentation that's initially triggered
 
         // setup reactions to change the highlights on the undo/redo buttons -- would be better to encode this in the undo/redo buttons, but the undo/redo stacks are not wired up that way yet
-        doc["dockedBtn-undo"] && reaction(() => UndoManager.undoStack.slice(), () => Doc.GetProto(doc["dockedBtn-undo"] as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
-        doc["dockedBtn-redo"] && reaction(() => UndoManager.redoStack.slice(), () => Doc.GetProto(doc["dockedBtn-redo"] as Doc).opacity = UndoManager.CanRedo() ? 1 : 0.4, { fireImmediately: true });
+        // doc["dockedBtn-undo"] && reaction(() => UndoManager.undoStack.slice(), () => Doc.GetProto(doc["dockedBtn-undo"] as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
+        // doc["dockedBtn-redo"] && reaction(() => UndoManager.redoStack.slice(), () => Doc.GetProto(doc["dockedBtn-redo"] as Doc).opacity = UndoManager.CanRedo() ? 1 : 0.4, { fireImmediately: true });
 
         // uncomment this to setup a default note style that uses the custom header layout
         // PromiseValue(doc.emptyHeader).then(factory => {

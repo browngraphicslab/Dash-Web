@@ -21,12 +21,15 @@
         z-index: 901;
         border: unset;
     }
+}
 
-    .fixedMenu-button {
-        display: flex;
-        height: 100%;
-        width: 35px;
-    }
+.fixedMenu-button {
+    cursor: pointer;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    height: 100%;
+    width: 35px;
 }
         
 

@@ -1297,6 +1297,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
         );
     }
 }
+
 Scripting.addGlobal(function gotoFrame(doc: any, newFrame: any) {
     const dataField = doc[Doc.LayoutFieldKey(doc)];
     const childDocs = DocListCast(dataField);
@@ -1308,3 +1309,10 @@ Scripting.addGlobal(function gotoFrame(doc: any, newFrame: any) {
     CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0);
     doc._currentFrame = newFrame === undefined ? 0 : Math.max(0, newFrame);
 });
+
+// toggle: Set overlay status of selected document
+Scripting.addGlobal(function toggleOverlay() {
+    const selected = SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
+    selected ? selected.props.CollectionFreeFormDocumentView?.().float() : console.log("failed");
+});
+

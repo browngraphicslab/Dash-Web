@@ -60,13 +60,21 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
                     '#000000', '#4A4A4A', '#9B9B9B', '#FFFFFF', '#f1efeb', 'transparent']}
             />
 
-            <div style={{ width: this.props.PanelWidth() / scaling, display: "flex", paddingTop: "10px" }}>
-                <div> {ActiveInkWidth()}</div>
-                <input type="range" defaultValue={ActiveInkWidth()} min={1} max={100} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    SetActiveInkWidth(e.target.value);
-                    SelectionManager.Views().filter(i => StrCast(i.rootDoc.type) === DocumentType.INK).map(i => i.rootDoc.strokeWidth = Number(e.target.value));
-                }} />
-            </div>
+
         </div>;
     }
 }
+
+// CODEDUMP: glr
+/**
+
+Width Slider
+<div style={{ width: this.props.PanelWidth() / scaling, display: "flex", paddingTop: "10px" }}>
+    <div> {ActiveInkWidth()}</div>
+    <input type="range" defaultValue={ActiveInkWidth()} min={1} max={100} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+        SetActiveInkWidth(e.target.value);
+        SelectionManager.Views().filter(i => StrCast(i.rootDoc.type) === DocumentType.INK).map(i => i.rootDoc.strokeWidth = Number(e.target.value));
+    }} />
+</div>
+
+*/

@@ -273,6 +273,8 @@ export class DocumentOptions {
     useLinkSmallAnchor?: boolean;  // whether links to this document should use a miniature linkAnchorBox
     border?: string; //for searchbox
     hoverBackgroundColor?: string; // background color of a label when hovered
+    toggle?: string;
+    canClick?: string;
 }
 export namespace Docs {
 
@@ -421,7 +423,7 @@ export namespace Docs {
             }],
             [DocumentType.FONTICON, {
                 layout: { view: FontIconBox, dataField: defaultDataKey },
-                options: { hideLinkButton: true, _width: 40, _height: 40, borderRounding: "100%", links: ComputedField.MakeFunction("links(self)") as any },
+                options: { hideLinkButton: true, links: ComputedField.MakeFunction("links(self)") as any },
             }],
             [DocumentType.WEBCAM, {
                 layout: { view: DashWebRTCVideo, dataField: defaultDataKey },

@@ -57,10 +57,13 @@
     }
 
     .fontIconBox-label {
+        z-index: 100;
+        min-width: fit-content;
         bottom: 0;
-        width: 100%;
         left: 0;
-        border-radius: 0px 0px 6px 6px;
+        width: 100%;
+        /* justify-self: center; */
+        border-radius: 0px;
         position: absolute;
     }
 
@@ -72,21 +75,22 @@
     &.clickBtn {
         cursor: pointer;
         border-radius: 7px;
-        background-color: blue;
+    }
+
+    &.tglBtn {
+        cursor: pointer;
+        border-radius: 7px;
     }
 
     &.menuBtn {
         cursor: pointer;
-        background-color: green;
     }
 
     &.drpDownBtn {
         cursor: pointer;
         border-radius: 7px;
-        background-color: red;
 
         .menuButton-dropDown {
-            height: inherit;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -94,6 +98,10 @@
             background-color: #b9b9b9;
             grid-column: 2;
             border-radius: 0px 7px 7px 0px;
+            position: absolute;
+            width: 13px;
+            height: 100%;
+            right: 0;
         }
 
         .menuButton-dropDownBox {
@@ -101,10 +109,12 @@
             width: 150px;
             height: 250px;
             top: 100%;
-            background-color: #e3e3e3;
+            background-color: #b9b9b9;
+            box-shadow: 3px 3px 5px black;
             border-radius: 7px;
             border-top-left-radius: 0px;
         }
     }
 
 }
+
