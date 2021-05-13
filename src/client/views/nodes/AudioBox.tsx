@@ -53,7 +53,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
     @observable _position: number = 0;
     @observable _waveHeight: Opt<number> = this.layoutDoc._height;
     @observable _paused: boolean = false;
-    @computed get mediaState(): undefined | "recording" | "paused" | "playing" { return this.dataDoc.mediaState as (undefined | "recording" | "paused" | "playing"); }
+    @computed get mediaState(): undefined | "pendingRecording" | "recording" | "paused" | "playing" { return this.dataDoc.mediaState as (undefined | "pendingRecording" | "recording" | "paused" | "playing"); }
     set mediaState(value) { this.dataDoc.mediaState = value; }
     public static SetScrubTime = action((timeInMillisFrom1970: number) => { AudioBox._scrubTime = 0; AudioBox._scrubTime = timeInMillisFrom1970; });
     @computed get recordingStart() { return Cast(this.dataDoc[this.props.fieldKey + "-recordingStart"], DateField)?.date.getTime(); }

@@ -106,7 +106,9 @@ module.exports = {
                 }
             }]
         }
-        ]
+        ],
+
+        noParse: [require.resolve('typescript/lib/typescript.js')],
     },
     plugins,
     externals: [

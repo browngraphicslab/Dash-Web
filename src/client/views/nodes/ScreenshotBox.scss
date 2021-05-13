@@ -10,6 +10,13 @@
     // }
 }
 
+#CANCAN {
+    canvas {
+        width:100% !important;
+        height: 100% !important;
+    }
+}
+
 .screenshotBox-content, .screenshotBox-content-interactive, .screenshotBox-cont-fullScreen {
     width: 100%;
     z-index: -1; // 0;  // logically this should be 0 (or unset) which would give us transparent brush strokes over videos.  However, this makes Chrome crawl to a halt

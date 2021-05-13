@@ -1,3 +1,13 @@
+.mini-viewer{
+    cursor: grab;
+    position: absolute;
+    right: 10;
+    top: 10;
+    opacity: 0.1;
+    transition: all 0.4s;
+    color: white;
+}
+
 .videoBox {
     transform-origin: top left;
     width: 100%;
@@ -56,6 +66,7 @@
     background-color:rgba(50, 50, 50, 0.2);
     transform-origin: left top;
     pointer-events:all;
+    cursor: default;
 }
 
 .videoBox-timelineButton {

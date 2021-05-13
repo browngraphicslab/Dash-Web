@@ -37,10 +37,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     public static animFields = ["_height", "_width", "x", "y", "_scrollTop", "opacity"];  // fields that are configured to be animatable using animation frames
     @observable _animPos: number[] | undefined = undefined;
     @observable _contentView: DocumentView | undefined | null;
-    random(min: number, max: number) { /* min should not be equal to max */ return min + ((Math.abs(this.X * this.Y) * 9301 + 49297) % 233280 / 233280) * (max - min); }
     get displayName() { return "CollectionFreeFormDocumentView(" + this.rootDoc.title + ")"; } // this makes mobx trace() statements more descriptive
     get maskCentering() { return this.props.Document.isInkMask ? InkingStroke.MaskDim / 2 : 0; }
-    get transform() { return `translate(${this.X - this.maskCentering}px, ${this.Y - this.maskCentering}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
+    get transform() { return `translate(${this.X - this.maskCentering}px, ${this.Y - this.maskCentering}px) rotate(${this.props.jitterRotation}deg)`; }
     get X() { return this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
     get Y() { return this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
     get ZInd() { return this.dataProvider ? this.dataProvider.zIndex : (this.Document.zIndex || 0); }
@@ -156,7 +155,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     returnThis = () => this;
     render() {
         TraceMobx();
-        const backgroundColor = () => this.props.styleProvider?.(this.Document, this.props, StyleProp.BackgroundColor);
         const divProps: DocumentViewProps = {
             ...this.props,
             CollectionFreeFormDocumentView: this.returnThis,
@@ -175,17 +173,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 transition: this.props.dataTransition ? this.props.dataTransition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.dataTransition),
                 zIndex: this.ZInd,
                 mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
-                display: this.ZInd === -99 ? "none" : undefined,
+                display: this.ZInd === -99 ? "none" : undefined
             }} >
-
-            {Doc.UserDoc().renderStyle !== "comic" ? (null) :
-                <div style={{ width: "100%", height: "100%", position: "absolute" }}>
-                    <svg style={{ transform: `scale(1,${this.props.PanelHeight() / this.props.PanelWidth()})`, transformOrigin: "top left", overflow: "visible" }} viewBox="0 0 12 14">
-                        <path d="M 7 0 C 9 -1 13 1 12 4 C 11 10 13 12 10 12 C 6 12 7 13 2 12 Q -1 11 0 8 C 1 4 0 4 0 2 C 0 0 1 0 1 0 C 3 0 3 1 7 0"
-                            style={{ stroke: "black", fill: backgroundColor(), strokeWidth: 0.2 }} />
-                    </svg>
-                </div>}
-
             <DocumentView {...divProps} ref={action((r: DocumentView | null) => this._contentView = r)} />
         </div>;
     }

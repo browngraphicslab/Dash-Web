@@ -40,8 +40,6 @@ const fieldkey = "data";
 @observer
 export class ClientRecommender extends React.Component<RecommenderProps> {
 
-
-
     static Instance: ClientRecommender;
     private mainDoc?: RecommenderDocument;
     private docVectors: Set<RecommenderDocument> = new Set();

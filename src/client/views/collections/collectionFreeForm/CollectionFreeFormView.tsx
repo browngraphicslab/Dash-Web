@@ -805,8 +805,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
 
         const localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
-        if (localTransform.Scale >= 0.15 || localTransform.Scale > this.zoomScaling()) {
-            const safeScale = Math.min(Math.max(0.15, localTransform.Scale), 20);
+        if (localTransform.Scale >= 0.05 || localTransform.Scale > this.zoomScaling()) {
+            const safeScale = Math.min(Math.max(0.05, localTransform.Scale), 20);
             this.props.Document[this.scaleFieldKey] = Math.abs(safeScale);
             this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
         }
@@ -1032,7 +1032,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             docRangeFilters={this.freeformRangeDocFilters}
             searchFilterDocs={this.searchFilterDocs}
             isContentActive={this.isAnnotationOverlay ? this.props.isContentActive : returnFalse}
-            isDocumentActive={this.isContentActive}
+            isDocumentActive={this.props.childDocumentsActive ? this.props.isDocumentActive : this.isContentActive}
             focus={this.focusDocument}
             addDocTab={this.addDocTab}
             addDocument={this.props.addDocument}
@@ -1051,7 +1051,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             dontRegisterView={this.props.dontRegisterView}
             pointerEvents={this.backgroundActive || this.props.childPointerEvents ? "all" :
                 (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? "none" : undefined}
-            jitterRotation={NumCast(this.props.Document._jitterRotation) || ((Doc.UserDoc().renderStyle === "comic" ? 10 : 0))}
+            jitterRotation={this.props.styleProvider?.(childLayout, this.props, StyleProp.JitterRotation) || 0}
         //fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)} // bcz: check this
         />;
     }
@@ -1446,7 +1446,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             getTransform={this.getTransform}
             isAnnotationOverlay={this.isAnnotationOverlay}>
             <div ref={this._marqueeRef}>
-                {this.layoutDoc["_backgroundGrid-show"] && (!SnappingManager.GetIsDragging() || !Doc.UserDoc().showSnapLines) ? this.backgroundGrid : (null)}
+                {this.layoutDoc["_backgroundGrid-show"] ? this.backgroundGrid : (null)}
                 <CollectionFreeFormViewPannableContents
                     isAnnotationOverlay={this.isAnnotationOverlay}
                     transform={this.contentTransform}

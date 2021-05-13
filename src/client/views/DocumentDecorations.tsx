@@ -8,7 +8,7 @@ import { Document } from '../../fields/documentSchemas';
 import { HtmlField } from '../../fields/HtmlField';
 import { InkField } from "../../fields/InkField";
 import { ScriptField } from '../../fields/ScriptField';
-import { Cast, NumCast } from "../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { GetEffectiveAcl } from '../../fields/util';
 import { setupMoveUpEvents, emptyFunction, returnFalse } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
@@ -26,6 +26,7 @@ import { InkStrokeProperties } from './InkStrokeProperties';
 import { LightboxView } from './LightboxView';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
+import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 
 @observer
 export class DocumentDecorations extends React.Component<{ boundsLeft: number, boundsTop: number }, { value: string }> {
@@ -83,7 +84,21 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             UndoManager.RunInBatch(() => titleFieldKey && SelectionManager.Views().forEach(d => {
                 titleFieldKey === "title" && (d.dataDoc["title-custom"] = !this._accumulatedTitle.startsWith("-"));
                 //@ts-ignore
-                Doc.SetInPlace(d.rootDoc, titleFieldKey, +this._accumulatedTitle == this._accumulatedTitle ? +this._accumulatedTitle : this._accumulatedTitle, true);
+                const titleField = (+this._accumulatedTitle === this._accumulatedTitle ? +this._accumulatedTitle : this._accumulatedTitle);
+                Doc.SetInPlace(d.rootDoc, titleFieldKey, titleField, true);
+
+                if (d.rootDoc.syncLayoutFieldWithTitle) {
+                    const title = titleField.toString();
+                    const curKey = Doc.LayoutFieldKey(d.rootDoc);
+                    if (curKey !== title && d.dataDoc[title] === undefined) {
+                        d.rootDoc.layout = FormattedTextBox.LayoutString(title);
+                        setTimeout(() => {
+                            const val = d.dataDoc[curKey];
+                            d.dataDoc[curKey] = undefined;
+                            d.dataDoc[title] = val;
+                        });
+                    }
+                }
             }), "title blur");
         }
     }
@@ -125,6 +140,17 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         const selected = SelectionManager.Views().slice();
         SelectionManager.DeselectAll();
         selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
+    }
+    onMaximizeDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, () => {
+            DragManager.StartWindowDrag?.({
+                pageX: e.pageX,
+                pageY: e.pageY,
+                preventDefault: emptyFunction,
+                button: 0
+            }, [SelectionManager.Views().lastElement().rootDoc]);
+            return true;
+        }, emptyFunction, this.onMaximizeClick, false, false);
     }
     @undoBatch
     @action
@@ -171,33 +197,20 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     @action
     onRotateDown = (e: React.PointerEvent): void => {
         this._rotateUndo = UndoManager.StartBatch("rotatedown");
-
-        setupMoveUpEvents(this, e, this.onRotateMove, () => this._rotateUndo?.end(), emptyFunction);
+        setupMoveUpEvents(this, e,
+            (e: PointerEvent, down: number[], delta: number[]) => {
+                const movement = { X: delta[0], Y: e.clientY - down[1] };
+                const angle = Math.max(1, Math.abs(movement.Y / 10));
+                InkStrokeProperties.Instance?.rotate(2 * movement.X / angle * (Math.PI / 180));
+                return false;
+            },
+            () => this._rotateUndo?.end(),
+            emptyFunction);
         this._prevY = e.clientY;
         this._inkCenterPts = SelectionManager.Views()
             .filter(dv => dv.rootDoc.type === DocumentType.INK)
             .map(dv => ({ ink: Cast(dv.rootDoc.data, InkField)?.inkData ?? [{ X: 0, Y: 0 }], doc: dv.rootDoc }))
             .map(({ ink, doc }) => ({ doc, X: Math.min(...ink.map(p => p.X)), Y: Math.min(...ink.map(p => p.Y)) }));
-    }
-
-    @action
-    onRotateMove = (e: PointerEvent, down: number[]): boolean => {
-        const distance = Math.abs(this._prevY - e.clientY);
-        const angle = e.clientY > this._prevY ? distance * (Math.PI / 180) : e.clientY < this._prevY ? - distance * (Math.PI / 180) : 0;
-        this._prevY = e.clientY;
-        this._inkCenterPts.map(({ doc, X, Y }) => ({ doc, X, Y, inkData: Cast(doc.data, InkField)?.inkData }))
-            .forEach(pair => {
-                const newPoints = pair.inkData?.map(ink => ({
-                    X: Math.cos(angle) * (ink.X - pair.X) - Math.sin(angle) * (ink.Y - pair.Y) + pair.X,
-                    Y: Math.sin(angle) * (ink.X - pair.X) + Math.cos(angle) * (ink.Y - pair.Y) + pair.Y
-                })) || [];
-                Doc.GetProto(pair.doc).data = new InkField(newPoints);
-
-                pair.doc._width = ((xs) => (Math.max(...xs) - Math.min(...xs)))(newPoints.map(p => p.X) || [0]);
-                pair.doc._height = ((ys) => (Math.max(...ys) - Math.min(...ys)))(newPoints.map(p => p.Y) || [0]);
-                pair.doc.rotation = NumCast(pair.doc.rotation) + angle;
-            });
-        return false;
     }
 
     @action
@@ -412,10 +425,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             return (!docView.rootDoc._stayInCollection || docView.rootDoc.isInkMask) &&
                 (collectionAcl === AclAdmin || collectionAcl === AclEdit || GetEffectiveAcl(docView.rootDoc) === AclAdmin);
         });
-        const topBtn = (key: string, icon: string, click: (e: any) => void, title: string) => (
+        const topBtn = (key: string, icon: string, pointerDown: undefined | ((e: React.PointerEvent) => void), click: undefined | ((e: any) => void), title: string) => (
             <Tooltip key={key} title={<div className="dash-tooltip">{title}</div>} placement="top">
                 <div className={`documentDecorations-${key}Button`} onContextMenu={e => e.preventDefault()}
-                    onPointerDown={e => setupMoveUpEvents(this, e, returnFalse, click, emptyFunction)} >
+                    onPointerDown={pointerDown ?? (e => setupMoveUpEvents(this, e, returnFalse, click!, emptyFunction))} >
                     <FontAwesomeIcon icon={icon as any} />
                 </div>
             </Tooltip>);
@@ -456,13 +469,13 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     left: bounds.x - this._resizeBorderWidth / 2,
                     top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 }}>
-                    {!canDelete ? <div /> : topBtn("close", "times", this.onCloseClick, "Close")}
+                    {!canDelete ? <div /> : topBtn("close", "times", undefined, this.onCloseClick, "Close")}
                     {seldoc.props.hideDecorationTitle || seldoc.props.Document.type === DocumentType.EQUATION ? (null) : titleArea}
                     {seldoc.props.hideResizeHandles || seldoc.props.Document.type === DocumentType.EQUATION ? (null) :
                         <>
                             {SelectionManager.Views().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
-                                topBtn("iconify", `window-${seldoc.finalLayoutKey.includes("icon") ? "restore" : "minimize"}`, this.onIconifyClick, `${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`)}
-                            {!canOpen ? (null) : topBtn("open", "external-link-alt", this.onMaximizeClick, "Open in Tab (ctrl: as alias, shift: in new collection)")}
+                                topBtn("iconify", `window-${seldoc.finalLayoutKey.includes("icon") ? "restore" : "minimize"}`, undefined, this.onIconifyClick, `${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`)}
+                            {!canOpen ? (null) : topBtn("open", "external-link-alt", this.onMaximizeDown, undefined, "Open in Tab (ctrl: as alias, shift: in new collection)")}
                             <div key="tl" className="documentDecorations-topLeftResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
                             <div key="t" className="documentDecorations-topResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
                             <div key="tr" className="documentDecorations-topRightResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
@@ -474,7 +487,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                             <div key="br" className="documentDecorations-bottomRightResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
 
                             {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
-                                topBtn("selector", "arrow-alt-circle-up", this.onSelectorClick, "tap to select containing document")}
+                                topBtn("selector", "arrow-alt-circle-up", undefined, this.onSelectorClick, "tap to select containing document")}
                             <div key="rot" className={`documentDecorations-${useRotation ? "rotation" : "borderRadius"}`}
                                 onPointerDown={useRotation ? this.onRotateDown : this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}>{useRotation && "⟲"}</div>
                         </>

@@ -14,7 +14,7 @@ import { Transform } from '../util/Transform';
 import { TabDocView } from './collections/TabDocView';
 import "./LightboxView.scss";
 import { DocumentView, ViewAdjustment } from './nodes/DocumentView';
-import { DefaultStyleProvider } from './StyleProvider';
+import { DefaultStyleProvider, wavyBorderPath } from './StyleProvider';
 
 interface LightboxViewProps {
     PanelWidth: number;
@@ -26,6 +26,8 @@ interface LightboxViewProps {
 export class LightboxView extends React.Component<LightboxViewProps> {
 
     @computed public static get LightboxDoc() { return this._doc; }
+    private static LightboxDocTemplate = () => LightboxView._layoutTemplate;
+    @observable private static _layoutTemplate: Opt<Doc>;
     @observable private static _doc: Opt<Doc>;
     @observable private static _docTarget: Opt<Doc>;
     @observable private static _docFilters: string[] = []; // filters
@@ -35,7 +37,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     private static _future: Opt<Doc[]> = [];
     private static _docView: Opt<DocumentView>;
     static path: { doc: Opt<Doc>, target: Opt<Doc>, history: Opt<{ doc: Doc, target?: Doc }[]>, future: Opt<Doc[]>, saved: Opt<{ panX: Opt<number>, panY: Opt<number>, scale: Opt<number>, scrollTop: Opt<number> }> }[] = [];
-    @action public static SetLightboxDoc(doc: Opt<Doc>, target?: Doc, future?: Doc[]) {
+    @action public static SetLightboxDoc(doc: Opt<Doc>, target?: Doc, future?: Doc[], layoutTemplate?: Doc) {
         if (this.LightboxDoc && this.LightboxDoc !== doc && this._savedState) {
             this.LightboxDoc._panX = this._savedState.panX;
             this.LightboxDoc._panY = this._savedState.panY;
@@ -62,6 +64,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             this._future = future.slice().sort((a, b) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)).sort((a, b) => DocListCast(a.links).length - DocListCast(b.links).length);
         }
         this._doc = doc;
+        this._layoutTemplate = layoutTemplate;
         this._docTarget = target || doc;
         this._tourMap = DocListCast(doc?.links).map(link => {
             const opp = LinkManager.getOppositeAnchor(link, doc!);
@@ -101,13 +104,13 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             this._docFilters = (f => this._docFilters ? [this._docFilters.push(f) as any, this._docFilters][1] : [f])(`cookies:${cookie}:provide`);
         }
     }
-    public static AddDocTab = (doc: Doc, location: string) => {
+    public static AddDocTab = (doc: Doc, location: string, layoutTemplate?: Doc) => {
         SelectionManager.DeselectAll();
         return LightboxView.SetLightboxDoc(doc, undefined,
             [...DocListCast(doc[Doc.LayoutFieldKey(doc)]),
             ...DocListCast(doc[Doc.LayoutFieldKey(doc) + "-annotations"]),
             ...(LightboxView._future ?? [])
-            ].sort((a: Doc, b: Doc) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)));
+            ].sort((a: Doc, b: Doc) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)), layoutTemplate);
     }
     docFilters = () => LightboxView._docFilters || [];
     addDocTab = LightboxView.AddDocTab;
@@ -116,7 +119,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
         const target = LightboxView._docTarget = LightboxView._future?.pop();
         const targetDocView = target && DocumentManager.Instance.getLightboxDocumentView(target);
         if (targetDocView && target) {
-            const l = DocUtils.MakeLinkToActiveAudio(targetDocView.ComponentView?.getAnchor?.() || target).lastElement();
+            const l = DocUtils.MakeLinkToActiveAudio(() => targetDocView.ComponentView?.getAnchor?.() || target).lastElement();
             l && (Cast(l.anchor2, Doc, null).backgroundColor = "lightgreen");
             targetDocView.focus(target, { originalTarget: target, willZoom: true, scale: 0.9 });
             if (LightboxView._history?.lastElement().target !== target) LightboxView._history?.push({ doc, target });
@@ -214,7 +217,8 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                     left: this.leftBorder,
                     top: this.topBorder,
                     width: this.lightboxWidth(),
-                    height: this.lightboxHeight()
+                    height: this.lightboxHeight(),
+                    clipPath: `path('${Doc.UserDoc().renderStyle === "comic" ? wavyBorderPath(this.lightboxWidth(), this.lightboxHeight()) : undefined}')`
                 }}>
                     <DocumentView ref={action((r: DocumentView | null) => {
                         LightboxView._docView = r !== null ? r : undefined;
@@ -229,6 +233,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                     })}
                         Document={LightboxView.LightboxDoc}
                         DataDoc={undefined}
+                        LayoutTemplate={LightboxView.LightboxDocTemplate}
                         addDocument={undefined}
                         fitContentsToDoc={this.fitToBox}
                         isDocumentActive={returnFalse}
@@ -282,7 +287,7 @@ interface LightboxTourBtnProps {
 export class LightboxTourBtn extends React.Component<LightboxTourBtnProps> {
     render() {
         return this.props.navBtn("50%", 0, 0, "chevron-down",
-            () => LightboxView.LightboxDoc && this.props.future()?.length ? "" : "none", e => {
+            () => LightboxView.LightboxDoc /*&& this.props.future()?.length*/ ? "" : "none", e => {
                 e.stopPropagation();
                 this.props.stepInto();
             },

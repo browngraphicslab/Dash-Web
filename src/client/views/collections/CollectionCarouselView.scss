@@ -1,13 +1,10 @@
 
 .collectionCarouselView-outer {
-    background: gray;
     height : 100%;
     .collectionCarouselView-caption {
-        margin-left: 10%;
-        margin-right: 10%;
         height: 50; 
         display: inline-block;
-        width: 80%;
+        width: 100%;
     }
     .collectionCarouselView-image {
         height: calc(100% - 50px);
@@ -19,13 +16,17 @@
 .carouselView-back, .carouselView-fwd  {
     position: absolute;
     display: flex;
-    top: 50%;
+    top: 42.5%;
     width: 30;
-    height: 30;
+    height: 15%;
     align-items: center;
     border-radius: 5px;
     justify-content: center;
-    background : rgba(255, 255, 255, 0.46);
+    color: rgba(255,255,255,0.5);
+    background : rgba(0,0,0, 0.1);
+    &:hover {
+        color:white;
+    }
 }
 .carouselView-fwd {
     right: 0; 

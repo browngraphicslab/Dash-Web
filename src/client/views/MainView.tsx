@@ -17,6 +17,7 @@ import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, return
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocUtils } from '../documents/Documents';
+import { CaptureManager } from '../util/CaptureManager';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DocumentManager } from '../util/DocumentManager';
 import { GroupManager } from '../util/GroupManager';
@@ -45,6 +46,7 @@ import { InkStrokeProperties } from './InkStrokeProperties';
 import { LightboxView } from './LightboxView';
 import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
+import "./collections/TreeView.scss";
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView, DocumentViewProps, DocAfterFocusFunc } from './nodes/DocumentView';
@@ -61,7 +63,7 @@ import { AnchorMenu } from './pdf/AnchorMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import { DefaultStyleProvider, StyleProp } from './StyleProvider';
+import { DefaultStyleProvider, DashboardStyleProvider, StyleProp } from './StyleProvider';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -167,7 +169,8 @@ export class MainView extends React.Component {
             fa.faWindowMinimize, fa.faWindowRestore, fa.faTextWidth, fa.faTextHeight, fa.faClosedCaptioning, fa.faInfoCircle, fa.faTag, fa.faSyncAlt, fa.faPhotoVideo,
             fa.faArrowAltCircleDown, fa.faArrowAltCircleUp, fa.faArrowAltCircleLeft, fa.faArrowAltCircleRight, fa.faStopCircle, fa.faCheckCircle, fa.faGripVertical,
             fa.faSortUp, fa.faSortDown, fa.faTable, fa.faTh, fa.faThList, fa.faProjectDiagram, fa.faSignature, fa.faColumns, fa.faChevronCircleUp, fa.faUpload, fa.faBorderAll,
-            fa.faBraille, fa.faChalkboard, fa.faPencilAlt, fa.faEyeSlash, fa.faSmile, fa.faIndent, fa.faOutdent, fa.faChartBar, fa.faBan, fa.faPhoneSlash, fa.faGripLines, fa.faInfoCircle);
+            fa.faBraille, fa.faChalkboard, fa.faPencilAlt, fa.faEyeSlash, fa.faSmile, fa.faIndent, fa.faOutdent, fa.faChartBar, fa.faBan, fa.faPhoneSlash, fa.faGripLines,
+            fa.faSave, fa.faBookmark);
         this.initAuthenticationRouters();
     }
 
@@ -273,7 +276,11 @@ export class MainView extends React.Component {
 
     @computed get dockingContent() {
         return <div key="docking" className={`mainContent-div${this._flyoutWidth ? "-flyout" : ""}`} onDrop={e => { e.stopPropagation(); e.preventDefault(); }}
-            style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)` }}>
+            style={{
+                minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`,
+                transform: LightboxView.LightboxDoc ? "scale(0.0001)" : undefined,
+                width: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`
+            }}>
             {!this.mainContainer ? (null) : this.mainDocView}
         </div>;
     }
@@ -303,32 +310,6 @@ export class MainView extends React.Component {
     }
 
 
-    /**
-     * add lock and hide button decorations for the "Dashboards" flyout TreeView
-     */
-    DashboardStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
-        const toggleField = undoBatch(action((e: React.MouseEvent, doc: Doc, field: string) => {
-            e.stopPropagation();
-            doc[field] = doc[field] ? undefined : true;
-        }));
-        switch (property.split(":")[0]) {
-            case StyleProp.Decorations:
-                return !doc || property.includes(":afterHeader") || // bcz: Todo: afterHeader should be generalized into a renderPath that is a list of the documents rendered so far which would mimic much of CSS property selectors
-                    DocListCast((Doc.UserDoc().myDashboards as Doc).data).some(dash => dash === doc ||
-                        DocListCast(dash.data).some(tabset => tabset === doc)) ? (null) :
-                    <>
-                        <div className={`styleProvider-treeView-hide${doc.hidden ? "-active" : ""}`} onClick={e => toggleField(e, doc, "hidden")}>
-                            <FontAwesomeIcon icon={doc.hidden ? "eye-slash" : "eye"} size="sm" />
-                        </div>
-                        <div className={`styleProvider-treeView-lock${doc._lockedPosition ? "-active" : ""}`} onClick={e => toggleField(e, doc, "_lockedPosition")}>
-                            <FontAwesomeIcon icon={doc._lockedPosition ? "lock" : "unlock"} size="sm" />
-                        </div>
-                    </>;
-        }
-        return DefaultStyleProvider(doc, props, property);
-    }
-
-
     @computed get flyout() {
         return !this._flyoutWidth ? <div key="flyout" className={`mainView-libraryFlyout-out`}>
             {this.docButtons}
@@ -343,7 +324,7 @@ export class MainView extends React.Component {
                         pinToPres={emptyFunction}
                         docViewPath={returnEmptyDoclist}
                         layerProvider={undefined}
-                        styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? this.DashboardStyleProvider : DefaultStyleProvider}
+                        styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? DashboardStyleProvider : DefaultStyleProvider}
                         rootSelected={returnTrue}
                         removeDocument={returnFalse}
                         ScreenToLocalTransform={this.mainContainerXf}
@@ -620,6 +601,7 @@ export class MainView extends React.Component {
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />
+            <CaptureManager />
             <GroupManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations boundsLeft={this.leftOffset} boundsTop={this.topOffset} />
@@ -699,4 +681,3 @@ export class MainView extends React.Component {
 }
 
 Scripting.addGlobal(function selectMainMenu(doc: Doc, title: string) { MainView.Instance.selectMenu(doc); });
-Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });

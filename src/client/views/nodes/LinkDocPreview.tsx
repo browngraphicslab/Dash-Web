@@ -26,7 +26,7 @@ interface LinkDocPreviewProps {
 @observer
 export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
     @action public static Clear() { LinkDocPreview.LinkInfo = undefined; }
-    @action public static SetLinkInfo(info?: LinkDocPreviewProps) { LinkDocPreview.LinkInfo != info && (LinkDocPreview.LinkInfo = info); }
+    @action public static SetLinkInfo(info?: LinkDocPreviewProps) { LinkDocPreview.LinkInfo !== info && (LinkDocPreview.LinkInfo = info); }
 
     _infoRef = React.createRef<HTMLDivElement>();
     @observable public static LinkInfo: Opt<LinkDocPreviewProps>;

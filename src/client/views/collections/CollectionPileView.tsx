@@ -2,7 +2,7 @@ import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../fields/Doc";
 import { NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, setupMoveUpEvents } from "../../../Utils";
+import { emptyFunction, setupMoveUpEvents, returnTrue } from "../../../Utils";
 import { DocUtils } from "../../documents/Documents";
 import { SelectionManager } from "../../util/SelectionManager";
 import { SnappingManager } from "../../util/SnappingManager";
@@ -31,9 +31,16 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
 
     // returns the contents of the pileup in a CollectionFreeFormView
     @computed get contents() {
+        const isStarburst = this.layoutEngine() === "starburst";
         const draggingSelf = this.props.isSelected();
-        return <div className="collectionPileView-innards" style={{ pointerEvents: this.layoutEngine() === "starburst" || (SnappingManager.GetIsDragging() && !draggingSelf) ? undefined : "none", zIndex: this.layoutEngine() === "starburst" && !SnappingManager.GetIsDragging() ? -10 : "auto" }} >
-            <CollectionFreeFormView {...this.props} layoutEngine={this.layoutEngine}
+        return <div className="collectionPileView-innards"
+            style={{
+                pointerEvents: isStarburst || (SnappingManager.GetIsDragging() && !draggingSelf) ? undefined : "none",
+                zIndex: isStarburst && !SnappingManager.GetIsDragging() ? -10 : "auto"
+            }} >
+            <CollectionFreeFormView {...this.props}
+                layoutEngine={this.layoutEngine}
+                childDocumentsActive={isStarburst ? returnTrue : undefined}
                 addDocument={undoBatch((doc: Doc | Doc[]) => {
                     (doc instanceof Doc ? [doc] : doc).map((d) => DocUtils.iconify(d));
                     return this.props.addDocument?.(doc) || false;

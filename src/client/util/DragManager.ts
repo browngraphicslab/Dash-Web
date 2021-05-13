@@ -207,7 +207,7 @@ export namespace DragManager {
     ) {
         const addAudioTag = (dropDoc: any) => {
             dropDoc && !dropDoc.creationDate && (dropDoc.creationDate = new DateField);
-            dropDoc instanceof Doc && DocUtils.MakeLinkToActiveAudio(dropDoc);
+            dropDoc instanceof Doc && DocUtils.MakeLinkToActiveAudio(() => dropDoc);
             return dropDoc;
         };
         const finishDrag = (e: DragCompleteEvent) => {

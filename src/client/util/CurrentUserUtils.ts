@@ -423,7 +423,11 @@ export class CurrentUserUtils {
             ((doc.emptyScript as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyScreenshot === undefined) {
-            doc.emptyScreenshot = Docs.Create.ScreenshotDocument("", { _fitWidth: true, _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyScreenshot = Docs.Create.ScreenshotDocument("empty screenshot", { _fitWidth: true, _width: 400, _height: 200, system: true, cloneFieldFilter: new List<string>(["system"]) });
+        }
+        if (doc.emptyWall === undefined) {
+            doc.emptyWall = Docs.Create.ScreenshotDocument("", { _fitWidth: true, _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            (doc.emptyWall as Doc).videoWall = true;
         }
         if (doc.emptyAudio === undefined) {
             doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "audio recording", system: true, cloneFieldFilter: new List<string>(["system"]) });
@@ -454,6 +458,7 @@ export class CurrentUserUtils {
             { toolTip: "Tap to create a cat image in a new pane, drag for a cat image", title: "Image", icon: "cat", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyImage as Doc },
             { toolTip: "Tap to create a comparison box in a new pane, drag for a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyComparison as Doc, noviceMode: true },
             { toolTip: "Tap to create a screen grabber in a new pane, drag for a screen grabber", title: "Grab", icon: "photo-video", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScreenshot as Doc, noviceMode: true },
+            { toolTip: "Tap to create a videoWall", title: "Wall", icon: "photo-video", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyWall as Doc },
             { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
             { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyButton as Doc },
             { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory))', drag: `Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
@@ -511,13 +516,13 @@ export class CurrentUserUtils {
     static async menuBtnDescriptions(doc: Doc) {
         return [
             { title: "Dashboards", target: Cast(doc.myDashboards, Doc, null), icon: "desktop", click: 'selectMainMenu(self)' },
-            { title: "Recently Closed", target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
-            { title: "Import", target: Cast(doc.myImportPanel, Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
-            { title: "Sharing", target: Cast(doc.mySharedDocs, Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc.mySharedDocs as Doc },
-            { title: "Tools", target: Cast(doc.myTools, Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
-            { title: "Filter", target: Cast(doc.myFilter, Doc, null), icon: "filter", click: 'selectMainMenu(self)' },
-            { title: "Pres. Trails", target: Cast(doc.myPresentations, Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
             { title: "My Files", target: Cast(doc.myFilesystem, Doc, null), icon: "file", click: 'selectMainMenu(self)' },
+            { title: "Tools", target: Cast(doc.myTools, Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
+            { title: "Import", target: Cast(doc.myImportPanel, Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
+            { title: "Recently Closed", target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
+            { title: "Sharing", target: Cast(doc.mySharedDocs, Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc.mySharedDocs as Doc },
+            // { title: "Filter", target: Cast(doc.currentFilter, Doc, null), icon: "filter", click: 'selectMainMenu(self)' },
+            { title: "Pres. Trails", target: Cast(doc.myPresentations, Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
             { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
             { title: "Settings", target: undefined as any, icon: "cog", click: 'selectMainMenu(self)' },
             { title: "User Doc", target: Cast(doc.myUserDoc, Doc, null), icon: "address-card", click: 'selectMainMenu(self)' },
@@ -745,7 +750,7 @@ export class CurrentUserUtils {
             doc.myDashboards = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Dashboards", _height: 400, childHideLinkButton: true,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
@@ -761,7 +766,7 @@ export class CurrentUserUtils {
             doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Presentations", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
@@ -780,7 +785,7 @@ export class CurrentUserUtils {
             doc.myFilesystem = new PrefetchProxy(Docs.Create.TreeDocument([doc.myFileRoot as Doc, doc.myFileOrphans as Doc], {
                 title: "My Documents", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 isFolder: true, treeViewType: "fileSystem", childHideLinkButton: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "proto", system: true
             }));
@@ -794,7 +799,7 @@ export class CurrentUserUtils {
             doc.myRecentlyClosedDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "Recently Closed", treeViewShowClearButton: true, childHideLinkButton: true,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
@@ -803,20 +808,19 @@ export class CurrentUserUtils {
         }
     }
     static setupFilterDocs(doc: Doc) {
-        // setup Recently Closed library item
-        doc.myFilter === undefined;
-        if (doc.myFilter === undefined) {
-            doc.myFilter = new PrefetchProxy(Docs.Create.FilterDocument({
-                title: "FilterDoc",
+        // setup Filter item
+        if (doc.currentFilter === undefined) {
+            doc.currentFilter = Docs.Create.FilterDocument({
+                title: "unnamed filter", _height: 150,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "none",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
-            }));
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true, _autoHeight: true, _fitWidth: true
+            });
+            const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
+            (doc.currentFilter as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+            (doc.currentFilter as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+            (doc.currentFilter as Doc).filterBoolean = "AND";
         }
-        const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([]); scriptContext._docFilters = scriptContext._docRangeFilters = undefined;`, { scriptContext: Doc.name });
-        (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-        (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
-
     }
 
     static setupUserDoc(doc: Doc) {
@@ -825,7 +829,7 @@ export class CurrentUserUtils {
             doc.treeViewExpandedView = "fields";
             doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, title: "My UserDoc",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 150, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
@@ -848,14 +852,14 @@ export class CurrentUserUtils {
         CurrentUserUtils.setupPresentations(doc);
         CurrentUserUtils.setupFilesystem(doc);
         CurrentUserUtils.setupRecentlyClosedDocs(doc);
-        CurrentUserUtils.setupFilterDocs(doc);
+        // CurrentUserUtils.setupFilterDocs(doc);
         CurrentUserUtils.setupUserDoc(doc);
     }
 
     static blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
         ...opts, _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", _forceActive: true,
         dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
-        backgroundColor: "black", treeViewPreventOpen: true, _lockedPosition: true, linearViewIsExpanded: true, system: true
+        backgroundColor: "black", _lockedPosition: true, linearViewIsExpanded: true, system: true
     })) as any as Doc
 
     static ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
@@ -1014,6 +1018,8 @@ export class CurrentUserUtils {
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); //
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
+        doc.savedFilters = new List<Doc>();
+        doc.filterDocCount = 0;
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupImportSidebar(doc);
@@ -1165,10 +1171,10 @@ export class CurrentUserUtils {
         CurrentUserUtils.openDashboard(userDoc, copy);
     }
 
-    public static createNewDashboard = (userDoc: Doc, id?: string) => {
-        const myPresentations = userDoc.myPresentations as Doc;
+    public static createNewDashboard = async (userDoc: Doc, id?: string) => {
+        const myPresentations = await userDoc.myPresentations as Doc;
         const presentation = Doc.MakeCopy(userDoc.emptyPresentation as Doc, true);
-        const dashboards = Cast(userDoc.myDashboards, Doc) as Doc;
+        const dashboards = await Cast(userDoc.myDashboards, Doc) as Doc;
         const dashboardCount = DocListCast(dashboards.data).length + 1;
         const emptyPane = Cast(userDoc.emptyPane, Doc, null);
         emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
@@ -1241,3 +1247,5 @@ Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Insta
     "returns all the links to the document or its annotations", "(doc: any)");
 Scripting.addGlobal(function importDocument() { return CurrentUserUtils.importDocument(); },
     "imports files from device directly into the import sidebar");
+Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; },
+    "toggle between regular rendeing and an informal sketch/comic style");

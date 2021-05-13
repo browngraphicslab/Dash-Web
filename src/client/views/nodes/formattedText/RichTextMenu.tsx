@@ -976,7 +976,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         const row2 = <div className="antimodeMenu-row row-2" key="row2">
             {this.collapsed ? this.getDragger() : (null)}
             <div key="row 2" style={{ display: this.collapsed ? "none" : undefined }}>
-                <div className="richTextMenu-divider" key="divider 3" />,
+                <div className="richTextMenu-divider" key="divider 3" />
                 {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size", action((val: string) => {
                     this.activeFontSize = val;
                     SelectionManager.Views().map(dv => dv.props.Document._fontSize = val);
