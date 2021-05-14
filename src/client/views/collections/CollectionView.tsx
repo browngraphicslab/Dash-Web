@@ -1,8 +1,8 @@
-import { computed, observable } from 'mobx';
+import { computed, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
-import { Doc, DocListCast } from '../../../fields/Doc';
+import { Doc, DocListCast, StrListCast } from '../../../fields/Doc';
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { ObjectField } from '../../../fields/ObjectField';
@@ -34,6 +34,7 @@ import { CollectionStackingView } from './CollectionStackingView';
 import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './CollectionView.scss';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
@@ -231,6 +232,13 @@ export class CollectionView extends ViewBoxAnnotatableComponent<ViewBoxAnnotatab
     childLayoutTemplate = () => this.props.childLayoutTemplate?.() || Cast(this.rootDoc.childLayoutTemplate, Doc, null);
     @computed get childLayoutString() { return StrCast(this.rootDoc.childLayoutString); }
 
+    /**
+    * Shows the filter icon if it's a user-created collection which isn't a dashboard and has some docFilters applied on it or on the current dashboard.
+    */
+    @computed get showFilterIcon() {
+        return !this.props.Document.isDashboard && !Doc.IsSystem(this.props.Document) && ((StrListCast(this.props.Document._docFilters).length || StrListCast(this.props.Document._docRangeFilters).length || StrListCast(CurrentUserUtils.ActiveDashboard._docFilters).length || StrListCast(CurrentUserUtils.ActiveDashboard._docRangeFilters).length));
+    }
+
     render() {
         TraceMobx();
         const props: SubCollectionViewProps = {
@@ -250,6 +258,12 @@ export class CollectionView extends ViewBoxAnnotatableComponent<ViewBoxAnnotatab
             style={{ pointerEvents: this.props.layerProvider?.(this.rootDoc) === false ? "none" : undefined }}>
             {this.showIsTagged()}
             {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
+            {this.showFilterIcon ?
+                <FontAwesomeIcon icon={"filter"} size="lg"
+                    style={{ position: 'absolute', top: '1%', right: '1%', cursor: "pointer", padding: 1, color: '#18c718bd', zIndex: 1 }}
+                    onPointerDown={e => { runInAction(() => CurrentUserUtils.propertiesWidth = 250); e.stopPropagation(); }}
+                />
+                : (null)}
         </div>);
     }
 }

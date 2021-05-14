@@ -1136,9 +1136,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         !this.props.dontRegisterView && DocumentManager.Instance.RemoveView(this);
     }
 
-    @computed get showFilterIcon() {
-        return this.props.Document.type === DocumentType.COL && !Doc.IsSystem(this.props.Document) && (StrListCast(this.props.Document._docFilters).length || StrListCast(this.props.Document._docRangeFilters).length || StrListCast(CurrentUserUtils.ActiveDashboard._docFilters).length || StrListCast(CurrentUserUtils.ActiveDashboard._docRangeFilters).length);
-    }
     render() {
         TraceMobx();
         const xshift = () => (this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) <= 0.001 ? this.props.PanelWidth() : undefined);
@@ -1167,11 +1164,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                         focus={this.props.focus || emptyFunction}
                         bringToFront={emptyFunction}
                         ref={action((r: DocumentViewInternal | null) => this.docView = r)} />
-                    {this.showFilterIcon ?
-                        <FontAwesomeIcon icon={"filter"} size="lg"
-                            style={{ position: 'absolute', top: '1%', right: '1%', cursor: "pointer", padding: 1, color: '#18c718bd' }}
-                        />
-                        : (null)}
                 </div>)}
         </div>);
     }
