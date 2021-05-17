@@ -729,7 +729,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     @computed get renderBorder() {
-        const sorting = this.doc[`${this.fieldKey}-sortCriteria`];
+        const sorting = this.doc[`${this.fieldKey}-sortCriterion`];
         return <div className={`treeView-border${this.props.treeView.outlineMode ? "outline" : ""}`}
             style={{ borderColor: sorting === undefined ? undefined : sorting === "up" ? "crimson" : sorting === "down" ? "blue" : "green" }}>
             {!this.treeViewOpen ? (null) : this.renderContent}

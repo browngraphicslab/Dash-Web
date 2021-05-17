@@ -197,33 +197,20 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     @action
     onRotateDown = (e: React.PointerEvent): void => {
         this._rotateUndo = UndoManager.StartBatch("rotatedown");
-
-        setupMoveUpEvents(this, e, this.onRotateMove, () => this._rotateUndo?.end(), emptyFunction);
+        setupMoveUpEvents(this, e,
+            (e: PointerEvent, down: number[], delta: number[]) => {
+                const movement = { X: delta[0], Y: e.clientY - down[1] };
+                const angle = Math.max(1, Math.abs(movement.Y / 10));
+                InkStrokeProperties.Instance?.rotate(2 * movement.X / angle * (Math.PI / 180));
+                return false;
+            },
+            () => this._rotateUndo?.end(),
+            emptyFunction);
         this._prevY = e.clientY;
         this._inkCenterPts = SelectionManager.Views()
             .filter(dv => dv.rootDoc.type === DocumentType.INK)
             .map(dv => ({ ink: Cast(dv.rootDoc.data, InkField)?.inkData ?? [{ X: 0, Y: 0 }], doc: dv.rootDoc }))
             .map(({ ink, doc }) => ({ doc, X: Math.min(...ink.map(p => p.X)), Y: Math.min(...ink.map(p => p.Y)) }));
-    }
-
-    @action
-    onRotateMove = (e: PointerEvent, down: number[]): boolean => {
-        const distance = Math.abs(this._prevY - e.clientY);
-        const angle = e.clientY > this._prevY ? distance * (Math.PI / 180) : e.clientY < this._prevY ? - distance * (Math.PI / 180) : 0;
-        this._prevY = e.clientY;
-        this._inkCenterPts.map(({ doc, X, Y }) => ({ doc, X, Y, inkData: Cast(doc.data, InkField)?.inkData }))
-            .forEach(pair => {
-                const newPoints = pair.inkData?.map(ink => ({
-                    X: Math.cos(angle) * (ink.X - pair.X) - Math.sin(angle) * (ink.Y - pair.Y) + pair.X,
-                    Y: Math.sin(angle) * (ink.X - pair.X) + Math.cos(angle) * (ink.Y - pair.Y) + pair.Y
-                })) || [];
-                Doc.GetProto(pair.doc).data = new InkField(newPoints);
-
-                pair.doc._width = ((xs) => (Math.max(...xs) - Math.min(...xs)))(newPoints.map(p => p.X) || [0]);
-                pair.doc._height = ((ys) => (Math.max(...ys) - Math.min(...ys)))(newPoints.map(p => p.Y) || [0]);
-                pair.doc.rotation = NumCast(pair.doc.rotation) + angle;
-            });
-        return false;
     }
 
     @action

@@ -2,11 +2,12 @@ import { action, computed, observable } from "mobx";
 import { ColorState } from 'react-color';
 import { Doc, Field, Opt } from "../../fields/Doc";
 import { Document } from "../../fields/documentSchemas";
-import { InkField } from "../../fields/InkField";
+import { InkField, InkData } from "../../fields/InkField";
 import { Cast, NumCast } from "../../fields/Types";
 import { DocumentType } from "../documents/DocumentTypes";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
+import { bool } from "sharp";
 
 export class InkStrokeProperties {
     static Instance: InkStrokeProperties | undefined;
@@ -114,134 +115,99 @@ export class InkStrokeProperties {
         }));
     }
 
-    @undoBatch
-    @action
-    deletePoints = () => {
-        var deleted = false;
+    applyFunction = (func: (doc: Doc, ink: InkData, ptsXscale: number, ptsYscale: number) => { X: number, Y: number }[] | undefined, requireCurrPoint: boolean = false) => {
+        var appliedFunc = false;
         this.selectedInk?.forEach(action(inkView => {
-            if (this.selectedInk?.length === 1 && this._currPoint !== -1) {
+            if (this.selectedInk?.length === 1 && (!requireCurrPoint || this._currPoint !== -1)) {
                 const doc = Document(inkView.rootDoc);
-                if (doc.type === DocumentType.INK) {
+                if (doc.type === DocumentType.INK && doc.width && doc.height) {
                     const ink = Cast(doc.data, InkField)?.inkData;
-                    if (ink && ink.length > 4) {
-                        const newPoints: { X: number, Y: number }[] = [];
-                        const toRemove = Math.floor(((this._currPoint + 2) / 4));
-                        for (var i = 0; i < ink.length; i++) {
-                            if (Math.floor((i + 2) / 4) !== toRemove) {
-                                newPoints.push({ X: ink[i].X, Y: ink[i].Y });
-                            }
+                    if (ink) {
+                        const oldXrange = (xs => ({ coord: NumCast(doc.x), min: Math.min(...xs), max: Math.max(...xs) }))(ink.map(p => p.X));
+                        const oldYrange = (ys => ({ coord: NumCast(doc.y), min: Math.min(...ys), max: Math.max(...ys) }))(ink.map(p => p.Y));
+                        const ptsXscale = NumCast(doc._width) / (oldXrange.max - oldXrange.min);
+                        const ptsYscale = NumCast(doc._height) / (oldYrange.max - oldYrange.min);
+                        const newPoints = func(doc, ink, ptsXscale, ptsYscale);
+                        if (newPoints) {
+                            const newXrange = (xs => ({ min: Math.min(...xs), max: Math.max(...xs) }))(newPoints.map(p => p.X));
+                            const newYrange = (ys => ({ min: Math.min(...ys), max: Math.max(...ys) }))(newPoints.map(p => p.Y));
+                            doc._width = (newXrange.max - newXrange.min) * ptsXscale;
+                            doc._height = (newYrange.max - newYrange.min) * ptsYscale;
+                            doc.x = (oldXrange.coord + (newXrange.min - oldXrange.min) * ptsXscale);
+                            doc.y = (oldYrange.coord + (newYrange.min - oldYrange.min) * ptsYscale);
+                            Doc.GetProto(doc).data = new InkField(newPoints);
+                            appliedFunc = true;
                         }
-                        this._currPoint = -1;
-                        Doc.GetProto(doc).data = new InkField(newPoints);
-                        if (newPoints.length === 4) {
-                            const newerPoints: { X: number, Y: number }[] = [];
-                            newerPoints.push({ X: newPoints[0].X, Y: newPoints[0].Y });
-                            newerPoints.push({ X: newPoints[0].X, Y: newPoints[0].Y });
-                            newerPoints.push({ X: newPoints[3].X, Y: newPoints[3].Y });
-                            newerPoints.push({ X: newPoints[3].X, Y: newPoints[3].Y });
-                            Doc.GetProto(doc).data = new InkField(newerPoints);
-
-                        }
-                        deleted = true;
                     }
                 }
             }
         }));
-        return deleted;
+        return appliedFunc;
     }
+
+    @undoBatch
+    @action
+    deletePoints = () => this.applyFunction((doc: Doc, ink: InkData) => {
+        var newPoints: { X: number, Y: number }[] = [];
+        const toRemove = Math.floor(((this._currPoint + 2) / 4));
+        for (var i = 0; i < ink.length; i++) {
+            if (Math.floor((i + 2) / 4) !== toRemove && (toRemove !== 0 || i > 3)) {
+                newPoints.push({ X: ink[i].X, Y: ink[i].Y });
+            }
+        }
+        this._currPoint = -1;
+        if (newPoints.length < 4) return undefined;
+        if (newPoints.length === 4) {
+            const newerPoints: { X: number, Y: number }[] = [];
+            newerPoints.push({ X: newPoints[0].X, Y: newPoints[0].Y });
+            newerPoints.push({ X: newPoints[0].X, Y: newPoints[0].Y });
+            newerPoints.push({ X: newPoints[3].X, Y: newPoints[3].Y });
+            newerPoints.push({ X: newPoints[3].X, Y: newPoints[3].Y });
+            return newerPoints;
+        }
+        return newPoints;
+    }, true);
 
     @undoBatch
     @action
     rotate = (angle: number) => {
-        const _centerPoints: { X: number, Y: number }[] = [];
-        SelectionManager.Views().forEach(action(inkView => {
-            const doc = Document(inkView.rootDoc);
-            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
-                const ink = Cast(doc.data, InkField)?.inkData;
-                if (ink) {
-                    const xs = ink.map(p => p.X);
-                    const ys = ink.map(p => p.Y);
-                    const left = Math.min(...xs);
-                    const top = Math.min(...ys);
-                    const right = Math.max(...xs);
-                    const bottom = Math.max(...ys);
-                    _centerPoints.push({ X: left, Y: top });
-                }
-            }
-        }));
-
-        var index = 0;
-        SelectionManager.Views().forEach(action(inkView => {
-            const doc = Document(inkView.rootDoc);
-            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
-                doc.rotation = NumCast(doc.rotation) + angle;
-                const ink = Cast(doc.data, InkField)?.inkData;
-                if (ink) {
-
-                    const newPoints: { X: number, Y: number }[] = [];
-                    ink.forEach(i => {
-                        const newX = Math.cos(angle) * (i.X - _centerPoints[index].X) - Math.sin(angle) * (i.Y - _centerPoints[index].Y) + _centerPoints[index].X;
-                        const newY = Math.sin(angle) * (i.X - _centerPoints[index].X) + Math.cos(angle) * (i.Y - _centerPoints[index].Y) + _centerPoints[index].Y;
-                        newPoints.push({ X: newX, Y: newY });
-                    });
-                    Doc.GetProto(doc).data = new InkField(newPoints);
-                    const xs = newPoints.map(p => p.X);
-                    const ys = newPoints.map(p => p.Y);
-                    const left = Math.min(...xs);
-                    const top = Math.min(...ys);
-                    const right = Math.max(...xs);
-                    const bottom = Math.max(...ys);
-
-                    doc._height = (bottom - top);
-                    doc._width = (right - left);
-                }
-                index++;
-            }
-        }));
+        this.applyFunction((doc: Doc, ink: InkData, ptsXscale: number, ptsYscale: number) => {
+            const oldXrange = (xs => ({ coord: NumCast(doc.x), min: Math.min(...xs), max: Math.max(...xs) }))(ink.map(p => p.X));
+            const oldYrange = (ys => ({ coord: NumCast(doc.y), min: Math.min(...ys), max: Math.max(...ys) }))(ink.map(p => p.Y));
+            const centerPoint = { X: (oldXrange.min + oldXrange.max) / 2, Y: (oldYrange.min + oldYrange.max) / 2 };
+            const newPoints: { X: number, Y: number }[] = [];
+            ink.map(i => ({ X: i.X - centerPoint.X, Y: i.Y - centerPoint.Y })).forEach(i => {
+                const newX = Math.cos(angle) * i.X - Math.sin(angle) * i.Y;
+                const newY = Math.sin(angle) * i.X + Math.cos(angle) * i.Y;
+                newPoints.push({ X: newX + centerPoint.X, Y: newY + centerPoint.Y });
+            });
+            doc.rotation = NumCast(doc.rotation) + angle;
+            return newPoints;
+        });
     }
 
     @undoBatch
     @action
-    control = (xDiff: number, yDiff: number, controlNum: number) => {
-        this.selectedInk?.forEach(action(inkView => {
-            if (this.selectedInk?.length === 1) {
-                const doc = Document(inkView.rootDoc);
-                if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
-                    const ink = Cast(doc.data, InkField)?.inkData;
-                    if (ink) {
-                        const newPoints: { X: number, Y: number }[] = [];
-                        const order = controlNum % 4;
-                        for (var i = 0; i < ink.length; i++) {
-                            newPoints.push(
-                                (controlNum === i ||
-                                    (order === 0 && i === controlNum + 1) ||
-                                    (order === 0 && controlNum !== 0 && i === controlNum - 2) ||
-                                    (order === 0 && controlNum !== 0 && i === controlNum - 1) ||
-                                    (order === 3 && i === controlNum - 1) ||
-                                    (order === 3 && controlNum !== ink.length - 1 && i === controlNum + 1) ||
-                                    (order === 3 && controlNum !== ink.length - 1 && i === controlNum + 2) ||
-                                    ((ink[0].X === ink[ink.length - 1].X) && (ink[0].Y === ink[ink.length - 1].Y) && (i === 0 || i === ink.length - 1) && (controlNum === 0 || controlNum === ink.length - 1))
-                                ) ?
-                                    { X: ink[i].X - xDiff, Y: ink[i].Y - yDiff } :
-                                    { X: ink[i].X, Y: ink[i].Y });
-                        }
-
-                        const oldXrange = (xs => ({ min: Math.min(...xs), max: Math.max(...xs) }))(ink.map(p => p.X));
-                        const oldYrange = (ys => ({ min: Math.min(...ys), max: Math.max(...ys) }))(ink.map(p => p.Y));
-                        const newXrange = (xs => ({ min: Math.min(...xs), max: Math.max(...xs) }))(newPoints.map(p => p.X));
-                        const newYrange = (ys => ({ min: Math.min(...ys), max: Math.max(...ys) }))(newPoints.map(p => p.Y));
-
-                        //if points move out of bounds
-                        doc._height = (newYrange.max - newYrange.min) * NumCast(doc._height) / (oldYrange.max - oldYrange.min);
-                        doc._width = (newXrange.max - newXrange.min) * NumCast(doc._width) / (oldXrange.max - oldXrange.min);
-                        doc.x = doc.x - (oldXrange.min - newXrange.min);
-                        doc.y = doc.y - (oldYrange.min - newYrange.min);
-                        Doc.GetProto(doc).data = new InkField(newPoints);
-                    }
-                }
+    control = (xDiff: number, yDiff: number, controlNum: number) =>
+        this.applyFunction((doc: Doc, ink: InkData, ptsXscale: number, ptsYscale: number) => {
+            const newPoints: { X: number, Y: number }[] = [];
+            const order = controlNum % 4;
+            for (var i = 0; i < ink.length; i++) {
+                newPoints.push(
+                    (controlNum === i ||
+                        (order === 0 && i === controlNum + 1) ||
+                        (order === 0 && controlNum !== 0 && i === controlNum - 2) ||
+                        (order === 0 && controlNum !== 0 && i === controlNum - 1) ||
+                        (order === 3 && i === controlNum - 1) ||
+                        (order === 3 && controlNum !== ink.length - 1 && i === controlNum + 1) ||
+                        (order === 3 && controlNum !== ink.length - 1 && i === controlNum + 2) ||
+                        ((ink[0].X === ink[ink.length - 1].X) && (ink[0].Y === ink[ink.length - 1].Y) && (i === 0 || i === ink.length - 1) && (controlNum === 0 || controlNum === ink.length - 1))
+                    ) ?
+                        { X: ink[i].X - xDiff / ptsXscale, Y: ink[i].Y - yDiff / ptsYscale } :
+                        { X: ink[i].X, Y: ink[i].Y });
             }
-        }));
-    }
+            return newPoints;
+        });
 
     @undoBatch
     @action
