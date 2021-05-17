@@ -750,7 +750,7 @@ export class CurrentUserUtils {
                 title: "My Dashboards", _height: 400, childHideLinkButton: true,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, ignoreClick: true,
-                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", treeViewType: "fileSystem", isFolder: true, system: true
             }));
             const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
             (doc.myDashboards as any as Doc).contextMenuScripts = new List<ScriptField>([newDashboard!]);
@@ -851,7 +851,6 @@ export class CurrentUserUtils {
         CurrentUserUtils.setupPresentations(doc);
         CurrentUserUtils.setupFilesystem(doc);
         CurrentUserUtils.setupRecentlyClosedDocs(doc);
-        // CurrentUserUtils.setupFilterDocs(doc);
         CurrentUserUtils.setupUserDoc(doc);
     }
 
@@ -1186,7 +1185,11 @@ export class CurrentUserUtils {
             title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`,
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600 }], { title: `Dashboard ${dashboardCount}` }, id, "row");
+        const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600 }], { title: `Dashboard ${dashboardCount}` }, id, "row"); // add isFolder:true here?
+        freeformDoc.context = dashboardDoc;
+
+        DocListCast(dashboardDoc.data)[1].data = ComputedField.MakeFunction(`dynamicOffScreenDocs(dashboardDoc)`, { dashboardDoc: Doc.name }, { dashboardDoc }) as any;
+
         Doc.AddDocToList(myPresentations, "data", presentation);
         userDoc.activePresentation = presentation;
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
@@ -1252,7 +1255,25 @@ Scripting.addGlobal(function shareDashboard(dashboard: Doc) {
     SharingManager.Instance.open(undefined, dashboard);
 },
     "opens sharing dialog for Dashboard");
-Scripting.addGlobal(function addToDashboards(dashboard: Doc) { Doc.AddDocToList(CurrentUserUtils.MyDashboards, "data", dashboard); },
+Scripting.addGlobal(function addToDashboards(dashboard: Doc) {
+    const dashboardAlias = Doc.MakeAlias(dashboard);
+    dashboardAlias.data = new List<Doc>(DocListCast(dashboard.data).map(tabFolder => Doc.MakeAlias(tabFolder)));
+    // DocListCast(dashboardAlias.data).forEach(tabFolder => {
+    //     tabFolder.data = new List<Doc>(DocListCast(tabFolder.data).map(tab => Doc.MakeAlias(tab)));
+    // });
+    Doc.AddDocToList(CurrentUserUtils.MyDashboards, "data", dashboardAlias);
+    CurrentUserUtils.openDashboard(Doc.UserDoc(), dashboardAlias);
+},
     "adds Dashboard to set of Dashboards");
-Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; },
-    "toggle between regular rendeing and an informal sketch/comic style");
+
+Scripting.addGlobal(function dynamicOffScreenDocs(dashboard: Doc) {
+    const allDocs = DocListCast(dashboard[DataSym]["data-all"]);
+    console.log(allDocs);
+    const onScreenTab = DocListCast(dashboard.data)[0];
+    const onScreenDocs = DocListCast(onScreenTab.data);
+    return allDocs.reduce((result: Doc[], doc) => {
+        !onScreenDocs.includes(doc) && (result.push(doc));
+        // console.log(doc);
+        return result;
+    }, []);
+});

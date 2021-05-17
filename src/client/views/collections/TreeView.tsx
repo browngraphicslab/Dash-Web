@@ -151,7 +151,10 @@ export class TreeView extends React.Component<TreeViewProps> {
             this.treeViewOpen = !this.treeViewOpen;
         } else {
             // choose an appropriate alias or make one. --- choose the first alias that (1) user owns,  (2) has no context field ... otherwise make a new alias
+            // this.props.addDocTab(CurrentUserUtils.ActiveDashboard.isShared ? Doc.MakeAlias(this.props.document) : this.props.document, "add:right");
+            // choose an appropriate alias or make one -- -- choose the first alias that (1) the user owns, (2) has no context field - if I own it and someone else does not have it open,, otherwise create an alias
             this.props.addDocTab(this.props.document, "add:right");
+
         }
     }
     constructor(props: any) {
@@ -507,7 +510,11 @@ export class TreeView extends React.Component<TreeViewProps> {
                     [{ script: ScriptField.MakeFunction(`DocFocusOrOpen(self)`)!, label: "Focus or Open" }];
     }
     onChildClick = () => this.props.onChildClick?.() ?? (this._editTitleScript?.() || ScriptCast(this.doc.treeChildClick));
-    onChildDoubleClick = () => (!this.props.treeView.outlineMode && this._openScript?.()) || ScriptCast(this.doc.treeChildDoubleClick);
+
+    onChildDoubleClick = () => {
+        console.log(this.props.document.onChildDoubleClick);
+        return (!this.props.treeView.outlineMode && this._openScript?.()) || ScriptCast(this.doc.treeChildDoubleClick)
+    };
 
     refocus = () => this.props.treeView.props.focus(this.props.treeView.props.Document);
     ignoreEvent = (e: any) => {

@@ -136,11 +136,9 @@ export function denormalizeEmail(email: string) {
  * Copies parent's acl fields to the child
  */
 export function inheritParentAcls(parent: Doc, child: Doc) {
-    if (parent.isShared) {
-        const dataDoc = parent[DataSym];
-        for (const key of Object.keys(dataDoc)) {
-            key.startsWith("acl") && distributeAcls(key, dataDoc[key], child);
-        }
+    const dataDoc = parent[DataSym];
+    for (const key of Object.keys(dataDoc)) {
+        key.startsWith("acl") && distributeAcls(key, dataDoc[key], child);
     }
 }
 
@@ -228,7 +226,7 @@ function getEffectiveAcl(target: any, user?: string): symbol {
  * @param inheritingFromCollection whether the target is being assigned rights after being dragged into a collection (and so is inheriting the acls from the collection)
  * inheritingFromCollection is not currently being used but could be used if acl assignment defaults change
  */
-export function distributeAcls(key: string, acl: SharingPermissions, target: Doc, inheritingFromCollection?: boolean, visited?: Doc[]) {
+export function distributeAcls(key: string, acl: SharingPermissions, target: Doc, inheritingFromCollection?: boolean, visited?: Doc[], isDashboard?: boolean) {
     if (!visited) visited = [] as Doc[];
     if (visited.includes(target)) return;
     visited.push(target);
@@ -249,6 +247,12 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
     if (GetEffectiveAcl(target) === AclAdmin && (!inheritingFromCollection || !target[key] || HierarchyMapping.get(StrCast(target[key]))! > HierarchyMapping.get(acl)!)) {
         target[key] = acl;
         layoutDocChanged = true;
+
+        if (isDashboard) {
+            DocListCast(target[Doc.LayoutFieldKey(target)]).forEach(d => {
+                distributeAcls(key, acl, d, inheritingFromCollection, visited);
+            });
+        }
     }
 
     if (dataDoc && (!inheritingFromCollection || !dataDoc[key] || HierarchyMapping.get(StrCast(dataDoc[key]))! > HierarchyMapping.get(acl)!)) {
@@ -263,7 +267,7 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         links.forEach(link => distributeAcls(key, acl, link, inheritingFromCollection, visited));
 
         // maps over the children of the document
-        DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc)]).map(d => {
+        DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc) + (isDashboard ? "-all" : "")]).map(d => { // this is now on the layoutdoc instead - figure out the "data-all" approach for the datadoc
             // if (GetEffectiveAcl(d) === AclAdmin && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
             distributeAcls(key, acl, d, inheritingFromCollection, visited);
             // }

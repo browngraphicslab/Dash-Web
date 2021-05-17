@@ -173,10 +173,14 @@ export class SharingManager extends React.Component<{}> {
         const target = targetDoc || this.targetDoc!;
         const acl = `acl-${normalizeEmail(user.email)}`;
         const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
+        console.log(DocListCast(CurrentUserUtils.MyDashboards.data));
+        console.log(target);
+        console.log(DocListCast(CurrentUserUtils.MyDashboards.data).indexOf(target));
+        const isDashboard = DocListCast(CurrentUserUtils.MyDashboards.data).indexOf(target) !== -1;
 
         const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
         return !docs.map(doc => {
-            doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
+            doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc, undefined, undefined, isDashboard);
 
             if (permission === SharingPermissions.None) {
                 if (doc[acl] && doc[acl] !== SharingPermissions.None) doc.numUsersShared = NumCast(doc.numUsersShared, 1) - 1;
@@ -185,7 +189,7 @@ export class SharingManager extends React.Component<{}> {
                 if (!doc[acl] || doc[acl] === SharingPermissions.None) doc.numUsersShared = NumCast(doc.numUsersShared, 0) + 1;
             }
 
-            distributeAcls(acl, permission as SharingPermissions, doc);
+            distributeAcls(acl, permission as SharingPermissions, doc, undefined, undefined, isDashboard);
 
             this.setDashboardBackground(doc, permission as SharingPermissions);
             if (permission !== SharingPermissions.None) return Doc.AddDocToList(sharingDoc, storage, doc);
@@ -203,12 +207,13 @@ export class SharingManager extends React.Component<{}> {
         const target = targetDoc || this.targetDoc!;
         const key = normalizeEmail(StrCast(group.title));
         const acl = `acl-${key}`;
+        const isDashboard = DocListCast(CurrentUserUtils.MyDashboards.data).indexOf(target) !== -1;
 
         const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
 
         // ! ensures it returns true if document has been shared successfully, false otherwise
         return !docs.map(doc => {
-            doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmailNormalized}`] && distributeAcls(`acl-${Doc.CurrentUserEmailNormalized}`, SharingPermissions.Admin, doc);
+            doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmailNormalized}`] && distributeAcls(`acl-${Doc.CurrentUserEmailNormalized}`, SharingPermissions.Admin, doc, undefined, undefined, isDashboard);
 
             if (permission === SharingPermissions.None) {
                 if (doc[acl] && doc[acl] !== SharingPermissions.None) doc.numGroupsShared = NumCast(doc.numGroupsShared, 1) - 1;
@@ -217,7 +222,7 @@ export class SharingManager extends React.Component<{}> {
                 if (!doc[acl] || doc[acl] === SharingPermissions.None) doc.numGroupsShared = NumCast(doc.numGroupsShared, 0) + 1;
             }
 
-            distributeAcls(acl, permission as SharingPermissions, doc);
+            distributeAcls(acl, permission as SharingPermissions, doc, undefined, undefined, isDashboard);
             this.setDashboardBackground(doc, permission as SharingPermissions);
 
             if (group instanceof Doc) {
@@ -267,8 +272,10 @@ export class SharingManager extends React.Component<{}> {
             });
         }
         else {
+            const dashboards = DocListCast(CurrentUserUtils.MyDashboards.data);
             docs.forEach(doc => {
-                if (GetEffectiveAcl(doc) === AclAdmin) distributeAcls(`acl-${shareWith}`, permission, doc);
+                const isDashboard = dashboards.indexOf(doc) !== -1;
+                if (GetEffectiveAcl(doc) === AclAdmin) distributeAcls(`acl-${shareWith}`, permission, doc, undefined, undefined, isDashboard);
             });
         }
     }
@@ -316,10 +323,11 @@ export class SharingManager extends React.Component<{}> {
      */
     removeGroup = (group: Doc) => {
         if (group.docsShared) {
+            const dashboards = DocListCast(CurrentUserUtils.MyDashboards.data);
             DocListCast(group.docsShared).forEach(doc => {
                 const acl = `acl-${StrCast(group.title)}`;
-
-                distributeAcls(acl, SharingPermissions.None, doc);
+                const isDashboard = dashboards.indexOf(doc) !== -1;
+                distributeAcls(acl, SharingPermissions.None, doc, undefined, undefined, isDashboard);
 
                 const members: string[] = JSON.parse(StrCast(group.members));
                 const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
@@ -445,16 +453,16 @@ export class SharingManager extends React.Component<{}> {
         }
     }
 
-    distributeOverCollection = (targetDoc?: Doc) => {
-        const target = targetDoc || this.targetDoc!;
+    // distributeOverCollection = (targetDoc?: Doc) => {
+    //     const target = targetDoc || this.targetDoc!;
 
-        const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
-        docs.forEach(doc => {
-            for (const [key, value] of Object.entries(doc[AclSym])) {
-                distributeAcls(key, this.AclMap.get(value)! as SharingPermissions, target);
-            }
-        });
-    }
+    //     const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
+    //     docs.forEach(doc => {
+    //         for (const [key, value] of Object.entries(doc[AclSym])) {
+    //             distributeAcls(key, this.AclMap.get(value)! as SharingPermissions, target);
+    //         }
+    //     });
+    // }
 
     /**
      * Sorting algorithm to sort users.
