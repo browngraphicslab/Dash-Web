@@ -236,7 +236,7 @@ export class CollectionView extends ViewBoxAnnotatableComponent<ViewBoxAnnotatab
     * Shows the filter icon if it's a user-created collection which isn't a dashboard and has some docFilters applied on it or on the current dashboard.
     */
     @computed get showFilterIcon() {
-        return !this.props.Document.isDashboard && !Doc.IsSystem(this.props.Document) && ((StrListCast(this.props.Document._docFilters).length || StrListCast(this.props.Document._docRangeFilters).length || StrListCast(CurrentUserUtils.ActiveDashboard._docFilters).length || StrListCast(CurrentUserUtils.ActiveDashboard._docRangeFilters).length));
+        return this.props.Document.viewType !== CollectionViewType.Docking && !Doc.IsSystem(this.props.Document) && ((StrListCast(this.props.Document._docFilters).length || StrListCast(this.props.Document._docRangeFilters).length || StrListCast(CurrentUserUtils.ActiveDashboard._docFilters).length || StrListCast(CurrentUserUtils.ActiveDashboard._docRangeFilters).length));
     }
 
     render() {
