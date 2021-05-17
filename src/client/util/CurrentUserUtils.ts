@@ -1196,7 +1196,6 @@ export class CurrentUserUtils {
         const createDashboard = ScriptField.MakeScript(`createNewDashboard()`);
         dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, snapshotDashboard!, createDashboard!]);
         dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard"]);
-        dashboardDoc.isDashboard = true;
 
         Doc.AddDocToList(dashboards, "data", dashboardDoc);
         CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
