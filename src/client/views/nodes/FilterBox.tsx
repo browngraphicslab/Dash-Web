@@ -194,12 +194,12 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
      * Responds to clicking the check box in the flyout menu
      */
     facetClick = (facetHeader: string) => {
-        const targetDoc = FilterBox.targetDoc;
+        const { targetDoc } = FilterBox;
         const found = this.activeAttributes.findIndex(doc => doc.title === facetHeader);
         if (found !== -1) {
             this.removeFilter(facetHeader);
         } else {
-            const allCollectionDocs = DocListCast((targetDoc.data as any)[0].data);
+            const allCollectionDocs = DocListCast((targetDoc.data as any)?.[0].data);
             const facetValues = this.gatherFieldValues(targetDoc, facetHeader);
 
             let nonNumbers = 0;
@@ -357,9 +357,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     render() {
         const facetCollection = this.props.Document;
 
-        // TODO uncomment the line below when the treeview x works
-        // const options = this._allFacets.filter(facet => this.currentFacets.indexOf(facet) === -1).map(facet => ({ value: facet, label: facet }));
-        const options = this._allFacets.map(facet => ({ value: facet, label: facet }));
+        const options = this._allFacets.filter(facet => this.currentFacets.indexOf(facet) === -1).map(facet => ({ value: facet, label: facet }));
         return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
 
             <div className="filterBox-title">
