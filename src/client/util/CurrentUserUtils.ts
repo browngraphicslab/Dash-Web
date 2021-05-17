@@ -1187,8 +1187,8 @@ export class CurrentUserUtils {
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600 }], { title: `Dashboard ${dashboardCount}` }, id, "row"); // add isFolder:true here?
         freeformDoc.context = dashboardDoc;
-
-        DocListCast(dashboardDoc.data)[1].data = ComputedField.MakeFunction(`dynamicOffScreenDocs(dashboardDoc)`, { dashboardDoc: Doc.name }, { dashboardDoc }) as any;
+        DocListCast(dashboardDoc.data).forEach(doc => doc.dashboard = dashboardDoc);
+        DocListCast(dashboardDoc.data)[1].data = ComputedField.MakeFunction(`dynamicOffScreenDocs(self.dashboard)`) as any;
 
         Doc.AddDocToList(myPresentations, "data", presentation);
         userDoc.activePresentation = presentation;
@@ -1267,13 +1267,16 @@ Scripting.addGlobal(function addToDashboards(dashboard: Doc) {
     "adds Dashboard to set of Dashboards");
 
 Scripting.addGlobal(function dynamicOffScreenDocs(dashboard: Doc) {
-    const allDocs = DocListCast(dashboard[DataSym]["data-all"]);
-    console.log(allDocs);
-    const onScreenTab = DocListCast(dashboard.data)[0];
-    const onScreenDocs = DocListCast(onScreenTab.data);
-    return allDocs.reduce((result: Doc[], doc) => {
-        !onScreenDocs.includes(doc) && (result.push(doc));
-        // console.log(doc);
-        return result;
-    }, []);
+    if (dashboard[DataSym] instanceof Doc) {
+        const allDocs = DocListCast(dashboard[DataSym]["data-all"]);
+        console.log(allDocs);
+        const onScreenTab = DocListCast(dashboard.data)[0];
+        const onScreenDocs = DocListCast(onScreenTab.data);
+        return new List<Doc>(allDocs.reduce((result: Doc[], doc) => {
+            !onScreenDocs.includes(doc) && (result.push(doc));
+            // console.log(doc);
+            return result;
+        }, []));
+    }
+    return [];
 });
