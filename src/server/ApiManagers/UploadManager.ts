@@ -16,6 +16,7 @@ const imageDataUri = require('image-data-uri');
 import { isWebUri } from "valid-url";
 import { Opt } from "../../fields/Doc";
 import { SolrManager } from "./SearchManager";
+import { StringDecoder } from "string_decoder";
 
 export enum Directory {
     parsed_files = "parsed_files",
@@ -57,6 +58,26 @@ export default class UploadManager extends ApiManager {
                             const result = await DashUploadUtils.upload(files[key]);
                             result && !(result.result instanceof Error) && results.push(result);
                         }
+                        _success(res, results);
+                        resolve();
+                    });
+                });
+            }
+        });
+
+        register({
+            method: Method.POST,
+            subscription: "/uploadYoutubeVideo",
+            secureHandler: async ({ req, res }) => {
+                //req.readableBuffer.head.data
+                return new Promise<void>(async resolve => {
+                    req.addListener("data", async (args) => {
+                        console.log(args);
+                        const payload = String.fromCharCode.apply(String, args);
+                        const videoId = JSON.parse(payload).videoId;
+                        const results: Upload.FileResponse[] = [];
+                        const result = await DashUploadUtils.uploadYoutube(videoId);
+                        result && !(result.result instanceof Error) && results.push(result);
                         _success(res, results);
                         resolve();
                     });
