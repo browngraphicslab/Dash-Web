@@ -48,6 +48,7 @@ import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCurso
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 export const panZoomSchema = createSchema({
     _panX: "number",
@@ -1493,6 +1494,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             {this.Document._freeformLOD && !this.props.isContentActive() && !this.props.isAnnotationOverlay && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
             {this.props.noOverlay ? (null) : <CollectionFreeFormOverlayView elements={this.elementFunc} />}
+
 
             <div className={"pullpane-indicator"}
                 style={{
