@@ -48,6 +48,7 @@ import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCurso
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 export const panZoomSchema = createSchema({
     _panX: "number",
@@ -833,10 +834,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const measuredDocs = docs.filter(doc => doc && this.childDataProvider(doc, "")).map(doc => this.childDataProvider(doc, ""));
             if (measuredDocs.length) {
                 const ranges = measuredDocs.reduce(({ xrange, yrange }, { x, y, width, height }) =>  // computes range of content
-                    ({
-                        xrange: { min: Math.min(xrange.min, x), max: Math.max(xrange.max, x + width) },
-                        yrange: { min: Math.min(yrange.min, y), max: Math.max(yrange.max, y + height) }
-                    })
+                ({
+                    xrange: { min: Math.min(xrange.min, x), max: Math.max(xrange.max, x + width) },
+                    yrange: { min: Math.min(yrange.min, y), max: Math.max(yrange.max, y + height) }
+                })
                     , {
                         xrange: { min: Number.MAX_VALUE, max: -Number.MAX_VALUE },
                         yrange: { min: Number.MAX_VALUE, max: -Number.MAX_VALUE }
@@ -1493,6 +1494,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             {this.Document._freeformLOD && !this.props.isContentActive() && !this.props.isAnnotationOverlay && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
             {this.props.noOverlay ? (null) : <CollectionFreeFormOverlayView elements={this.elementFunc} />}
+
 
             <div className={"pullpane-indicator"}
                 style={{
