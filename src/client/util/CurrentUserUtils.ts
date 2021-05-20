@@ -1255,12 +1255,20 @@ Scripting.addGlobal(function shareDashboard(dashboard: Doc) {
     SharingManager.Instance.open(undefined, dashboard);
 },
     "opens sharing dialog for Dashboard");
-Scripting.addGlobal(function addToDashboards(dashboard: Doc) {
+Scripting.addGlobal(async function addToDashboards(dashboard: Doc) {
     const dashboardAlias = Doc.MakeAlias(dashboard);
+    const dockingConfig = JSON.parse(StrCast(dashboardAlias.dockingConfig));
+    dockingConfig.content = [];
+    dashboardAlias.dockingConfig = JSON.stringify(dockingConfig);
+
+    const allDocs = await DocListCastAsync(dashboard[DataSym]["data-all"]);
+
+    dashboardAlias["data-all"] = new List<Doc>((allDocs || []).map(doc => Doc.MakeAlias(doc)));
+
     dashboardAlias.data = new List<Doc>(DocListCast(dashboard.data).map(tabFolder => Doc.MakeAlias(tabFolder)));
-    // DocListCast(dashboardAlias.data).forEach(tabFolder => {
-    //     tabFolder.data = new List<Doc>(DocListCast(tabFolder.data).map(tab => Doc.MakeAlias(tab)));
-    // });
+    DocListCast(dashboardAlias.data).forEach(doc => doc.dashboard = dashboardAlias);
+    DocListCast(dashboardAlias.data)[0].data = new List<Doc>();
+    DocListCast(dashboardAlias.data)[1].data = ComputedField.MakeFunction(`dynamicOffScreenDocs(self.dashboard)`) as any;
     Doc.AddDocToList(CurrentUserUtils.MyDashboards, "data", dashboardAlias);
     CurrentUserUtils.openDashboard(Doc.UserDoc(), dashboardAlias);
 },
@@ -1268,13 +1276,12 @@ Scripting.addGlobal(function addToDashboards(dashboard: Doc) {
 
 Scripting.addGlobal(function dynamicOffScreenDocs(dashboard: Doc) {
     if (dashboard[DataSym] instanceof Doc) {
-        const allDocs = DocListCast(dashboard[DataSym]["data-all"]);
+        const allDocs = DocListCast(dashboard["data-all"]);
         console.log(allDocs);
         const onScreenTab = DocListCast(dashboard.data)[0];
         const onScreenDocs = DocListCast(onScreenTab.data);
         return new List<Doc>(allDocs.reduce((result: Doc[], doc) => {
             !onScreenDocs.includes(doc) && (result.push(doc));
-            // console.log(doc);
             return result;
         }, []));
     }

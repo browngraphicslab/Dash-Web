@@ -161,7 +161,11 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         }
         const instance = CollectionDockingView.Instance;
         if (!instance) return false;
-        else Doc.AddDocToList(instance.props.Document[DataSym], "data-all", document);
+        else {
+            const docList = DocListCast(instance.props.Document[DataSym]["data-all"]);
+            !docList.includes(document) && !docList.includes(document.aliasOf as Doc) && Doc.AddDocToList(instance.props.Document[DataSym], "data-all", document);
+            DocListCast(instance.props.Document[DataSym]["aliases"]).forEach(alias => !alias.aliasOf && alias !== instance.props.Document && Doc.AddDocToList(alias, "data-all", Doc.MakeAlias(document)));
+        }
         const docContentConfig = CollectionDockingView.makeDocumentConfig(document, panelName);
 
         if (!pullSide && stack) {
