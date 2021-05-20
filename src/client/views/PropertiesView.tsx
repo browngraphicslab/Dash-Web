@@ -358,13 +358,13 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @action
     newFieldClick = (e: React.PointerEvent) => {
         const content = <div className="propertiesView-addTag">
-            <div className="propertiesView-addTag-wrapper">
+            {/* <div className="propertiesView-addTag-wrapper">
                 <div className="propertiesView-addTag-title">Type</div>
                 <input className="propertiesView-tagInput"
                     type="text"
                     onChange={this.changePopUpType}
                     onBlur={(e) => { e.preventDefault(); }} />
-            </div>
+            </div> */}
             <div className="propertiesView-addTag-wrapper">
                 <div className="propertiesView-addTag-title">Key:</div>
                 <input className="propertiesView-popUpInput"

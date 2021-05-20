@@ -310,7 +310,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 {this.editDescription}
                 {this.editRelationship}
                 {this.followingDropdown}
-                {this.advancedSettings}
+                {/* {this.advancedSettings} */}
             </div>
 
         );
