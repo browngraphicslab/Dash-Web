@@ -36,4 +36,14 @@ export namespace Networking {
         return response.json();
     }
 
+    export async function UploadYoutubeToServer<T extends Upload.FileInformation = Upload.FileInformation>(videoId: string): Promise<Upload.FileResponse<T>[]> {
+        const parameters = {
+            method: 'POST',
+            body: JSON.stringify({ videoId }),
+            json: true
+        };
+        const response = await fetch("/uploadYoutubeVideo", parameters);
+        return response.json();
+    }
+
 }
