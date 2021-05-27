@@ -58,7 +58,7 @@ export class SettingsManager extends React.Component<{}> {
     @undoBatch changeFontFamily = action((e: React.ChangeEvent) => Doc.UserDoc().fontFamily = (e.currentTarget as any).value);
     @undoBatch changeFontSize = action((e: React.ChangeEvent) => Doc.UserDoc().fontSize = (e.currentTarget as any).value);
     @undoBatch switchActiveBackgroundColor = action((color: ColorState) => Doc.UserDoc().activeCollectionBackground = String(color.hex));
-    @undoBatch switchUserColor = action((color: ColorState) => Doc.SharingDoc().userColor = String(color.hex));
+    @undoBatch switchUserColor = action((color: ColorState) => { Doc.SharingDoc().userColor = undefined; Doc.GetProto(Doc.SharingDoc()).userColor = String(color.hex); });
     @undoBatch
     playgroundModeToggle = action(() => {
         this.playgroundMode = !this.playgroundMode;

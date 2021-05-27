@@ -68,7 +68,7 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
         return false;
     }
     sidebarKey = () => this.props.fieldKey + "-sidebar";
-    filtersHeight = () => 50;
+    filtersHeight = () => 38;
     screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(Doc.NativeWidth(this.props.dataDoc), 0).scale(this.props.scaling?.() || 1);
     panelWidth = () => !this.props.layoutDoc._showSidebar ? 0 : this.props.layoutDoc.type === DocumentType.RTF ? this.props.PanelWidth() : (NumCast(this.props.layoutDoc.nativeWidth) - Doc.NativeWidth(this.props.dataDoc)) * this.props.PanelWidth() / NumCast(this.props.layoutDoc.nativeWidth);
     panelHeight = () => this.props.PanelHeight() - this.filtersHeight();
@@ -103,7 +103,8 @@ export class SidebarAnnos extends React.Component<FieldViewProps & ExtraProps> {
                 width: `${this.panelWidth()}px`,
                 height: "100%"
             }}>
-                <div className="sidebarAnnos-tagList" style={{ height: this.filtersHeight(), width: this.panelWidth() }}>
+                <div className="sidebarAnnos-tagList" style={{ height: this.filtersHeight(), width: this.panelWidth() }}
+                    onWheel={e => e.stopPropagation()}>
                     {this.allUsers.map(renderUsers)}
                     {this.allHashtags.map(renderTag)}
                 </div>

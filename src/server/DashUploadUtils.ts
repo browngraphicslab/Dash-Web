@@ -15,6 +15,7 @@ import { clientPathToFile, Directory, pathToDirectory, serverPathToFile } from '
 import { resolvedServerUrl } from "./server_Initialization";
 import { AcceptableMedia, Upload } from './SharedMediaTypes';
 import request = require('request-promise');
+const { exec } = require("child_process");
 const parse = require('pdf-parse');
 const ffmpeg = require("fluent-ffmpeg");
 const requestImageSize = require("../client/util/request-image-size");
@@ -56,6 +57,23 @@ export namespace DashUploadUtils {
     const type = "content-type";
 
     const { imageFormats, videoFormats, applicationFormats, audioFormats } = AcceptableMedia;
+
+    export function uploadYoutube(videoId: string): Promise<Upload.FileResponse> {
+        console.log("UPLOAD " + videoId);
+        return new Promise<Upload.FileResponse<Upload.FileInformation>>((res, rej) => {
+            exec('/usr/local/bin/youtube-dl -o ' + (videoId + ".mp4") + ' https://www.youtube.com/watch?v=' + videoId + ' -f `/usr/local/bin/youtube-dl https://www.youtube.com/watch?v=' + videoId + ' -F | grep "(best)" | sed -e "s/ .*//"`',
+                (error: any, stdout: any, stderr: any) => {
+                    if (error) console.log(`error: ${error.message}`);
+                    else if (stderr) console.log(`stderr: ${stderr}`);
+                    else {
+                        console.log(`stdout: ${stdout}`);
+                        const data = { size: 0, path: videoId + ".mp4", name: videoId, type: "video/mp4" };
+                        const file = { ...data, toJSON: () => data };
+                        res(MoveParsedFile(file, Directory.videos));
+                    }
+                });
+        });
+    }
 
     export async function upload(file: File): Promise<Upload.FileResponse> {
         const { type, path, name } = file;
