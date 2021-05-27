@@ -109,8 +109,6 @@ export class SettingsManager extends React.Component<{}> {
             </Flyout>
         </div>;
 
-        const fontFamilies = ["Times New Roman", "Arial", "Georgia", "Comic Sans MS", "Tahoma", "Impact", "Crimson Text"];
-        const fontSizes = ["7px", "8px", "9px", "10px", "12px", "14px", "16px", "18px", "20px", "24px", "32px", "48px", "72px"];
         const colorSchemes = ["Light mode", "Dark mode", "Match system preferences"];
 
         return <div className="colors-content">
@@ -121,17 +119,6 @@ export class SettingsManager extends React.Component<{}> {
             <div className="preferences-color">
                 <div className="preferences-color-text">Border/Header Color</div>
                 {userColorFlyout}
-            </div>
-            <div className="preferences-font">
-                <div className="preferences-font-text">Default Font</div>
-                <div className="preferences-font-controls">
-                    <select className="size-select" onChange={this.changeFontSize} value={StrCast(Doc.UserDoc().fontSize, "7px")}>
-                        {fontSizes.map(size => <option key={size} value={size} defaultValue={StrCast(Doc.UserDoc().fontSize)}> {size} </option>)}
-                    </select>
-                    <select className="font-select" onChange={this.changeFontFamily} value={StrCast(Doc.UserDoc().fontFamily, "Times New Roman")} >
-                        {fontFamilies.map(font => <option key={font} value={font} defaultValue={StrCast(Doc.UserDoc().fontFamily)}> {font} </option>)}
-                    </select>
-                </div>
             </div>
             <div className="preferences-colorScheme">
                 <div className="preferences-color-text">Color Scheme</div>
@@ -163,7 +150,12 @@ export class SettingsManager extends React.Component<{}> {
             <div>
                 <input type="checkbox" onChange={e => Doc.UserDoc()._showLabel = !Doc.UserDoc()._showLabel}
                     checked={BoolCast(Doc.UserDoc()._showLabel)} />
-                <div className="preferences-check">Show button labels</div>
+                <div className="preferences-check">Show tool button labels</div>
+            </div>
+            <div>
+                <input type="checkbox" onChange={e => Doc.UserDoc()._showMenuLabel = !Doc.UserDoc()._showMenuLabel}
+                    checked={BoolCast(Doc.UserDoc()._showMenuLabel)} />
+                <div className="preferences-check">Show menu button labels</div>
             </div>
         </div>;
     }
@@ -180,6 +172,27 @@ export class SettingsManager extends React.Component<{}> {
                 <div className="tab-column-content">{this.formatsContent}</div>
             </div>
         </div>;
+    }
+
+    @computed get textContent() {
+
+        const fontFamilies = ["Times New Roman", "Arial", "Georgia", "Comic Sans MS", "Tahoma", "Impact", "Crimson Text"];
+        const fontSizes = ["7px", "8px", "9px", "10px", "12px", "14px", "16px", "18px", "20px", "24px", "32px", "48px", "72px"];
+
+        return (
+            <div className="tab-content appearances-content">
+                <div className="preferences-font">
+                    <div className="preferences-font-text">Default Font</div>
+                    <div className="preferences-font-controls">
+                        <select className="size-select" onChange={this.changeFontSize} value={StrCast(Doc.UserDoc().fontSize, "7px")}>
+                            {fontSizes.map(size => <option key={size} value={size} defaultValue={StrCast(Doc.UserDoc().fontSize)}> {size} </option>)}
+                        </select>
+                        <select className="font-select" onChange={this.changeFontFamily} value={StrCast(Doc.UserDoc().fontFamily, "Times New Roman")} >
+                            {fontFamilies.map(font => <option key={font} value={font} defaultValue={StrCast(Doc.UserDoc().fontFamily)}> {font} </option>)}
+                        </select>
+                    </div>
+                </div>
+            </div>);
     }
 
     @action
@@ -261,7 +274,7 @@ export class SettingsManager extends React.Component<{}> {
         // { title: "Accounts", ele: this.accountsContent }, { title: "Preferences", ele: this.preferencesContent }];
 
         const tabs = [{ title: "Accounts", ele: this.accountsContent }, { title: "Modes", ele: this.modesContent },
-        { title: "Appearance", ele: this.appearanceContent }];
+        { title: "Appearance", ele: this.appearanceContent }, { title: "Text", ele: this.textContent }];
 
         return <div className="settings-interface">
             <div className="settings-panel">

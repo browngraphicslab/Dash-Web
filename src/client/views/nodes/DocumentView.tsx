@@ -979,9 +979,13 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
         const borderPath = this.props.styleProvider?.(this.props.Document, this.props, StyleProp.BorderPath) || { path: undefined };
         const internal = PresBox.EffectsProvider(this.layoutDoc, this.renderDoc) || this.renderDoc;
-        console.log(highlighting, this.borderRounding, highlightStyle);
+
+        // console.log(highlighting, this.borderRounding, highlightStyle); // TODO:glr remove
+
         const boxShadow = highlighting && this.borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :
             this.boxShadow || (this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined);
+
+        // Return surrounding highlight 
         return <div className={DocumentView.ROOT_DIV} ref={this._mainCont}
             onContextMenu={this.onContextMenu}
             onKeyDown={this.onKeyDown}
@@ -1142,7 +1146,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         TraceMobx();
         const xshift = () => (this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) <= 0.001 ? this.props.PanelWidth() : undefined);
         const yshift = () => (this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Yshift) <= 0.001 ? this.props.PanelHeight() : undefined);
-        const isButton: boolean = this.props.Document.type == DocumentType.FONTICON;
+        const isButton: boolean = this.props.Document.type == DocumentType.FONTICON || this.props.Document._viewType == CollectionViewType.Linear;
         return (<div className="contentFittingDocumentView">
             {!this.props.Document || !this.props.PanelWidth() ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}

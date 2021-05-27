@@ -1316,3 +1316,7 @@ Scripting.addGlobal(function toggleOverlay() {
     selected ? selected.props.CollectionFreeFormDocumentView?.().float() : console.log("failed");
 });
 
+
+
+
+

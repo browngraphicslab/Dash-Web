@@ -112,10 +112,11 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         const expandable: boolean = BoolCast(this.props.Document.linearViewExpandable);
         const backgroundColor = this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.BackgroundColor);
         const color = this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.Color);
+        const icon: string = StrCast(this.props.Document.icon);
 
         const menuOpener = <label htmlFor={`${guid}`} style={{ pointerEvents: "all", cursor: "pointer", background: backgroundColor === color ? "black" : backgroundColor, }}
             onPointerDown={e => e.stopPropagation()} >
-            <p>{BoolCast(this.layoutDoc.linearViewIsExpanded) ? "–" : "+"}</p>
+            <p>{BoolCast(this.layoutDoc.linearViewIsExpanded) ? icon ? icon : "–" : icon ? icon : "+"}</p>
         </label>;
 
         return <div className="collectionLinearView-outer">
@@ -135,8 +136,10 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         return <div className={`collectionLinearView-docBtn`} key={pair.layout[Id]} ref={dref}
                             style={{
                                 pointerEvents: "all",
-                                width: nested ? pair.layout[WidthSym]() : NumCast(pair.layout._width),
-                                height: nested ? pair.layout[HeightSym]() : NumCast(pair.layout._height),
+                                width: nested ? undefined : NumCast(pair.layout._width),
+                                height: nested ? undefined : NumCast(pair.layout._height),
+                                // width: NumCast(pair.layout._width),
+                                // height: NumCast(pair.layout._height),
                             }}  >
                             <DocumentView
                                 Document={pair.layout}
@@ -167,29 +170,31 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         </div>;
                     })}
                 </div>
-                {DocumentLinksButton.StartLink ? <span className="bottomPopup-background" style={{
-                    background: backgroundColor === color ? "black" : backgroundColor,
-                    pointerEvents: "all"
-                }}
-                    onPointerDown={e => e.stopPropagation()} >
-                    <span className="bottomPopup-text" >
-                        Creating link from: {DocumentLinksButton.AnnotationId ? "Annotation in " : " "} {StrCast(DocumentLinksButton.StartLink.title).length < 51 ? DocumentLinksButton.StartLink.title : StrCast(DocumentLinksButton.StartLink.title).slice(0, 50) + '...'}
-                    </span>
-
-                    <Tooltip title={<><div className="dash-tooltip">{LinkDescriptionPopup.showDescriptions ? "Turn off description pop-up" :
-                        "Turn on description pop-up"} </div></>} placement="top">
-                        <span className="bottomPopup-descriptions" onClick={this.changeDescriptionSetting}>
-                            Labels: {LinkDescriptionPopup.showDescriptions ? LinkDescriptionPopup.showDescriptions : "ON"}
+                {DocumentLinksButton.StartLink ?
+                    <span className="bottomPopup-background"
+                        style={{
+                            background: backgroundColor === color ? "black" : backgroundColor,
+                            pointerEvents: "all"
+                        }}
+                        onPointerDown={e => e.stopPropagation()} >
+                        <span className="bottomPopup-text" >
+                            Creating link from: {DocumentLinksButton.AnnotationId ? "Annotation in " : " "} {StrCast(DocumentLinksButton.StartLink.title).length < 51 ? DocumentLinksButton.StartLink.title : StrCast(DocumentLinksButton.StartLink.title).slice(0, 50) + '...'}
                         </span>
-                    </Tooltip>
 
-                    <Tooltip title={<><div className="dash-tooltip">Exit link clicking mode </div></>} placement="top">
-                        <span className="bottomPopup-exit" onClick={this.exitLongLinks}>
-                            Clear
-                        </span>
-                    </Tooltip>
+                        <Tooltip title={<><div className="dash-tooltip">{LinkDescriptionPopup.showDescriptions ? "Turn off description pop-up" :
+                            "Turn on description pop-up"} </div></>} placement="top">
+                            <span className="bottomPopup-descriptions" onClick={this.changeDescriptionSetting}>
+                                Labels: {LinkDescriptionPopup.showDescriptions ? LinkDescriptionPopup.showDescriptions : "ON"}
+                            </span>
+                        </Tooltip>
 
-                </span> : null}
+                        <Tooltip title={<><div className="dash-tooltip">Exit link clicking mode </div></>} placement="top">
+                            <span className="bottomPopup-exit" onClick={this.exitLongLinks}>
+                                Clear
+                            </span>
+                        </Tooltip>
+
+                    </span> : null}
             </div>
         </div>;
     }

@@ -24,6 +24,7 @@ import { FormattedTextBox, FormattedTextBoxProps } from "./FormattedTextBox";
 import { updateBullets } from "./ProsemirrorExampleTransfer";
 import "./RichTextMenu.scss";
 import { schema } from "./schema_rts";
+import { Scripting } from "../../../util/Scripting";
 const { toggleMark } = require("prosemirror-commands");
 
 
@@ -103,6 +104,8 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
             { mark: schema.marks.pFontFamily.create({ family: "Tahoma" }), title: "Set font family", label: "Tahoma", command: this.changeFontFamily, style: { fontFamily: "Tahoma" } },
             { mark: schema.marks.pFontFamily.create({ family: "Impact" }), title: "Set font family", label: "Impact", command: this.changeFontFamily, style: { fontFamily: "Impact" } },
             { mark: schema.marks.pFontFamily.create({ family: "Crimson Text" }), title: "Set font family", label: "Crimson Text", command: this.changeFontFamily, style: { fontFamily: "Crimson Text" } },
+            { mark: schema.marks.pFontFamily.create({ family: "Roboto" }), title: "Set font family", label: "Roboto", command: this.changeFontFamily, style: { fontFamily: "Roboto" } },
+
             { mark: null, title: "", label: "various", command: unimplementedFunction, hidden: true },
             // { mark: null, title: "", label: "default", command: unimplementedFunction, hidden: true },
         ];
@@ -337,12 +340,12 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
 
         activeMarks.forEach(mark => {
             switch (mark.name) {
-                case "strong": this.boldActive = true; break;
-                case "em": this.italicsActive = true; break;
-                case "underline": this.underlineActive = true; break;
-                case "strikethrough": this.strikethroughActive = true; break;
-                case "subscript": this.subscriptActive = true; break;
-                case "superscript": this.superscriptActive = true; break;
+                case "strong": Doc.UserDoc()._boldActive = true; break;
+                case "em": Doc.UserDoc()._italicsActive = true; break;
+                case "underline": Doc.UserDoc()._underlineActive = true; break;
+                case "strikethrough": Doc.UserDoc()._strikethroughActive = true; break;
+                case "subscript": Doc.UserDoc()._subscriptActive = true; break;
+                case "superscript": Doc.UserDoc()._superscriptActive = true; break;
             }
         });
     }
@@ -443,7 +446,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         this.updateMenu(view, undefined, this.props);
     }
 
-    // TODO: remove doesn't work
+    // TODO:vellichora remove doesn't work
     //remove all node type and apply the passed-in one to the selected text
     changeListType = (nodeType: Node | undefined) => {
         if (!this.view || (nodeType as any)?.attrs.mapStyle === "") return;
@@ -1091,3 +1094,23 @@ export class RichTextMenuPlugin extends React.Component<RichTextMenuPluginProps>
     render() { return null; }
     update(view: EditorView, lastState: EditorState | undefined) { RichTextMenu.Instance?.updateMenu(view, lastState, this.props.editorProps); }
 }
+
+// text menu buttons
+// toggle: Bolden selected text
+Scripting.addGlobal(function toggleBold() {
+    Doc.UserDoc()._boldActive = !Doc.UserDoc()._boldActive;
+    const selected = SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
+});
+
+// toggle: Underline selected text
+Scripting.addGlobal(function toggleUnderline() {
+    Doc.UserDoc()._boldActive = !Doc.UserDoc()._underlineActive;
+    const selected = SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
+});
+
+// toggle: Italicize selected text
+Scripting.addGlobal(function toggleItalics() {
+    Doc.UserDoc()._boldActive = !Doc.UserDoc()._italicsActive;
+    const selected = SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
+});
+

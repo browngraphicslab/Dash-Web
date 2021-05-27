@@ -873,7 +873,7 @@ export class CurrentUserUtils {
     static blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
         ...opts, _gridGap: 5, _xMargin: 5, _yMargin: 5, _width: 100, boxShadow: "0 0", _forceActive: true,
         dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
-        backgroundColor: "black", _lockedPosition: true, linearViewIsExpanded: true, system: true
+        _lockedPosition: true, linearViewIsExpanded: true, system: true
     })) as any as Doc
 
     static ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
@@ -897,15 +897,23 @@ export class CurrentUserUtils {
 
     static textTools(doc: Doc) {
         return [
-            { title: "Background", tooltip: "Change document's background color", type: "btn", btnType: ButtonType.DropdownButton, ignoreClick: true, icon: "fill-drip", click: '' },
-            { title: "Overlay", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ToggleButton, icon: "layer-group", click: 'toggleOverlay()', toggle: 'selectedDoc.z', canClick: 'numSelected > 0' },
+            { title: "Bold", tooltip: "Bold", btnType: ButtonType.ToggleButton, icon: "bold", click: 'toggleBold()', toggle: 'userDoc._boldActive' },
+            { title: "Italic", tooltip: "Italicize", btnType: ButtonType.ToggleButton, icon: "italic", click: 'toggleItalic()', toggle: 'userDoc._italicsActive' },
+            { title: "Underline", tooltip: "Underline", btnType: ButtonType.ToggleButton, icon: "underline", click: 'toggleUnderline()', toggle: 'userDoc._underlineActive' },
+            { title: "Strikethrough", tooltip: "Strikethrough", btnType: ButtonType.ToggleButton, icon: "strikethrough", click: 'toggleStrikethrough()', toggle: 'userDoc._underlineActive' },
+            { title: "Superscript", tooltip: "Superscript", btnType: ButtonType.ToggleButton, icon: "superscript", click: 'toggleSuperscript()', toggle: 'userDoc._underlineActive' },
+            { title: "Subscript", tooltip: "Subscript", btnType: ButtonType.ToggleButton, icon: "subscript", click: 'toggleSubscript()', toggle: 'userDoc._underlineActive' },
+            { title: "Highlight", tooltip: "Highlight", btnType: ButtonType.DropdownButton, icon: "highlighter", click: '', ignoreClick: true },
+            { title: "Link", tooltip: "Link", btnType: ButtonType.DropdownButton, icon: "link", click: '', ignoreClick: true },
+            { title: "Text color", tooltip: "Text color", btnType: ButtonType.DropdownButton, icon: "fill-drip", click: '', ignoreClick: true },
+
         ];
     }
 
     static async contextMenuBtnDescriptions(doc: Doc) {
         return [
             // { title: "Perspective", tooltip: "Change document's perspective", type: "btn", btnType: ButtonType.DropdownButton, ignoreClick: true, icon: "desktop", click: '' },
-            { title: "Background", tooltip: "Change document's background color", type: "btn", btnType: ButtonType.DropdownButton, ignoreClick: true, icon: "fill-drip", click: '', canClick: 'numSelected > 0' },
+            { title: "Background", tooltip: "Change document's background color", type: "btn", btnType: ButtonType.DropdownButton, width: 60, ignoreClick: true, icon: "fill-drip", click: '', canClick: 'numSelected > 0' },
             { title: "Overlay", tooltip: "Toggle Overlay Layer", btnType: ButtonType.ToggleButton, icon: "layer-group", click: 'toggleOverlay()', toggle: 'selectedDoc.z', canClick: 'numSelected > 0' },
             { title: "Text Tools", type: "TextMenu", icon: "font" },
             // { title: "Ink Tools", type: "LinearMenu", icon: "pen-nib" },
@@ -918,14 +926,14 @@ export class CurrentUserUtils {
     static async setupContextMenuButtons(doc: Doc) {
         let docList: Doc[] = [];
 
-        const contextMenuBtns = (await CurrentUserUtils.contextMenuBtnDescriptions(doc)).map(({ title, tooltip, ignoreClick, icon, type, btnType, click, toggle, canClick }) => {
+        const contextMenuBtns = (await CurrentUserUtils.contextMenuBtnDescriptions(doc)).map(({ title, width, tooltip, ignoreClick, icon, type, btnType, click, toggle, canClick }) => {
             let textDocList: Doc[] = [];
             if (type == "TextMenu") {
                 const textBtns = (CurrentUserUtils.textTools(doc)).map(({ title, tooltip, ignoreClick, icon, type, btnType, click, toggle, canClick }) => {
                     textDocList.push(Docs.Create.FontIconDocument({
-                        _nativeWidth: btnType === ButtonType.DropdownButton ? 60 : 25,
+                        _nativeWidth: width ? width : 25,
                         _nativeHeight: 25,
-                        _width: btnType === ButtonType.DropdownButton ? 60 : 25,
+                        _width: width ? width : 25,
                         _height: 25,
                         icon,
                         toggle: toggle,
@@ -943,12 +951,12 @@ export class CurrentUserUtils {
                         onClick: click ? ScriptField.MakeScript(click, { scriptContext: "any" }) : undefined
                     }));
                 });
-                docList.push(CurrentUserUtils.blist({ flexDirection: 'column-reverse', linearViewExpandable: true, _height: 30, backgroundColor: "#E3E3E3" }, textDocList));
+                docList.push(CurrentUserUtils.blist({ ignoreClick: true, linearViewExpandable: true, _height: 30, backgroundColor: "transparent" }, textDocList));
             } else {
                 docList.push(Docs.Create.FontIconDocument({
-                    _nativeWidth: btnType === ButtonType.DropdownButton ? 60 : 30,
+                    _nativeWidth: width ? width : 30,
                     _nativeHeight: 30,
-                    _width: btnType === ButtonType.DropdownButton ? 60 : 30,
+                    _width: width ? width : 30,
                     _height: 30,
                     icon,
                     toggle: toggle,
@@ -968,13 +976,6 @@ export class CurrentUserUtils {
             }
         });
 
-
-        // if (doc["dockedBtn-undo"] === undefined) {
-        //     doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), btnType: ButtonType.ClickButton, dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
-        // }
-        // if (doc["dockedBtn-redo"] === undefined) {
-        //     doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), btnType: ButtonType.ClickButton, dontUndo: true, _stayInCollection: true, _dropAction: "alias", _hideContextMenu: true, _removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
-        // }
         if (doc.contextMenuBtns === undefined) {
             doc.contextMenuBtns = CurrentUserUtils.blist({ title: "menu buttons", ignoreClick: true, linearViewExpandable: false, _height: 35 }, docList);
         }
@@ -1097,11 +1098,13 @@ export class CurrentUserUtils {
                 const mygroups = groups?.filter(group => JSON.parse(StrCast(group.members)).includes(Doc.CurrentUserEmail)) || [];
                 SnappingManager.SetCachedGroups(["Public", ...mygroups?.map(g => StrCast(g.title))]);
             }, { fireImmediately: true });
+        // Document properties on load
         doc.system = true;
         doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
         doc._raiseWhenDragged = true;
-        doc._showLabel = true;
+        doc._showLabel = false;
+        doc._showMenuLabel = true;
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");
         doc.activeInkWidth = StrCast(doc.activeInkWidth, "1");
         doc.activeInkBezier = StrCast(doc.activeInkBezier, "0");
@@ -1306,7 +1309,7 @@ export class CurrentUserUtils {
     public static GetNewTextDoc(title: string, x: number, y: number, width?: number, height?: number, noMargins?: boolean, annotationOn?: Doc, maxHeight?: number) {
         const tbox = Docs.Create.TextDocument("", {
             _xMargin: noMargins ? 0 : undefined, _yMargin: noMargins ? 0 : undefined, annotationOn, docMaxAutoHeight: maxHeight,
-            _width: width || 200, _height: height || 100, x: x, y: y, _fitWidth: true, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
+            _width: width || 200, _height: height || 100, x: x, y: y, _fitWidth: true, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().   fontSize),
             _fontFamily: StrCast(Doc.UserDoc().fontFamily), title
         });
         const template = Doc.UserDoc().defaultTextLayout;

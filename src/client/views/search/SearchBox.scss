@@ -26,10 +26,12 @@
             display: inline-flex;
             justify-content: center;
             align-items: center;
+
             .searchBox-lozenge-dashboard {
                 display: flex;
+
                 .searchBox-dashboards {
-                    display:none;
+                    display: none;
                     // border-radius: 3px;
                     // background: olivedrab;
                     // color: white;
@@ -39,7 +41,7 @@
                     // cursor: pointer;
                 }
 
-                .searchBox-dashSelect{
+                .searchBox-dashSelect {
                     border: none;
                     background-color: transparent;
                     color: black;
@@ -55,7 +57,7 @@
 
             .searchBox-lozenge-dashboard:hover {
                 .searchBox-dashboards {
-                    display:inline-flex;
+                    display: inline-flex;
                 }
             }
         }
@@ -63,7 +65,7 @@
         .searchBar-icon {
             color: black;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 15px;
             height: 30;
             width: 30;
             display: flex;
@@ -78,7 +80,7 @@
         }
 
         .searchBar-icon:hover {
-            background-color: rgba(0,0,0,0.15);
+            background-color: rgba(0, 0, 0, 0.15);
         }
 
         .searchBox-right {
@@ -100,6 +102,7 @@
                 display: flex;
                 align-items: center;
                 border: black 1px solid;
+
                 .searchBox-logoff {
                     border-radius: 3px;
                     background: olivedrab;
@@ -109,11 +112,12 @@
                     padding: 1px 2px 1px 2px;
                     cursor: pointer;
                 }
+
                 .searchBox-logoff {
                     background: red;
                 }
 
-                .searchBox-dashSelect{
+                .searchBox-dashSelect {
                     border: none;
                     background-color: transparent;
                     color: black;
@@ -126,13 +130,15 @@
                     }
                 }
             }
+
             .searchBox-lozenge-user:hover {
                 .searchBox-logoff {
-                    display:inline-block;
+                    display: inline-block;
                 }
             }
-            
+
         }
+
         .searchBox-left {
             grid-column: 1;
             color: black;
@@ -151,24 +157,28 @@
             }
 
             &.searchBox-input {
-                   /* margin: 5px; */
-                    border-radius: 20px;
-                    border: black;
-                    display: block;
-                    width: 130px;
-                    -webkit-transition: width 0.4s;
-                    transition: width 0.4s;
-                    /* align-self: stretch; */
-                    outline: none;
+                /* margin: 5px; */
+                border-radius: 20px;
+                border: black;
+                display: block;
+                width: 130px;
+                -webkit-transition: width 0.4s;
+                transition: width 0.4s;
+                /* align-self: stretch; */
+                outline: none;
+
                 &:focus {
                     width: 500px;
-                    outline:none;
+                    outline: none;
                 }
             }
+
             &.searchBox-filter {
                 align-self: stretch;
-                button{
-                    transform:none;
+
+                button {
+                    transform: none;
+
                     &:hover {
                         transform: none;
                     }
@@ -185,7 +195,7 @@
                 max-height: $searchpanel-height;
             }
         }
-    }   
+    }
 }
 
 .searchBox-results {

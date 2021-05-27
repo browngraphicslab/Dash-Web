@@ -481,6 +481,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this.submitSearch();
     }
 
+    // Removed Database (SOLR) searches, so we will not need to render scope buttons
     @computed get scopeButtons() {
         return <div style={{ height: 25, paddingLeft: "4px", paddingRight: "4px" }}>
             <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
@@ -546,7 +547,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     </div>
                                 </Tooltip>
                             </div>}
-                            {this.scopeButtons}
                         </div>
                     </div >
                     <div className="searchBox-center" >
@@ -575,12 +575,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         </div>
                     </div>
                     <div className="searchBox-right" >
-                        <div className="searchBox-lozenge-user">
-                            {`${Doc.CurrentUserEmail}`}
-                            <div className="searchBox-logoff" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
-                                Logoff
-                            </div>
-                        </div>
                         <div className="searchBar-icon"
                             style={{ color: Doc.UserDoc().colorScheme == 'dark' ? "white" : "black" }}>
                             <FontAwesomeIcon icon="question-circle"></FontAwesomeIcon>
@@ -588,6 +582,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         <div className="searchBar-icon" onClick={() => SettingsManager.Instance.open()}
                             style={{ color: Doc.UserDoc().colorScheme == 'dark' ? "white" : "black" }}>
                             <FontAwesomeIcon icon="cog"></FontAwesomeIcon>
+                        </div>
+                        <div className="searchBox-lozenge-user">
+                            {`${Doc.CurrentUserEmail}`}
+                            <div className="searchBox-logoff" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
+                                Logoff
+                            </div>
                         </div>
                     </div>
 

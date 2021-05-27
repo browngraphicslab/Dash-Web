@@ -73,6 +73,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         const canRedo: boolean = UndoManager.CanRedo();
         const numSelected = SelectionManager.Views().length;
         const selectedDoc = numSelected > 0 ? SelectionManager.Views()[0].Document : undefined;
+        const userDoc = Doc.UserDoc();
 
         // Toggle and canClick properties as determined from the variable passed into the button doc
         const toggle = selectedDoc ? eval(StrCast(this.rootDoc.toggle)) : undefined;
@@ -84,6 +85,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         const backgroundColor = this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.BackgroundColor);
         const icon = StrCast(this.dataDoc.icon, "user") as any;
         const dropdown: boolean = BoolCast(this.rootDoc.dropDownOpen);
+        const dropdownDirection: string = StrCast(this.rootDoc.dropDownDirection);
 
         // CODEDUMP: glr
         // const presSize = type === ButtonType.MenuButton ? 30 : 25;
@@ -92,7 +94,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
 
         // TODO:glr Add label of button type
         let button = (
-            <div className={`menuButton-${type}`} onContextMenu={this.specificContextMenu}
+            <div className={`menuButton ${type}`} onContextMenu={this.specificContextMenu}
                 style={{ backgroundColor: "transparent", borderBottomLeftRadius: dropdown ? 0 : undefined }}>
                 <div className="menuButton-wrap">
                     <FontAwesomeIcon className={`menuButton-icon-${type}`} icon={icon} color={"black"} size={"sm"} />
@@ -116,15 +118,16 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
 
         switch (type) {
             case ButtonType.DropdownButton:
+                const active: string = StrCast(this.rootDoc.dropDownOpen);
                 button = (
-                    <div className={`menuButton ${type}`} style={{ color, backgroundColor, borderBottomLeftRadius: dropdown ? 0 : undefined }}>
+                    <div className={`menuButton ${type} ${active}`} style={{ color: "black", borderBottomLeftRadius: dropdown ? 0 : undefined }}>
                         <FontAwesomeIcon className={`fontIconBox-icon-${type}`} icon={icon} color={color} />
                         {!label || !Doc.UserDoc()._showLabel ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
                         <div
                             className="menuButton-dropDown"
                             style={{ borderBottomRightRadius: dropdown ? 0 : undefined }}
                             onClick={() => this.rootDoc.dropDownOpen = !this.rootDoc.dropDownOpen}>
-                            <FontAwesomeIcon icon={'caret-down'} color={color} size="sm" />
+                            <FontAwesomeIcon icon={'caret-down'} color={"black"} size="sm" />
                         </div>
                         {this.rootDoc.dropDownOpen ?
                             <div className="menuButton-dropDownBox"
@@ -164,7 +167,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
                 button = (
                     <div className={`menuButton ${type}`} style={{ color, backgroundColor }}>
                         <FontAwesomeIcon className={`fontIconBox-icon-${type}`} icon={icon} color={color} />
-                        {!label || !Doc.UserDoc()._showLabel ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
+                        {!label || !Doc.UserDoc()._showMenuLabel ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
                     </div>
                 );
                 break;
