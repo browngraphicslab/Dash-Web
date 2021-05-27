@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
 import { Doc, HeightSym, Opt, StrListCast, WidthSym } from "../../../../fields/Doc";
@@ -48,7 +48,6 @@ import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCurso
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 export const panZoomSchema = createSchema({
     _panX: "number",
@@ -90,8 +89,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private _clusterDistance: number = 75;
     private _hitCluster: number = -1;
     private _disposers: { [name: string]: IReactionDisposer } = {};
-    private _layoutPoolData = new ObservableMap<string, PoolData>();
-    private _layoutSizeData = new ObservableMap<string, { width?: number, height?: number }>();
+    private _layoutPoolData = observable.map<string, PoolData>();
+    private _layoutSizeData = observable.map<string, { width?: number, height?: number }>();
     private _cachedPool: Map<string, PoolData> = new Map();
     private _lastTap = 0;
 
@@ -831,13 +830,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (!this.isAnnotationOverlay && clamp) {
             // this section wraps the pan position, horizontally and/or vertically whenever the content is panned out of the viewing bounds
             const docs = this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout);
-            const measuredDocs = docs.filter(doc => doc && this.childDataProvider(doc, "")).map(doc => this.childDataProvider(doc, ""));
+            const measuredDocs = docs.filter(doc => doc && this.childDataProvider(doc, "") && this.childSizeProvider(doc, "")).
+                map(doc => ({ ...this.childDataProvider(doc, ""), ...this.childSizeProvider(doc, "") }));
             if (measuredDocs.length) {
                 const ranges = measuredDocs.reduce(({ xrange, yrange }, { x, y, width, height }) =>  // computes range of content
-                ({
-                    xrange: { min: Math.min(xrange.min, x), max: Math.max(xrange.max, x + width) },
-                    yrange: { min: Math.min(yrange.min, y), max: Math.max(yrange.max, y + height) }
-                })
+                    ({
+                        xrange: { min: Math.min(xrange.min, x), max: Math.max(xrange.max, x + width) },
+                        yrange: { min: Math.min(yrange.min, y), max: Math.max(yrange.max, y + height) }
+                    })
                     , {
                         xrange: { min: Number.MAX_VALUE, max: -Number.MAX_VALUE },
                         yrange: { min: Number.MAX_VALUE, max: -Number.MAX_VALUE }

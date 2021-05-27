@@ -1391,19 +1391,15 @@ export namespace DocUtils {
         return optionsCollection;
     }
 
-    export async function uploadFilesToDocs(files: File[], options: DocumentOptions) {
-        const generatedDocuments: Doc[] = [];
-        for (const { source: { name, type }, result } of await Networking.UploadFilesToServer(files)) {
-            if (result instanceof Error) {
-                alert(`Upload failed: ${result.message}`);
-                return [];
-            }
-            const full = { ...options, _width: 400, title: name };
-            const pathname = Utils.prepend(result.accessPaths.agnostic.client);
-            const doc = await DocUtils.DocumentFromType(type, pathname, full);
-            if (!doc) {
-                continue;
-            }
+    async function processFileupload(generatedDocuments: Doc[], name: string, type: string, result: Error | Upload.FileInformation, options: DocumentOptions) {
+        if (result instanceof Error) {
+            alert(`Upload failed: ${result.message}`);
+            return;
+        }
+        const full = { ...options, _width: 400, title: name };
+        const pathname = Utils.prepend(result.accessPaths.agnostic.client);
+        const doc = await DocUtils.DocumentFromType(type, pathname, full);
+        if (doc) {
             const proto = Doc.GetProto(doc);
             proto.text = result.rawText;
             proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
@@ -1419,6 +1415,20 @@ export namespace DocUtils {
                 proto.contentSize = result.contentSize;
             }
             generatedDocuments.push(doc);
+        }
+    }
+
+    export async function uploadYoutubeVideo(videoId: string, options: DocumentOptions) {
+        const generatedDocuments: Doc[] = [];
+        for (const { source: { name, type }, result } of await Networking.UploadYoutubeToServer(videoId)) {
+            processFileupload(generatedDocuments, name, type, result, options);
+        }
+        return generatedDocuments;
+    }
+    export async function uploadFilesToDocs(files: File[], options: DocumentOptions) {
+        const generatedDocuments: Doc[] = [];
+        for (const { source: { name, type }, result } of await Networking.UploadFilesToServer(files)) {
+            processFileupload(generatedDocuments, name, type, result, options);
         }
         return generatedDocuments;
     }

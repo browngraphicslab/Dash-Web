@@ -347,16 +347,11 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
             if (uriList || text) {
                 if ((uriList || text).includes("www.youtube.com/watch") || text.includes("www.youtube.com/embed")) {
-                    const url = (uriList || text).replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
-                    console.log("Video URI = ", uriList);
-                    console.log("Add:" + addDocument(Docs.Create.VideoDocument(url, {
-                        ...options,
-                        title: url,
-                        _width: 400,
-                        _height: 315,
-                        _nativeWidth: 600,
-                        _nativeHeight: 472.5
-                    })));
+
+                    const batch = UndoManager.StartBatch("youtube upload");
+                    const generatedDocuments: Doc[] = [];
+                    this.slowLoadDocuments((uriList || text).split("v=")[1], options, generatedDocuments, text, completed, e.clientX, e.clientY, addDocument).then(batch.end);
+
                     return;
                 }
                 // let matches: RegExpExecArray | null;
@@ -444,10 +439,14 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
             this.slowLoadDocuments(files, options, generatedDocuments, text, completed, e.clientX, e.clientY, addDocument).then(batch.end);
         }
-        slowLoadDocuments = async (files: File[], options: DocumentOptions, generatedDocuments: Doc[], text: string, completed: (() => void) | undefined, clientX: number, clientY: number, addDocument: (doc: Doc | Doc[]) => boolean) => {
+        slowLoadDocuments = async (files: (File[] | string), options: DocumentOptions, generatedDocuments: Doc[], text: string, completed: (() => void) | undefined, clientX: number, clientY: number, addDocument: (doc: Doc | Doc[]) => boolean) => {
             const disposer = OverlayView.Instance.addElement(
                 <ReactLoading type={"spinningBubbles"} color={"green"} height={250} width={250} />, { x: clientX - 125, y: clientY - 125 });
-            generatedDocuments.push(...await DocUtils.uploadFilesToDocs(files, options));
+            if (typeof files === "string") {
+                generatedDocuments.push(...await DocUtils.uploadYoutubeVideo(files, options));
+            } else {
+                generatedDocuments.push(...await DocUtils.uploadFilesToDocs(files, options));
+            }
             if (generatedDocuments.length) {
                 const set = generatedDocuments.length > 1 && generatedDocuments.map(d => DocUtils.iconify(d));
                 if (set) {
