@@ -85,6 +85,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     @action
     keyEvents = (e: KeyboardEvent) => {
         if (!(e.target instanceof HTMLInputElement) && this.props.isSelected(true)) {
+            console.log(e.key);
             switch (e.key) {
                 case " ":
                     if (!CollectionStackedTimeline.SelectingRegion) {
@@ -94,6 +95,19 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                         CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.props.fieldKey, this.props.startTag, this.props.endTag, this.currentTime);
                         CollectionStackedTimeline.SelectingRegion = undefined;
                     }
+                    break;
+                case "+":
+                    console.log("zoom in");
+                    if (e.shiftKey && this.layoutDoc._timeScale) {
+                        this.layoutDoc._timeScale = NumCast(this.layoutDoc._timeScale) + 5;
+                    }
+                    break;
+                case "_":
+                    console.log("zoom out");
+                    if (e.shiftKey && this.layoutDoc._timeScale) {
+                        this.layoutDoc._timeScale = NumCast(this.layoutDoc._timeScale) - 5;
+                    }
+                    break;
             }
         }
     }
@@ -113,7 +127,11 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     @action
     onPointerDownTimeline = (e: React.PointerEvent): void => {
         const rect = this._timeline?.getBoundingClientRect();
+        const scrollLeft = this._timeline?.scrollLeft;
         const clientX = e.clientX;
+        const diff = rect ? clientX - rect?.x : null;
+        console.log("Scroll left:" + scrollLeft + "\n", "rect.x: " + rect?.x + "\n", "clientX: " + clientX + "\n", "diff: " + diff);
+
         if (rect && this.props.isContentActive()) {
             const wasPlaying = this.props.playing();
             if (wasPlaying) this.props.Pause();
@@ -146,7 +164,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                     !wasPlaying && doubleTap && this.props.Play();
                 },
                 this.props.isSelected(true) || this.props.isContentActive(), undefined,
-                () => !wasPlaying && this.props.setTime((clientX - rect.x) / rect.width * this.duration));
+                () => !wasPlaying && this.props.setTime((clientX - rect.x + (scrollLeft ? scrollLeft : 0)) / rect.width * this.duration));
         }
     }
 
@@ -261,8 +279,10 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         </div>;
     }
     @computed get renderAudioWaveform() {
+        const scale: number = NumCast(this.layoutDoc._timeScale);
         return !this.props.mediaPath ? (null) :
-            <div className="collectionStackedTimeline-waveform" >
+            <div className="collectionStackedTimeline-waveform"
+                style={{ width: scale && scale != 0 ? scale + "%" : "100%" }}>
                 <AudioWaveform
                     duration={this.duration}
                     mediaPath={this.props.mediaPath}
@@ -272,7 +292,8 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     }
     currentTimecode = () => this.currentTime;
     render() {
-        const timelineContentWidth = this.props.PanelWidth();
+        const scale: number = NumCast(this.layoutDoc._timeScale);
+        const timelineContentWidth = scale && scale != 0 ? this.props.PanelWidth() * (scale / 100) : this.props.PanelWidth();
         const overlaps: { anchorStartTime: number, anchorEndTime: number, level: number }[] = [];
         const drawAnchors = this.childDocs.map(anchor => ({ level: this.getLevel(anchor, overlaps), anchor }));
         const maxLevel = overlaps.reduce((m, o) => Math.max(m, o.level), 0) + 2;

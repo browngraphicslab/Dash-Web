@@ -130,6 +130,7 @@ export class DocumentOptions {
     _viewType?: string; // sub type of a collection
     _gridGap?: number; // gap between items in masonry view
     _viewScale?: number; // how much a freeform view has been scaled (zoomed)
+    _timeScale?: number; // how much the timeline view has been scaled
     _overflow?: string; // set overflow behavior
     _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
     _yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts

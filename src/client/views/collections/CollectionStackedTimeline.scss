@@ -5,7 +5,7 @@
     border: gray solid 1px;
     border-radius: 3px;
     z-index: 1000;
-    overflow: hidden;
+    overflow-x: scroll;
     top: 0px;
 
     .collectionStackedTimeline-selector  {

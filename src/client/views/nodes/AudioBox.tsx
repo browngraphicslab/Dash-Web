@@ -371,19 +371,42 @@ export class AudioBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
                         </button>}
                 </div> :
                 <div className="audiobox-controls" style={{ pointerEvents: this._isAnyChildContentActive || this.isContentActive() ? "all" : "none" }} >
-                    <div className="audiobox-dictation" />
-                    <div className="audiobox-player" style={{ height: `${AudioBox.heightPercent}%` }} >
-                        <div className="audiobox-playhead" style={{ width: AudioBox.playheadWidth }} title={this.mediaState === "paused" ? "play" : "pause"} onClick={this.Play}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.mediaState === "paused" ? "play" : "pause"} size={"1x"} /></div>
-                        <div className="audiobox-timeline" style={{ top: 0, height: `100%`, left: AudioBox.playheadWidth, width: `calc(100% - ${AudioBox.playheadWidth}px)`, background: "white" }}>
+                    <div className="audioBox-tools">
+                        <div className="tools-left" style={{ justifyContent: "left", gridRow: 1, gridColumn: 1, marginLeft: 5 }}>
+                            <div className="audioBox-current-time">
+                                {formatTime(Math.round(NumCast(this.layoutDoc._currentTimecode)))}
+                            </div>  /
+                            <div className="audioBox-total-time">
+                                {formatTime(Math.round(this.duration))}
+                            </div>
+                        </div>
+                        <div className="tools-left" style={{ gridRow: 1, gridColumn: 2 }}>
+                            <div className="audiobox-icon" onClick={this.Play}>
+                                <FontAwesomeIcon icon={"arrow-left"} size={"1x"} />
+                            </div>
+                            <div className="audiobox-playhead" title={this.mediaState === "paused" ? "play" : "pause"} onClick={this.Play}>
+                                <FontAwesomeIcon icon={this.mediaState === "paused" ? "play" : "pause"} size={"1x"} />
+                            </div>
+                            <div className="audiobox-icon">
+                                <FontAwesomeIcon icon={"arrow-right"} size={"1x"} />
+                            </div>
+                        </div>
+                        <div className="tools-left" style={{ gridRow: 1, gridColumn: 3 }}>
+                            <div className="audiobox-icon" onClick={() => this.layoutDoc._timeScale = NumCast(this.layoutDoc._timeScale) + 5}>
+                                <FontAwesomeIcon icon={"plus"} size={"1x"} />
+                            </div>
+                            <div className="audiobox-icon" onClick={() => this.layoutDoc._timeScale = NumCast(this.layoutDoc._timeScale) - 5}>
+                                <FontAwesomeIcon icon={"minus"} size={"1x"} />
+                            </div>
+                        </div>
+
+
+                    </div>
+                    <div className="audiobox-player" >
+                        <div className="audiobox-timeline" style={{ height: `100%`, width: `100%`, background: "white" }}>
                             {this.renderTimeline}
                         </div>
                         {this.audio}
-                        <div className="audioBox-current-time">
-                            {formatTime(Math.round(NumCast(this.layoutDoc._currentTimecode)))}
-                        </div>
-                        <div className="audioBox-total-time">
-                            {formatTime(Math.round(this.duration))}
-                        </div>
                     </div>
                 </div>
             }

@@ -430,7 +430,7 @@ export class CurrentUserUtils {
             (doc.emptyWall as Doc).videoWall = true;
         }
         if (doc.emptyAudio === undefined) {
-            doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "audio recording", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, _timeScale: 100, title: "audio recording", system: true, cloneFieldFilter: new List<string>(["system"]) });
             ((doc.emptyAudio as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyNote === undefined) {
