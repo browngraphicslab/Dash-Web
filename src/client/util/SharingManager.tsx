@@ -39,7 +39,7 @@ interface GroupedOptions {
 }
 
 // const SharingKey = "sharingPermissions";
-// const PublicKey = "publicLinkPermissions";
+// const PublicKey = "all";
 // const DefaultColor = "black";
 
 // used to differentiate between individuals and groups when sharing
@@ -91,7 +91,7 @@ export class SharingManager extends React.Component<{}> {
     ]);
 
     // private get linkVisible() {
-    //     return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
+    //     return this.targetDoc ? this.targetDoc["acl-" + PublicKey] !== SharingPermissions.None : false;
     // }
 
     public open = (target?: DocumentView, target_doc?: Doc) => {
@@ -173,9 +173,6 @@ export class SharingManager extends React.Component<{}> {
         const target = targetDoc || this.targetDoc!;
         const acl = `acl-${normalizeEmail(user.email)}`;
         const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
-        console.log(DocListCast(CurrentUserUtils.MyDashboards.data));
-        console.log(target);
-        console.log(DocListCast(CurrentUserUtils.MyDashboards.data).indexOf(target));
         const isDashboard = DocListCast(CurrentUserUtils.MyDashboards.data).indexOf(target) !== -1;
 
         const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
@@ -340,11 +337,11 @@ export class SharingManager extends React.Component<{}> {
 
 
     // private setExternalSharing = (permission: string) => {
-    //     const sharingDoc = this.sharingDoc;
-    //     if (!sharingDoc) {
+    //     const targetDoc = this.targetDoc;
+    //     if (!targetDoc) {
     //         return;
     //     }
-    //     sharingDoc[PublicKey] = permission;
+    //     targetDoc["acl-" + PublicKey] = permission;
     // }
 
     // private get sharingUrl() {
@@ -595,7 +592,7 @@ export class SharingManager extends React.Component<{}> {
 
         // the list of groups shared with
         const groupListMap: (Doc | { title: string })[] = groups.filter(({ title }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(StrCast(title))}`) : true);
-        groupListMap.unshift({ title: "Public" });//, { title: "Override" });
+        groupListMap.unshift({ title: "Public" });//, { title: "ALL" });
         const groupListContents = groupListMap.map(group => {
             const groupKey = `acl-${StrCast(group.title)}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[groupKey] === docs[0]?.[AclSym]?.[groupKey] : doc?.[DataSym]?.[AclSym]?.[groupKey] === docs[0]?.[DataSym]?.[AclSym]?.[groupKey]);
@@ -644,6 +641,11 @@ export class SharingManager extends React.Component<{}> {
                     <div className={"close-button"} onClick={this.close}>
                         <FontAwesomeIcon icon={"times"} color={"black"} size={"lg"} />
                     </div>
+                    {/* {this.linkVisible ?
+                        <div>
+                            {this.sharingUrl}
+                        </div> :
+                        (null)} */}
                     {<div className="share-container">
                         <div className="share-setup">
                             <Select
