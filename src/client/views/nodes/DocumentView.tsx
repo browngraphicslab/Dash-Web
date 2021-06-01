@@ -926,7 +926,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} key="title" style={{
                 position: this.headerMargin ? "relative" : "absolute",
                 height: this.titleHeight,
-                background: SharingManager.Instance.users.find(users => users.user.email === this.dataDoc.author)?.userColor || (this.rootDoc.type === DocumentType.RTF ? StrCast(Doc.SharingDoc().userColor) : "rgba(0,0,0,0.4)"),
+                background: StrCast(SharingManager.Instance.users.find(users => users.user.email === this.dataDoc.author)?.sharingDoc.userColor, this.rootDoc.type === DocumentType.RTF ? StrCast(Doc.SharingDoc().userColor) : "rgba(0,0,0,0.4)"),
                 pointerEvents: this.onClickHandler || this.Document.ignoreClick ? "none" : undefined,
             }}>
                 <EditableView ref={this._titleRef}

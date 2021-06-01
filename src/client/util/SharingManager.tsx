@@ -148,7 +148,7 @@ export class SharingManager extends React.Component<{}> {
                             const a1 = await Cast(link?.anchor1, Doc, null);
                             const a2 = await Cast(link?.anchor2, Doc, null);
                         });
-                        sharingDocs.push({ user, sharingDoc, linkDatabase, userColor: StrCast(sharingDoc.color) });
+                        sharingDocs.push({ user, sharingDoc, linkDatabase, userColor: StrCast(sharingDoc.userColor) });
                     }
                 }
             });
@@ -367,11 +367,11 @@ export class SharingManager extends React.Component<{}> {
         if (!uniform) dropdownValues.unshift("-multiple-");
         if (override) dropdownValues.unshift("None");
         return dropdownValues.filter(permission => permission !== SharingPermissions.View).map(permission =>
-        (
-            <option key={permission} value={permission}>
-                {permission === SharingPermissions.Add ? "Can Augment" : permission}
-            </option>
-        )
+            (
+                <option key={permission} value={permission}>
+                    {permission === SharingPermissions.Add ? "Can Augment" : permission}
+                </option>
+            )
         );
     }
 
@@ -545,10 +545,10 @@ export class SharingManager extends React.Component<{}> {
                                 {this.sharingOptions(uniform)}
                             </select>
                         ) : (
-                            <div className={"permissions-dropdown"}>
-                                {permissions === SharingPermissions.Add ? "Can Augment" : permissions}
-                            </div>
-                        )}
+                                <div className={"permissions-dropdown"}>
+                                    {permissions === SharingPermissions.Add ? "Can Augment" : permissions}
+                                </div>
+                            )}
                     </div>
                 </div>
             );
@@ -619,10 +619,10 @@ export class SharingManager extends React.Component<{}> {
                                 {this.sharingOptions(uniform, group.title === "Override")}
                             </select>
                         ) : (
-                            <div className={"permissions-dropdown"}>
-                                {permissions}
-                            </div>
-                        )}
+                                <div className={"permissions-dropdown"}>
+                                    {permissions}
+                                </div>
+                            )}
                     </div>
                 </div>
             );
