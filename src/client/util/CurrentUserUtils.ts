@@ -1187,6 +1187,22 @@ export class CurrentUserUtils {
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600 }], { title: `Dashboard ${dashboardCount}` }, id, "row"); // add isFolder:true here?
         freeformDoc.context = dashboardDoc;
+
+        // switching the tabs from the datadoc to the regular doc
+        const dashboardTabs = dashboardDoc[DataSym].data;
+        dashboardDoc[DataSym].data = new List<Doc>();
+        dashboardDoc.data = dashboardTabs;
+
+        // collating all docs on the dashboard to make a data-all field
+        const allDocs = new List<Doc>();
+        const allDocs2 = new List<Doc>(); // Array.from, spread, splice all cause so stack or acl issues for some reason
+        DocListCast(dashboardTabs).forEach(doc => {
+            const tabDocs = DocListCast(doc.data);
+            allDocs.push(...tabDocs);
+            allDocs2.push(...tabDocs);
+        });
+        dashboardDoc[DataSym]["data-all"] = allDocs;
+        dashboardDoc["data-all"] = allDocs2;
         DocListCast(dashboardDoc.data).forEach(doc => doc.dashboard = dashboardDoc);
         DocListCast(dashboardDoc.data)[1].data = ComputedField.MakeFunction(`dynamicOffScreenDocs(self.dashboard)`) as any;
 
@@ -1257,13 +1273,17 @@ Scripting.addGlobal(function shareDashboard(dashboard: Doc) {
     "opens sharing dialog for Dashboard");
 Scripting.addGlobal(async function addToDashboards(dashboard: Doc) {
     const dashboardAlias = Doc.MakeAlias(dashboard);
+
+    const allDocs = await DocListCastAsync(dashboard[DataSym]["data-all"]);
+
+    // moves the data-all field from the datadoc to the layoutdoc, necessary for off screen docs tab to function properly
+    dashboard["data-all"] = new List<Doc>(allDocs);
+    dashboardAlias["data-all"] = new List<Doc>((allDocs || []).map(doc => Doc.MakeAlias(doc)));
+
     const dockingConfig = JSON.parse(StrCast(dashboardAlias.dockingConfig));
     dockingConfig.content = [];
     dashboardAlias.dockingConfig = JSON.stringify(dockingConfig);
 
-    const allDocs = await DocListCastAsync(dashboard[DataSym]["data-all"]);
-
-    dashboardAlias["data-all"] = new List<Doc>((allDocs || []).map(doc => Doc.MakeAlias(doc)));
 
     dashboardAlias.data = new List<Doc>(DocListCast(dashboard.data).map(tabFolder => Doc.MakeAlias(tabFolder)));
     DocListCast(dashboardAlias.data).forEach(doc => doc.dashboard = dashboardAlias);
@@ -1274,10 +1294,12 @@ Scripting.addGlobal(async function addToDashboards(dashboard: Doc) {
 },
     "adds Dashboard to set of Dashboards");
 
+/**
+ * Dynamically computes which docs should be rendered in the off-screen tabs tree of a dashboard.
+ */
 Scripting.addGlobal(function dynamicOffScreenDocs(dashboard: Doc) {
     if (dashboard[DataSym] instanceof Doc) {
         const allDocs = DocListCast(dashboard["data-all"]);
-        console.log(allDocs);
         const onScreenTab = DocListCast(dashboard.data)[0];
         const onScreenDocs = DocListCast(onScreenTab.data);
         return new List<Doc>(allDocs.reduce((result: Doc[], doc) => {

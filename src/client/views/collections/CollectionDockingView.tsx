@@ -163,8 +163,15 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         if (!instance) return false;
         else {
             const docList = DocListCast(instance.props.Document[DataSym]["data-all"]);
+            // adds the doc of the newly created tab to the data-all field if it doesn't already include that doc or one of its aliases
             !docList.includes(document) && !docList.includes(document.aliasOf as Doc) && Doc.AddDocToList(instance.props.Document[DataSym], "data-all", document);
-            DocListCast(instance.props.Document[DataSym]["aliases"]).forEach(alias => !alias.aliasOf && alias !== instance.props.Document && Doc.AddDocToList(alias, "data-all", Doc.MakeAlias(document)));
+            // adds an alias of the doc to the data-all field of the layoutdocs of the aliases
+            DocListCast(instance.props.Document[DataSym].aliases).forEach(alias => {
+                const aliasDocList = DocListCast(alias["data-all"]);
+                // if aliasDocList contains the alias, don't do anything
+                // otherwise add the original or an alias depending on whether the doc you're looking at is the current doc or a different alias
+                !DocListCast(document.aliases).some(a => aliasDocList.includes(a)) && Doc.AddDocToList(alias, "data-all", alias !== instance.props.Document ? Doc.MakeAlias(document) : document);
+            });
         }
         const docContentConfig = CollectionDockingView.makeDocumentConfig(document, panelName);
 

@@ -648,9 +648,8 @@ export namespace Docs {
          * constructor just generates a new GUID. This is currently used
          * only when creating a DockDocument from the current user's already existing
          * main document.
-         * @param layoutData whether the fieldKey field on the layout doc should store the data or the data doc
          */
-        function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data", protoId?: string, layoutData?: boolean) {
+        function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data", protoId?: string) {
             const viewKeys = ["x", "y", "system"]; // keys that should be addded to the view document even though they don't begin with an "_"
             const { omit: dataProps, extract: viewProps } = OmitKeys(options, viewKeys, "^_");
 
@@ -662,16 +661,8 @@ export namespace Docs {
             dataProps["acl-Override"] = "None";
             dataProps["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
 
-            if (layoutData) {
-                viewProps[fieldKey] = data;
-                const list = new List<Doc>();
-                console.log(DocListCast(data));
-                DocListCast(data).forEach(doc => {
-                    list.push(...DocListCast(doc.data));
-                });
-                dataProps[fieldKey + "-all"] = list;
-            }
-            else dataProps[fieldKey] = data;
+            dataProps[fieldKey] = data;
+
             // so that the list of annotations is already initialised, prevents issues in addonly.
             // without this, if a doc has no annotations but the user has AddOnly privileges, they won't be able to add an annotation because they would have needed to create the field's list which they don't have permissions to do.
             dataProps[fieldKey + "-annotations"] = new List<Doc>();
@@ -902,7 +893,7 @@ export namespace Docs {
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
             const tabs = TreeDocument(documents, { title: "On-Screen Tabs", childDontRegisterViews: true, freezeChildren: "remove|add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", _fitWidth: true, system: true });
             const all = TreeDocument([], { title: "Off-Screen Tabs", childDontRegisterViews: true, freezeChildren: "add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", system: true });
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List([tabs, all]), { freezeChildren: "remove|add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id, undefined, undefined, true);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List([tabs, all]), { freezeChildren: "remove|add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
         }
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {
