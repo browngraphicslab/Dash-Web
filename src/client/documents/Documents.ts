@@ -891,8 +891,8 @@ export namespace Docs {
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", childDontRegisterViews: true, freezeChildren: "remove|add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", _fitWidth: true, system: true });
-            const all = TreeDocument([], { title: "Off-Screen Tabs", childDontRegisterViews: true, freezeChildren: "add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", system: true });
+            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", childDontRegisterViews: true, freezeChildren: "remove|add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", _fitWidth: true, system: true, isFolder: true });
+            const all = TreeDocument([], { title: "Off-Screen Tabs", childDontRegisterViews: true, freezeChildren: "add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", system: true, isFolder: true });
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List([tabs, all]), { freezeChildren: "remove|add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
         }
 
