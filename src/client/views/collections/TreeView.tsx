@@ -511,9 +511,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
     onChildClick = () => this.props.onChildClick?.() ?? (this._editTitleScript?.() || ScriptCast(this.doc.treeChildClick));
 
-    onChildDoubleClick = () => {
-        return (!this.props.treeView.outlineMode && this._openScript?.()) || ScriptCast(this.doc.treeChildDoubleClick)
-    };
+    onChildDoubleClick = () => (!this.props.treeView.outlineMode && this._openScript?.()) || ScriptCast(this.doc.treeChildDoubleClick);
 
     refocus = () => this.props.treeView.props.focus(this.props.treeView.props.Document);
     ignoreEvent = (e: any) => {
