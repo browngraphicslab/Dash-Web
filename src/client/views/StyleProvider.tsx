@@ -127,7 +127,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
                 case DocumentType.LABEL: docColor = docColor || (doc.annotationOn !== undefined ? "rgba(128, 128, 128, 0.18)" : undefined); break;
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.LINKANCHOR: docColor = isAnchor ? "lightblue" : "transparent"; break;
-                case DocumentType.LINK: docColor = docColor || "transparent"; break;
+                case DocumentType.LINK: docColor = (isAnchor ? docColor : "") || "transparent"; break;
                 case DocumentType.IMG:
                 case DocumentType.WEB:
                 case DocumentType.PDF:
