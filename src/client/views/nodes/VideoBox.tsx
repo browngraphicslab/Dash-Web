@@ -543,7 +543,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
     }
 
     marqueeDown = action((e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.layoutDoc._viewScale === 1 && this.isContentActive(true)) this._marqueeing = [e.clientX, e.clientY];
+        if (!e.altKey && e.button === 0 && this.layoutDoc._viewScale === 1 && this.isContentActive(true) && ![InkTool.Highlighter, InkTool.Pen].includes(CurrentUserUtils.SelectedTool)) this._marqueeing = [e.clientX, e.clientY];
     });
 
     finishMarquee = action(() => {

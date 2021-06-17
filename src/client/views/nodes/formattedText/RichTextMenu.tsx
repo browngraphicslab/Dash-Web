@@ -352,7 +352,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         function onClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
-            self.TextView.endUndoTypingBatch();
+            self.TextView?.endUndoTypingBatch();
             UndoManager.RunInBatch(() => {
                 self.view && command && command(self.view.state, self.view.dispatch, self.view);
                 self.view && onclick && onclick(self.view.state, self.view.dispatch, self.view);
