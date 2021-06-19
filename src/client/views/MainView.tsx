@@ -103,7 +103,7 @@ export class MainView extends React.Component {
         }
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
-        DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeHidden"]); // can play with these fields on someone else's
+        DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_autoHeight", "_showSidebar", "showSidebar", "_sidebarWidthPercent", "_width", "_height", "width", "height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeHidden", "nativeWidth", "_nativeWidth"]); // can play with these fields on someone else's
 
         DocServer.GetRefField("rtfProto").then(proto => (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE), msg => msg && alert(msg)));
 
@@ -180,8 +180,8 @@ export class MainView extends React.Component {
             const targClass = targets[0].className.toString();
             if (SearchBox.Instance._searchbarOpen || SearchBox.Instance.open) {
                 const check = targets.some((thing) =>
-                    (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
-                        thing.className === "collectionSchema-header-menuOptions"));
+                (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
+                    thing.className === "collectionSchema-header-menuOptions"));
                 !check && SearchBox.Instance.resetSearch(true);
             }
             !targClass.includes("contextMenu") && ContextMenu.Instance.closeMenu();

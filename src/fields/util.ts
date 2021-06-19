@@ -249,8 +249,8 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         layoutDocChanged = true;
 
         if (isDashboard) {
-            DocListCast(target[Doc.LayoutFieldKey(target)]).forEach(d => {
-                distributeAcls(key, acl, d, inheritingFromCollection, visited);
+            DocListCastAsync(target[Doc.LayoutFieldKey(target)]).then(docs => {
+                docs?.forEach(d => distributeAcls(key, acl, d, inheritingFromCollection, visited));
             });
         }
     }
