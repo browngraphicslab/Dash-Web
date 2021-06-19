@@ -20,9 +20,7 @@ export namespace GestureUtils {
     ): GestureEventDisposer {
         const handler = (e: Event) => func(e, (e as CustomEvent<GestureEvent>).detail);
         element.addEventListener("dashOnGesture", handler);
-        return () => {
-            element.removeEventListener("dashOnGesture", handler);
-        };
+        return () => element.removeEventListener("dashOnGesture", handler);
     }
 
     export enum Gestures {

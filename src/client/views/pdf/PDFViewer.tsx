@@ -372,7 +372,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         if ((e.button !== 0 || e.altKey) && this.props.isContentActive(true)) {
             this._setPreviewCursor?.(e.clientX, e.clientY, true);
         }
-        if (!e.altKey && e.button === 0 && this.props.isContentActive(true)) {
+        if (!e.altKey && e.button === 0 && this.props.isContentActive(true) && ![InkTool.Highlighter, InkTool.Pen].includes(CurrentUserUtils.SelectedTool)) {
             this.props.select(false);
             this._marqueeing = [e.clientX, e.clientY];
             if (e.target && ((e.target as any).className.includes("endOfContent") || ((e.target as any).parentElement.className !== "textLayer"))) {

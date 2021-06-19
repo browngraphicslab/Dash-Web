@@ -26,6 +26,8 @@ import { FaceRectangles } from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
+import { InkTool } from '../../../fields/InkField';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 const path = require('path');
 
 export const pageSchema = createSchema({
@@ -321,7 +323,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProp
     }
     @action
     marqueeDown = (e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.layoutDoc._viewScale === 1 && this.isContentActive(true)) this._marqueeing = [e.clientX, e.clientY];
+        if (!e.altKey && e.button === 0 && this.layoutDoc._viewScale === 1 && this.isContentActive(true) && ![InkTool.Highlighter, InkTool.Pen].includes(CurrentUserUtils.SelectedTool)) this._marqueeing = [e.clientX, e.clientY];
     }
     @action
     finishMarquee = () => {

@@ -13,7 +13,7 @@ import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Ty
 import { AudioField } from "../../../fields/URLField";
 import { GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
-import { emptyFunction, hasDescendantTarget, OmitKeys, returnVal, Utils } from "../../../Utils";
+import { emptyFunction, hasDescendantTarget, OmitKeys, returnVal, Utils, returnTrue } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -845,6 +845,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     PanelWidth={this.anchorPanelWidth}
                     PanelHeight={this.anchorPanelHeight}
                     dontRegisterView={false}
+                    fitWidth={returnTrue}
                     styleProvider={this.anchorStyleProvider}
                     removeDocument={this.hideLinkAnchor}
                     LayoutTemplate={undefined}

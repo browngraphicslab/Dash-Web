@@ -634,7 +634,7 @@ export class GestureOverlay extends Touchable {
         } else {
             this._points = [];
         }
-        CollectionFreeFormViewChrome.Instance.primCreated();
+        CollectionFreeFormViewChrome.Instance?.primCreated();
     }
 
     makePolygon = (shape: string, gesture: boolean) => {
