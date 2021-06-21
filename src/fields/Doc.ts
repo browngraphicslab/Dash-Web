@@ -251,7 +251,9 @@ export class Doc extends RefField {
                         DocServer.GetRefField(this[Id], true);
                     }
                 };
-                if (sameAuthor || fKey.startsWith("acl") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
+                const effectiveAcl = GetEffectiveAcl(fKey);
+                const writeMode = DocServer.getFieldWriteMode(fKey as string);
+                if (sameAuthor || effectiveAcl === AclEdit || effectiveAcl === AclAdmin || fKey.startsWith("acl") || writeMode !== DocServer.WriteMode.Playground) {
                     delete this[CachedUpdates][fKey];
                     await fn();
                 } else {
