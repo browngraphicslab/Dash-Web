@@ -395,7 +395,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatableProps 
 
     @action
     onMarqueeDown = (e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.isContentActive(true)) {
+        if (!e.altKey && e.button === 0 && this.isContentActive(true) && ![InkTool.Highlighter, InkTool.Pen].includes(CurrentUserUtils.SelectedTool)) {
             this._marqueeing = [e.clientX, e.clientY];
             this.props.select(false);
         }
