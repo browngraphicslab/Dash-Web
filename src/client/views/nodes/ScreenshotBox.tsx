@@ -252,8 +252,8 @@ export class ScreenshotBox extends ViewBoxAnnotatableComponent<ViewBoxAnnotatabl
             this.dataDoc.mediaState = "recording";
             DocUtils.ActiveRecordings.push(this);
         } else {
-            this._audioRec.stop();
-            this._videoRec.stop();
+            this._audioRec?.stop();
+            this._videoRec?.stop();
             this.dataDoc.mediaState = "paused";
             const ind = DocUtils.ActiveRecordings.indexOf(this);
             ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
