@@ -50,7 +50,6 @@ export class GroupMemberView extends React.Component<GroupMemberViewProps> {
                                     onChange={selectedOption => GroupManager.Instance.addMemberToGroup(this.props.group, (selectedOption as UserOptions).value)}
                                     placeholder={"Add members"}
                                     value={null}
-                                    closeMenuOnSelect={true}
                                     styles={{
                                         dropdownIndicator: (base, state) => ({
                                             ...base,

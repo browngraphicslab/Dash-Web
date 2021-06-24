@@ -107,13 +107,6 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         // key where data is stored
         @computed get fieldKey() { return this.props.fieldKey; }
 
-        private AclMap = new Map<symbol, string>([
-            [AclPrivate, SharingPermissions.None],
-            [AclReadonly, SharingPermissions.View],
-            [AclAddonly, SharingPermissions.Add],
-            [AclEdit, SharingPermissions.Edit],
-            [AclAdmin, SharingPermissions.Admin]
-        ]);
 
         lookupField = (field: string) => ScriptCast((this.layoutDoc as any).lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field }).result;
 
