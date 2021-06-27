@@ -1273,7 +1273,6 @@ Scripting.addGlobal(function shareDashboard(dashboard: Doc) {
 },
     "opens sharing dialog for Dashboard");
 Scripting.addGlobal(async function removeDashboard(dashboard: Doc) {
-    console.log(dashboard);
     const dashboards = await DocListCastAsync(CurrentUserUtils.MyDashboards.data);
     if (dashboards && dashboards.length > 1) {
         if (dashboard === CurrentUserUtils.ActiveDashboard) CurrentUserUtils.openDashboard(Doc.UserDoc(), dashboards.find(doc => doc !== dashboard)!);
