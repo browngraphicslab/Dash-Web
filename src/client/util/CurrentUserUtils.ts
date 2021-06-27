@@ -1214,8 +1214,9 @@ export class CurrentUserUtils {
         const createDashboard = ScriptField.MakeScript(`createNewDashboard()`);
         const shareDashboard = ScriptField.MakeScript(`shareDashboard(self)`);
         const addToDashboards = ScriptField.MakeScript(`addToDashboards(self)`);
-        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, snapshotDashboard!, createDashboard!, shareDashboard!, addToDashboards!]);
-        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard", "Share Dashboard", "Add to Dashboards"]);
+        const removeDashboard = ScriptField.MakeScript('removeDashboard(self)');
+        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, snapshotDashboard!, createDashboard!, shareDashboard!, addToDashboards!, removeDashboard!]);
+        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard", "Share Dashboard", "Add to Dashboards", "Remove Dashboard"]);
 
         Doc.AddDocToList(dashboards, "data", dashboardDoc);
         CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
@@ -1271,6 +1272,15 @@ Scripting.addGlobal(function shareDashboard(dashboard: Doc) {
     SharingManager.Instance.open(undefined, dashboard);
 },
     "opens sharing dialog for Dashboard");
+Scripting.addGlobal(async function removeDashboard(dashboard: Doc) {
+    console.log(dashboard);
+    const dashboards = await DocListCastAsync(CurrentUserUtils.MyDashboards.data);
+    if (dashboards && dashboards.length > 1) {
+        if (dashboard === CurrentUserUtils.ActiveDashboard) CurrentUserUtils.openDashboard(Doc.UserDoc(), dashboards.find(doc => doc !== dashboard)!);
+        Doc.RemoveDocFromList(CurrentUserUtils.MyDashboards, "data", dashboard);
+    }
+},
+    "Remove Dashboard from Dashboards");
 Scripting.addGlobal(async function addToDashboards(dashboard: Doc) {
     const dashboardAlias = Doc.MakeAlias(dashboard);
 
