@@ -4,7 +4,7 @@ import { action, IReactionDisposer, observable, reaction, runInAction } from "mo
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import * as GoldenLayout from "../../../client/goldenLayout";
-import { Doc, DocListCast, Opt, DocListCastAsync } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt, DocListCastAsync, DataSym } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
 import { List } from '../../../fields/List';
@@ -24,6 +24,7 @@ import React = require("react");
 import { DocumentType } from '../../documents/DocumentTypes';
 import { listSpec } from '../../../fields/Schema';
 import { LightboxView } from '../LightboxView';
+import { inheritParentAcls } from '../../../fields/util';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -160,6 +161,18 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         }
         const instance = CollectionDockingView.Instance;
         if (!instance) return false;
+        else {
+            const docList = DocListCast(instance.props.Document[DataSym]["data-all"]);
+            // adds the doc of the newly created tab to the data-all field if it doesn't already include that doc or one of its aliases
+            !docList.includes(document) && !docList.includes(document.aliasOf as Doc) && Doc.AddDocToList(instance.props.Document[DataSym], "data-all", document);
+            // adds an alias of the doc to the data-all field of the layoutdocs of the aliases
+            DocListCast(instance.props.Document[DataSym].aliases).forEach(alias => {
+                const aliasDocList = DocListCast(alias["data-all"]);
+                // if aliasDocList contains the alias, don't do anything
+                // otherwise add the original or an alias depending on whether the doc you're looking at is the current doc or a different alias
+                !DocListCast(document.aliases).some(a => aliasDocList.includes(a)) && Doc.AddDocToList(alias, "data-all", alias !== instance.props.Document ? Doc.MakeAlias(document) : document);
+            });
+        }
         const docContentConfig = CollectionDockingView.makeDocumentConfig(document, panelName);
 
         if (!pullSide && stack) {
@@ -381,15 +394,22 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         setTimeout(async () => {
             const sublists = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
             const tabs = sublists && Cast(sublists[0], Doc, null);
-            const other = sublists && Cast(sublists[1], Doc, null);
+            // const other = sublists && Cast(sublists[1], Doc, null);
             const tabdocs = await DocListCastAsync(tabs?.data);
-            const otherdocs = await DocListCastAsync(other?.data);
-            tabs && (Doc.GetProto(tabs).data = new List<Doc>(docs));
-            const otherSet = new Set<Doc>();
-            otherdocs?.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
-            tabdocs?.filter(doc => !docs.includes(doc) && doc.type !== DocumentType.KVP).forEach(doc => otherSet.add(doc));
-            const vals = Array.from(otherSet.values()).filter(val => val instanceof Doc).map(d => d).filter(d => d.type !== DocumentType.KVP);
-            other && (Doc.GetProto(other).data = new List<Doc>(vals));
+            // const otherdocs = await DocListCastAsync(other?.data);
+            if (tabs) {
+                tabs.data = new List<Doc>(docs);
+                // DocListCast(tabs.aliases).forEach(tab => tab !== tabs && (tab.data = new List<Doc>(docs)));
+            }
+            // const otherSet = new Set<Doc>();
+            // otherdocs?.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
+            // tabdocs?.filter(doc => !docs.includes(doc) && doc.type !== DocumentType.KVP).forEach(doc => otherSet.add(doc));
+            // const vals = Array.from(otherSet.values()).filter(val => val instanceof Doc).map(d => d).filter(d => d.type !== DocumentType.KVP);
+            // this.props.Document[DataSym][this.props.fieldKey + "-all"] = new List<Doc>([...docs, ...vals]);
+            // if (other) {
+            //     other.data = new List<Doc>(vals);
+            //     // DocListCast(other.aliases).forEach(tab => tab !== other && (tab.data = new List<Doc>(vals)));
+            // }
         }, 0);
     }
 
@@ -399,7 +419,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         tab.reactComponents?.forEach((ele: any) => ReactDOM.unmountComponentAtNode(ele));
     }
     tabCreated = (tab: any) => {
-        tab.contentItem.element[0]?.firstChild?.firstChild?.InitTab?.(tab);  // have to explicitly initialize tabs that reuse contents from previous abs (ie, when dragging a tab around a new tab is created for the old content)
+        tab.contentItem.element[0]?.firstChild?.firstChild?.InitTab?.(tab);  // have to explicitly initialize tabs that reuse contents from previous tabs (ie, when dragging a tab around a new tab is created for the old content)
     }
 
     stackCreated = (stack: any) => {
@@ -407,9 +427,11 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             if (e.target === stack.header?.element[0] && e.button === 2) {
                 const emptyPane = CurrentUserUtils.EmptyPane;
                 emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
-                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], {
-                    _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), _fitWidth: true, title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`
-                }), "", stack);
+                const docToAdd = Docs.Create.FreeformDocument([], {
+                    _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), _fitWidth: true, title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`,
+                });
+                this.props.Document.isShared && inheritParentAcls(this.props.Document, docToAdd);
+                CollectionDockingView.AddSplit(docToAdd, "", stack);
             }
         });
 
@@ -430,9 +452,11 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                 // stack.config.fixed = !stack.config.fixed;  // force the stack to have a fixed size
                 const emptyPane = CurrentUserUtils.EmptyPane;
                 emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
-                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], {
+                const docToAdd = Docs.Create.FreeformDocument([], {
                     _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), _fitWidth: true, title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`
-                }), "", stack);
+                });
+                this.props.Document.isShared && inheritParentAcls(this.props.Document, docToAdd);
+                CollectionDockingView.AddSplit(docToAdd, "", stack);
             }));
     }
 

@@ -660,7 +660,9 @@ export namespace Docs {
             dataProps[`${fieldKey}-lastModified`] = new DateField;
             dataProps["acl-Override"] = "None";
             dataProps["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
+
             dataProps[fieldKey] = data;
+
             // so that the list of annotations is already initialised, prevents issues in addonly.
             // without this, if a doc has no annotations but the user has AddOnly privileges, they won't be able to add an annotation because they would have needed to create the field's list which they don't have permissions to do.
             dataProps[fieldKey + "-annotations"] = new List<Doc>();
@@ -838,8 +840,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaHeaders: new List(schemaHeaders), ...options, _viewType: CollectionViewType.Schema });
         }
 
-        export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Tree }, id);
+        export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string, protoId?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Tree }, id, undefined, protoId);
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions, id?: string, protoId?: string) {
@@ -889,8 +891,8 @@ export namespace Docs {
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", childDontRegisterViews: true, freezeChildren: "remove|add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", _fitWidth: true, system: true });
-            const all = TreeDocument([], { title: "Off-Screen Tabs", childDontRegisterViews: true, freezeChildren: "add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", system: true });
+            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", childDontRegisterViews: true, freezeChildren: "remove|add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", _fitWidth: true, system: true, isFolder: true });
+            const all = TreeDocument([], { title: "Off-Screen Tabs", childDontRegisterViews: true, freezeChildren: "add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", system: true, isFolder: true });
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List([tabs, all]), { freezeChildren: "remove|add", treeViewExpandedViewLock: true, treeViewExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
         }
 
@@ -1436,4 +1438,7 @@ Scripting.addGlobal(function generateLinkTitle(self: Doc) {
     const anchor2title = self.anchor2 && self.anchor2 !== self ? Cast(self.anchor2, Doc, null).title : "<?>";
     const relation = self.linkRelationship || "to";
     return `${anchor1title} (${relation}) ${anchor2title}`;
+});
+Scripting.addGlobal(function openTabAlias(tab: Doc) {
+    CollectionDockingView.AddSplit(Doc.MakeAlias(tab), "right");
 });

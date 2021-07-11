@@ -21,8 +21,9 @@ import { listSpec } from "./Schema";
 import { ComputedField, ScriptField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { AudioField, ImageField, PdfField, VideoField, WebField } from "./URLField";
-import { deleteProperty, GetEffectiveAcl, getField, getter, makeEditable, makeReadOnly, normalizeEmail, setter, SharingPermissions, updateFunction } from "./util";
+import { deleteProperty, GetEffectiveAcl, getField, getter, inheritParentAcls, makeEditable, makeReadOnly, normalizeEmail, setter, SharingPermissions, updateFunction } from "./util";
 import JSZip = require("jszip");
+import { CurrentUserUtils } from "../client/util/CurrentUserUtils";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -250,7 +251,8 @@ export class Doc extends RefField {
                         DocServer.GetRefField(this[Id], true);
                     }
                 };
-                if (sameAuthor || fKey.startsWith("acl") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
+                const writeMode = DocServer.getFieldWriteMode(fKey as string);
+                if (fKey.startsWith("acl") || writeMode !== DocServer.WriteMode.Playground) {
                     delete this[CachedUpdates][fKey];
                     await fn();
                 } else {
@@ -423,6 +425,9 @@ export namespace Doc {
         return Array.from(results);
     }
 
+    /**
+     * @returns the index of doc toFind in list of docs, -1 otherwise
+     */
     export function IndexOf(toFind: Doc, list: Doc[], allowProtos: boolean = true) {
         let index = list.reduce((p, v, i) => (v instanceof Doc && v === toFind) ? i : p, -1);
         index = allowProtos && index !== -1 ? index : list.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, toFind)) ? i : p, -1);
@@ -535,7 +540,7 @@ export namespace Doc {
                     const clones = await Promise.all(docs.map(async d => Doc.makeClone(d, cloneMap, rtfs, exclusions, dontCreate, asBranch)));
                     !dontCreate && assignKey(new List<Doc>(clones));
                 } else if (doc[key] instanceof Doc) {
-                    assignKey(key.includes("layout[") ? undefined : key.startsWith("layout") ? doc[key] as Doc : await Doc.makeClone(doc[key] as Doc, cloneMap, rtfs, exclusions, dontCreate, asBranch)); // reference documents except copy documents that are expanded teplate fields 
+                    assignKey(key.includes("layout[") ? undefined : key.startsWith("layout") ? doc[key] as Doc : await Doc.makeClone(doc[key] as Doc, cloneMap, rtfs, exclusions, dontCreate, asBranch)); // reference documents except copy documents that are expanded template fields 
                 } else {
                     !dontCreate && assignKey(ObjectField.MakeCopy(field));
                     if (field instanceof RichTextField) {
@@ -558,7 +563,7 @@ export namespace Doc {
                 } else if (field instanceof ObjectField) {
                     await copyObjectField(field);
                 } else if (field instanceof Promise) {
-                    debugger; //This shouldn't happend...
+                    debugger; //This shouldn't happen...
                 } else {
                     assignKey(field);
                 }
@@ -1147,6 +1152,9 @@ export namespace Doc {
             dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
             Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);
         }
+
+        if (ndoc) inheritParentAcls(CurrentUserUtils.ActiveDashboard, ndoc);
+
         return ndoc;
     }
     export function delegateDragFactory(dragFactory: Doc) {

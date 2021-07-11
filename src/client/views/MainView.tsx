@@ -68,6 +68,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
+    public static Live: boolean = false;
     private _docBtnRef = React.createRef<HTMLDivElement>();
     @observable public LastButton: Opt<Doc>;
     @observable private _windowWidth: number = 0;
@@ -103,8 +104,9 @@ export class MainView extends React.Component {
         }
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
-        DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeHidden"]); // can play with these fields on someone else's
-
+        if (!MainView.Live) {
+            DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_autoHeight", "_showSidebar", "showSidebar", "_sidebarWidthPercent", "_width", "_height", "width", "height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeHidden", "nativeWidth", "_nativeWidth"]); // can play with these fields on someone else's
+        }
         DocServer.GetRefField("rtfProto").then(proto => (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE), msg => msg && alert(msg)));
 
         const tag = document.createElement('script');

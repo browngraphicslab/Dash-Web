@@ -12,6 +12,7 @@ import { LinkManager } from "../util/LinkManager";
 AssignAllExtensions();
 
 (async () => {
+    MainView.Live = window.location.search.includes("live");
     window.location.search.includes("safe") && CollectionView.SetSafeMode(true);
     const info = await CurrentUserUtils.loadCurrentUser();
     if (info.id !== "__guest__") {

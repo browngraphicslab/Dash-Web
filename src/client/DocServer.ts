@@ -225,7 +225,7 @@ export namespace DocServer {
      * the server if the document has not been cached.
      * @param id the id of the requested document
      */
-    const _GetRefFieldImpl = (id: string, force: boolean = false): Promise<Opt<RefField>> => {
+    const _GetRefFieldImpl = async (id: string, force: boolean = false): Promise<Opt<RefField>> => {
         // an initial pass through the cache to determine whether the document needs to be fetched,
         // is already in the process of being fetched or already exists in the
         // cache

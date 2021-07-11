@@ -5,7 +5,7 @@ import { observer } from "mobx-react";
 import * as React from "react";
 import Select from "react-select";
 import * as RequestPromise from "request-promise";
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast, DocListCastAsync, Opt } from "../../fields/Doc";
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, AclUnset, DataSym, Doc, DocListCast, DocListCastAsync, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { distributeAcls, GetEffectiveAcl, normalizeEmail, SharingPermissions, TraceMobx } from "../../fields/util";
@@ -17,6 +17,7 @@ import { MainViewModal } from "../views/MainViewModal";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
 import { SearchBox } from "../views/search/SearchBox";
+import { CurrentUserUtils } from "./CurrentUserUtils";
 import { DocumentManager } from "./DocumentManager";
 import { GroupManager, UserOptions } from "./GroupManager";
 import { GroupMemberView } from "./GroupMemberView";
@@ -38,7 +39,7 @@ interface GroupedOptions {
 }
 
 // const SharingKey = "sharingPermissions";
-// const PublicKey = "publicLinkPermissions";
+// const PublicKey = "all";
 // const DefaultColor = "black";
 
 // used to differentiate between individuals and groups when sharing
@@ -90,7 +91,7 @@ export class SharingManager extends React.Component<{}> {
     ]);
 
     // private get linkVisible() {
-    //     return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
+    //     return this.targetDoc ? this.targetDoc["acl-" + PublicKey] !== SharingPermissions.None : false;
     // }
 
     public open = (target?: DocumentView, target_doc?: Doc) => {
@@ -172,10 +173,11 @@ export class SharingManager extends React.Component<{}> {
         const target = targetDoc || this.targetDoc!;
         const acl = `acl-${normalizeEmail(user.email)}`;
         const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
+        const isDashboard = DocListCast(CurrentUserUtils.MyDashboards.data).indexOf(target) !== -1;
 
         const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
         return !docs.map(doc => {
-            doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
+            doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc, undefined, undefined, isDashboard);
 
             if (permission === SharingPermissions.None) {
                 if (doc[acl] && doc[acl] !== SharingPermissions.None) doc.numUsersShared = NumCast(doc.numUsersShared, 1) - 1;
@@ -184,8 +186,9 @@ export class SharingManager extends React.Component<{}> {
                 if (!doc[acl] || doc[acl] === SharingPermissions.None) doc.numUsersShared = NumCast(doc.numUsersShared, 0) + 1;
             }
 
-            distributeAcls(acl, permission as SharingPermissions, doc);
+            distributeAcls(acl, permission as SharingPermissions, doc, undefined, undefined, isDashboard);
 
+            this.setDashboardBackground(doc, permission as SharingPermissions);
             if (permission !== SharingPermissions.None) return Doc.AddDocToList(sharingDoc, storage, doc);
             else return GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
         }).some(success => !success);
@@ -201,12 +204,13 @@ export class SharingManager extends React.Component<{}> {
         const target = targetDoc || this.targetDoc!;
         const key = normalizeEmail(StrCast(group.title));
         const acl = `acl-${key}`;
+        const isDashboard = DocListCast(CurrentUserUtils.MyDashboards.data).indexOf(target) !== -1;
 
         const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
 
         // ! ensures it returns true if document has been shared successfully, false otherwise
         return !docs.map(doc => {
-            doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmailNormalized}`] && distributeAcls(`acl-${Doc.CurrentUserEmailNormalized}`, SharingPermissions.Admin, doc);
+            doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmailNormalized}`] && distributeAcls(`acl-${Doc.CurrentUserEmailNormalized}`, SharingPermissions.Admin, doc, undefined, undefined, isDashboard);
 
             if (permission === SharingPermissions.None) {
                 if (doc[acl] && doc[acl] !== SharingPermissions.None) doc.numGroupsShared = NumCast(doc.numGroupsShared, 1) - 1;
@@ -215,7 +219,8 @@ export class SharingManager extends React.Component<{}> {
                 if (!doc[acl] || doc[acl] === SharingPermissions.None) doc.numGroupsShared = NumCast(doc.numGroupsShared, 0) + 1;
             }
 
-            distributeAcls(acl, permission as SharingPermissions, doc);
+            distributeAcls(acl, permission as SharingPermissions, doc, undefined, undefined, isDashboard);
+            this.setDashboardBackground(doc, permission as SharingPermissions);
 
             if (group instanceof Doc) {
                 const members: string[] = JSON.parse(StrCast(group.members));
@@ -264,9 +269,30 @@ export class SharingManager extends React.Component<{}> {
             });
         }
         else {
+            const dashboards = DocListCast(CurrentUserUtils.MyDashboards.data);
             docs.forEach(doc => {
-                if (GetEffectiveAcl(doc) === AclAdmin) distributeAcls(`acl-${shareWith}`, permission, doc);
+                const isDashboard = dashboards.indexOf(doc) !== -1;
+                if (GetEffectiveAcl(doc) === AclAdmin) distributeAcls(`acl-${shareWith}`, permission, doc, undefined, undefined, isDashboard);
             });
+        }
+    }
+
+    /**
+     * Sets the background of the Dashboard if it has been shared as a visual indicator
+     */
+    setDashboardBackground = async (doc: Doc, permission: SharingPermissions) => {
+        if (Doc.IndexOf(doc, DocListCast(CurrentUserUtils.MyDashboards.data)) !== -1) {
+            if (permission !== SharingPermissions.None) {
+                doc.isShared = true;
+                doc.backgroundColor = "green";
+            }
+            else {
+                const acls = doc[DataSym][AclSym];
+                if (Object.keys(acls).every(key => key === `acl-${Doc.CurrentUserEmailNormalized}` ? true : [AclUnset, AclPrivate].includes(acls[key]))) {
+                    doc.isShared = undefined;
+                    doc.backgroundColor = undefined;
+                }
+            }
         }
     }
 
@@ -294,10 +320,11 @@ export class SharingManager extends React.Component<{}> {
      */
     removeGroup = (group: Doc) => {
         if (group.docsShared) {
+            const dashboards = DocListCast(CurrentUserUtils.MyDashboards.data);
             DocListCast(group.docsShared).forEach(doc => {
                 const acl = `acl-${StrCast(group.title)}`;
-
-                distributeAcls(acl, SharingPermissions.None, doc);
+                const isDashboard = dashboards.indexOf(doc) !== -1;
+                distributeAcls(acl, SharingPermissions.None, doc, undefined, undefined, isDashboard);
 
                 const members: string[] = JSON.parse(StrCast(group.members));
                 const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
@@ -310,11 +337,11 @@ export class SharingManager extends React.Component<{}> {
 
 
     // private setExternalSharing = (permission: string) => {
-    //     const sharingDoc = this.sharingDoc;
-    //     if (!sharingDoc) {
+    //     const targetDoc = this.targetDoc;
+    //     if (!targetDoc) {
     //         return;
     //     }
-    //     sharingDoc[PublicKey] = permission;
+    //     targetDoc["acl-" + PublicKey] = permission;
     // }
 
     // private get sharingUrl() {
@@ -423,16 +450,16 @@ export class SharingManager extends React.Component<{}> {
         }
     }
 
-    distributeOverCollection = (targetDoc?: Doc) => {
-        const target = targetDoc || this.targetDoc!;
+    // distributeOverCollection = (targetDoc?: Doc) => {
+    //     const target = targetDoc || this.targetDoc!;
 
-        const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
-        docs.forEach(doc => {
-            for (const [key, value] of Object.entries(doc[AclSym])) {
-                distributeAcls(key, this.AclMap.get(value)! as SharingPermissions, target);
-            }
-        });
-    }
+    //     const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
+    //     docs.forEach(doc => {
+    //         for (const [key, value] of Object.entries(doc[AclSym])) {
+    //             distributeAcls(key, this.AclMap.get(value)! as SharingPermissions, target);
+    //         }
+    //     });
+    // }
 
     /**
      * Sorting algorithm to sort users.
@@ -565,7 +592,7 @@ export class SharingManager extends React.Component<{}> {
 
         // the list of groups shared with
         const groupListMap: (Doc | { title: string })[] = groups.filter(({ title }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(StrCast(title))}`) : true);
-        groupListMap.unshift({ title: "Public" });//, { title: "Override" });
+        groupListMap.unshift({ title: "Public" });//, { title: "ALL" });
         const groupListContents = groupListMap.map(group => {
             const groupKey = `acl-${StrCast(group.title)}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[groupKey] === docs[0]?.[AclSym]?.[groupKey] : doc?.[DataSym]?.[AclSym]?.[groupKey] === docs[0]?.[DataSym]?.[AclSym]?.[groupKey]);
@@ -614,6 +641,11 @@ export class SharingManager extends React.Component<{}> {
                     <div className={"close-button"} onClick={this.close}>
                         <FontAwesomeIcon icon={"times"} color={"black"} size={"lg"} />
                     </div>
+                    {/* {this.linkVisible ?
+                        <div>
+                            {this.sharingUrl}
+                        </div> :
+                        (null)} */}
                     {<div className="share-container">
                         <div className="share-setup">
                             <Select

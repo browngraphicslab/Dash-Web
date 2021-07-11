@@ -1,6 +1,6 @@
-import { computed, observable, reaction, action } from "mobx";
+import { computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
-import { DataSym, Doc, DocListCast, DocListCastAsync, AclReadonly } from "../../fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { List } from "../../fields/List";
 import { PrefetchProxy } from "../../fields/Proxy";
@@ -34,7 +34,7 @@ import { SelectionManager } from "./SelectionManager";
 import { UndoManager } from "./UndoManager";
 import { SnappingManager } from "./SnappingManager";
 import { InkTool } from "../../fields/InkField";
-import { computedFn } from "mobx-utils";
+import { SharingManager } from "./SharingManager";
 
 
 export let resolvedPorts: { server: number, socket: number };
@@ -521,7 +521,6 @@ export class CurrentUserUtils {
             { title: "Import", target: Cast(doc.myImportPanel, Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
             { title: "Recently Closed", target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
             { title: "Sharing", target: Cast(doc.mySharedDocs, Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc.mySharedDocs as Doc },
-            // { title: "Filter", target: Cast(doc.currentFilter, Doc, null), icon: "filter", click: 'selectMainMenu(self)' },
             { title: "Pres. Trails", target: Cast(doc.myPresentations, Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
             { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
             { title: "Settings", target: undefined as any, icon: "cog", click: 'selectMainMenu(self)' },
@@ -751,7 +750,7 @@ export class CurrentUserUtils {
                 title: "My Dashboards", _height: 400, childHideLinkButton: true,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, ignoreClick: true,
-                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", treeViewType: "fileSystem", isFolder: true, system: true
             }));
             const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
             (doc.myDashboards as any as Doc).contextMenuScripts = new List<ScriptField>([newDashboard!]);
@@ -852,7 +851,6 @@ export class CurrentUserUtils {
         CurrentUserUtils.setupPresentations(doc);
         CurrentUserUtils.setupFilesystem(doc);
         CurrentUserUtils.setupRecentlyClosedDocs(doc);
-        // CurrentUserUtils.setupFilterDocs(doc);
         CurrentUserUtils.setupUserDoc(doc);
     }
 
@@ -911,9 +909,9 @@ export class CurrentUserUtils {
         if (doc.mySharedDocs === undefined) {
             let sharedDocs = Docs.newAccount ? undefined : await DocServer.GetRefField(sharingDocumentId + "outer");
             if (!sharedDocs) {
-                sharedDocs = Docs.Create.StackingDocument([], {
-                    title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15,
-                    _showTitle: "title", ignoreClick: true, _lockedPosition: true, "acl-Public": SharingPermissions.Add, "_acl-Public": SharingPermissions.Add, _chromeHidden: true,
+                sharedDocs = Docs.Create.TreeDocument([], {
+                    title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "all", childLimitHeight: 0, _yMargin: 50, _gridGap: 15,
+                    _showTitle: "title", ignoreClick: false, _lockedPosition: true, "acl-Public": SharingPermissions.Add, "_acl-Public": SharingPermissions.Add, _chromeHidden: true,
                 }, sharingDocumentId + "outer", sharingDocumentId);
                 (sharedDocs as Doc)["acl-Public"] = (sharedDocs as Doc)[DataSym]["acl-Public"] = SharingPermissions.Add;
             }
@@ -1188,14 +1186,37 @@ export class CurrentUserUtils {
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600 }], { title: `Dashboard ${dashboardCount}` }, id, "row");
+        freeformDoc.context = dashboardDoc;
+
+        // switching the tabs from the datadoc to the regular doc
+        const dashboardTabs = dashboardDoc[DataSym].data;
+        dashboardDoc[DataSym].data = new List<Doc>();
+        dashboardDoc.data = dashboardTabs;
+
+        // collating all docs on the dashboard to make a data-all field
+        const allDocs = new List<Doc>();
+        const allDocs2 = new List<Doc>(); // Array.from, spread, splice all cause so stack or acl issues for some reason
+        DocListCast(dashboardTabs).forEach(doc => {
+            const tabDocs = DocListCast(doc.data);
+            allDocs.push(...tabDocs);
+            allDocs2.push(...tabDocs);
+        });
+        dashboardDoc[DataSym]["data-all"] = allDocs;
+        dashboardDoc["data-all"] = allDocs2;
+        DocListCast(dashboardDoc.data).forEach(doc => doc.dashboard = dashboardDoc);
+        DocListCast(dashboardDoc.data)[1].data = ComputedField.MakeFunction(`dynamicOffScreenDocs(self.dashboard)`) as any;
+
         Doc.AddDocToList(myPresentations, "data", presentation);
         userDoc.activePresentation = presentation;
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
         const snapshotDashboard = ScriptField.MakeScript(`snapshotDashboard()`);
         const createDashboard = ScriptField.MakeScript(`createNewDashboard()`);
-        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, snapshotDashboard!, createDashboard!]);
-        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard"]);
+        const shareDashboard = ScriptField.MakeScript(`shareDashboard(self)`);
+        const addToDashboards = ScriptField.MakeScript(`addToDashboards(self)`);
+        const removeDashboard = ScriptField.MakeScript('removeDashboard(self)');
+        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, snapshotDashboard!, createDashboard!, shareDashboard!, addToDashboards!, removeDashboard!]);
+        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard", "Share Dashboard", "Add to Dashboards", "Remove Dashboard"]);
 
         Doc.AddDocToList(dashboards, "data", dashboardDoc);
         CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
@@ -1247,5 +1268,53 @@ Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Insta
     "returns all the links to the document or its annotations", "(doc: any)");
 Scripting.addGlobal(function importDocument() { return CurrentUserUtils.importDocument(); },
     "imports files from device directly into the import sidebar");
-Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; },
-    "toggle between regular rendeing and an informal sketch/comic style");
+Scripting.addGlobal(function shareDashboard(dashboard: Doc) {
+    SharingManager.Instance.open(undefined, dashboard);
+},
+    "opens sharing dialog for Dashboard");
+Scripting.addGlobal(async function removeDashboard(dashboard: Doc) {
+    const dashboards = await DocListCastAsync(CurrentUserUtils.MyDashboards.data);
+    if (dashboards && dashboards.length > 1) {
+        if (dashboard === CurrentUserUtils.ActiveDashboard) CurrentUserUtils.openDashboard(Doc.UserDoc(), dashboards.find(doc => doc !== dashboard)!);
+        Doc.RemoveDocFromList(CurrentUserUtils.MyDashboards, "data", dashboard);
+    }
+},
+    "Remove Dashboard from Dashboards");
+Scripting.addGlobal(async function addToDashboards(dashboard: Doc) {
+    const dashboardAlias = Doc.MakeAlias(dashboard);
+
+    const allDocs = await DocListCastAsync(dashboard[DataSym]["data-all"]);
+
+    // moves the data-all field from the datadoc to the layoutdoc, necessary for off screen docs tab to function properly
+    dashboard["data-all"] = new List<Doc>(allDocs);
+    dashboardAlias["data-all"] = new List<Doc>((allDocs || []).map(doc => Doc.MakeAlias(doc)));
+
+    const dockingConfig = JSON.parse(StrCast(dashboardAlias.dockingConfig));
+    dockingConfig.content = [];
+    dashboardAlias.dockingConfig = JSON.stringify(dockingConfig);
+
+
+    dashboardAlias.data = new List<Doc>(DocListCast(dashboard.data).map(tabFolder => Doc.MakeAlias(tabFolder)));
+    DocListCast(dashboardAlias.data).forEach(doc => doc.dashboard = dashboardAlias);
+    DocListCast(dashboardAlias.data)[0].data = new List<Doc>();
+    DocListCast(dashboardAlias.data)[1].data = ComputedField.MakeFunction(`dynamicOffScreenDocs(self.dashboard)`) as any;
+    Doc.AddDocToList(CurrentUserUtils.MyDashboards, "data", dashboardAlias);
+    CurrentUserUtils.openDashboard(Doc.UserDoc(), dashboardAlias);
+},
+    "adds Dashboard to set of Dashboards");
+
+/**
+ * Dynamically computes which docs should be rendered in the off-screen tabs tree of a dashboard.
+ */
+Scripting.addGlobal(function dynamicOffScreenDocs(dashboard: Doc) {
+    if (dashboard[DataSym] instanceof Doc) {
+        const allDocs = DocListCast(dashboard["data-all"]);
+        const onScreenTab = DocListCast(dashboard.data)[0];
+        const onScreenDocs = DocListCast(onScreenTab.data);
+        return new List<Doc>(allDocs.reduce((result: Doc[], doc) => {
+            !onScreenDocs.includes(doc) && (result.push(doc));
+            return result;
+        }, []));
+    }
+    return [];
+});

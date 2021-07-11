@@ -754,16 +754,15 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 moreItems.push({ description: "Close", event: this.deleteClicked, icon: "times" });
             }
 
-            !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
-            cm.moveAfter(cm.findByDescription("More...")!, cm.findByDescription("OnClick...")!);
-
             const help = cm.findByDescription("Help...");
             const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
             !Doc.UserDoc().novice && helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "add:right"), icon: "layer-group" });
             helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _width: 300, _height: 300 }), "add:right"), icon: "keyboard" });
             !Doc.UserDoc().novice && helpItems.push({ description: "Print Document in Console", event: () => console.log(this.props.Document), icon: "hand-point-right" });
+            !Doc.UserDoc().novice && helpItems.push({ description: "Print DataDoc in Console", event: () => console.log(this.props.Document[DataSym]), icon: "hand-point-right" });
             cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
         }
+
         if (!this.topMost) e?.stopPropagation(); // DocumentViews should stop propagation of this event
         cm.displayMenu((e?.pageX || pageX || 0) - 15, (e?.pageY || pageY || 0) - 15);
         DocumentViewInternal.SelectAfterContextMenu && !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectView(this.props.DocumentView(), false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
